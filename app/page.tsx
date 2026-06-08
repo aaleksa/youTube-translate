@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import URLInput from './components/URLInput';
-import VideoPlayer from './components/VideoPlayer';
+import VideoPlayer, { type VideoPlayerHandle } from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import TextProcessor from './components/TextProcessor';
 
@@ -19,9 +19,14 @@ interface TranscriptResponse {
 }
 
 export default function Home() {
+  const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleSeek = (seconds: number) => {
+    videoPlayerRef.current?.seekTo(seconds);
+  };
 
   const handleURLSubmit = async (url: string) => {
     setIsLoading(true);
@@ -72,7 +77,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Video Player (2 columns on large screens) */}
             <div className="lg:col-span-2">
-              <VideoPlayer videoId={videoData.videoId} />
+              <VideoPlayer ref={videoPlayerRef} videoId={videoData.videoId} />
             </div>
 
             {/* Quick Info */}
@@ -111,6 +116,7 @@ export default function Home() {
               <TranscriptDisplay
                 transcript={videoData.transcript}
                 fullText={videoData.text}
+                onSeek={handleSeek}
               />
             </div>
 
