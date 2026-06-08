@@ -10,6 +10,7 @@ import {
 import VideoPlayer, { type VideoPlayerHandle } from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import TextProcessor from './components/TextProcessor';
+import { findActiveLineIndex } from './lib/timestamp';
 
 interface TranscriptItem {
   text: string;
@@ -29,13 +30,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [urlHistory, setUrlHistory] = useState<UrlHistoryItem[]>([]);
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
+  const [activeLineIndex, setActiveLineIndex] = useState(0);
 
   useEffect(() => {
     setUrlHistory(getUrlHistory());
   }, []);
 
-  const handleSeek = (seconds: number) => {
+  useEffect(() => {
+    if (!videoData) return;
+    setActiveLineIndex(findActiveLineIndex(videoData.transcript, currentPlaybackTime));
+  }, [currentPlaybackTime, videoData]);
+
+  const handleSeek = (seconds: number, lineIndex: number) => {
     videoPlayerRef.current?.seekTo(seconds);
+    setActiveLineIndex(lineIndex);
+    setCurrentPlaybackTime(seconds);
+  };
+
+  const handleTimeUpdate = (seconds: number) => {
+    setCurrentPlaybackTime(seconds);
   };
 
   const handleURLSubmit = async (url: string) => {
@@ -58,6 +72,8 @@ export default function Home() {
 
       const data = await response.json();
       setVideoData(data);
+      setCurrentPlaybackTime(0);
+      setActiveLineIndex(0);
       setUrlHistory(addToUrlHistory(url, data.videoId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -93,7 +109,11 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Video Player (2 columns on large screens) */}
             <div className="lg:col-span-2">
-              <VideoPlayer ref={videoPlayerRef} videoId={videoData.videoId} />
+              <VideoPlayer
+                ref={videoPlayerRef}
+                videoId={videoData.videoId}
+                onTimeUpdate={handleTimeUpdate}
+              />
             </div>
 
             {/* Quick Info */}
@@ -133,6 +153,7 @@ export default function Home() {
                 videoId={videoData.videoId}
                 transcript={videoData.transcript}
                 fullText={videoData.text}
+                activeLineIndex={activeLineIndex}
                 onSeek={handleSeek}
               />
             </div>

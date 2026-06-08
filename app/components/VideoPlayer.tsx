@@ -14,11 +14,13 @@ export interface VideoPlayerHandle {
 
 interface VideoPlayerProps {
   videoId: string;
+  onTimeUpdate?: (seconds: number) => void;
 }
 
 interface YTPlayer {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   playVideo: () => void;
+  getCurrentTime: () => number;
   destroy: () => void;
 }
 
@@ -68,15 +70,21 @@ function loadYouTubeApi(): Promise<void> {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
-  function VideoPlayer({ videoId }, ref) {
+  function VideoPlayer({ videoId, onTimeUpdate }, ref) {
     const playerId = useId().replace(/:/g, '');
     const playerRef = useRef<YTPlayer | null>(null);
+    const onTimeUpdateRef = useRef(onTimeUpdate);
+
+    useEffect(() => {
+      onTimeUpdateRef.current = onTimeUpdate;
+    }, [onTimeUpdate]);
 
     useImperativeHandle(ref, () => ({
       seekTo(seconds: number) {
         if (!playerRef.current) return;
         playerRef.current.seekTo(seconds, true);
         playerRef.current.playVideo();
+        onTimeUpdateRef.current?.(seconds);
       },
     }));
 
@@ -105,6 +113,22 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         playerRef.current = null;
       };
     }, [videoId, playerId]);
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if (!playerRef.current) return;
+        try {
+          const time = playerRef.current.getCurrentTime();
+          if (Number.isFinite(time)) {
+            onTimeUpdateRef.current?.(time);
+          }
+        } catch {
+          // Player not ready yet
+        }
+      }, 400);
+
+      return () => clearInterval(interval);
+    }, [videoId]);
 
     return (
       <div className="w-full bg-black rounded-lg overflow-hidden shadow-lg">

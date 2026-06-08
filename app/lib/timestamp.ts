@@ -39,3 +39,39 @@ export function parseTimestampToSeconds(timestamp?: string): number {
 
   return 0;
 }
+
+export function findActiveLineIndex(
+  transcript: Array<{ start?: string }>,
+  currentSeconds: number
+): number {
+  if (transcript.length === 0) return 0;
+
+  let active = 0;
+  for (let i = 0; i < transcript.length; i++) {
+    const start = parseTimestampToSeconds(transcript[i].start);
+    if (start <= currentSeconds + 0.25) {
+      active = i;
+    } else {
+      break;
+    }
+  }
+
+  return active;
+}
+
+export function ensureTranscriptTimestamps<
+  T extends { text: string; start?: string; duration?: string },
+>(transcript: T[]): T[] {
+  let lastSeconds = 0;
+
+  return transcript.map((item, index) => {
+    const trimmedStart = item.start?.trim();
+    if (trimmedStart) {
+      lastSeconds = parseTimestampToSeconds(trimmedStart);
+      return { ...item, start: trimmedStart };
+    }
+
+    const start = index === 0 ? '0' : lastSeconds.toString();
+    return { ...item, start };
+  });
+}
