@@ -78,6 +78,19 @@ Output ONLY the numbered list — no explanations or introduction.`;
   return 'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text. Provide clear, structured output.';
 }
 
+const ENRICH_FLASHCARDS_PROMPT = `You are an English teacher helping Ukrainian learners build flashcards.
+For each English word or phrase from the list, provide:
+1. Ukrainian translation
+2. One example sentence taken from or based on the transcript
+
+Output ONLY numbered lines in this format:
+NUMBER. ENGLISH_WORD | UKRAINIAN_TRANSLATION | EXAMPLE_SENTENCE
+
+Rules:
+- Use the transcript for realistic examples.
+- No introductions, explanations, or frequency counts.
+- One line per word.`;
+
 function truncateByChars(
   text: string,
   maxChars: number
@@ -200,20 +213,38 @@ async function callLmStudio(
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, query } = await request.json();
+    const { text, query, enrichWords } = await request.json();
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    if (!query) {
+    const isEnrichMode =
+      Array.isArray(enrichWords) &&
+      enrichWords.length > 0 &&
+      enrichWords.every((word: unknown) => typeof word === 'string');
+
+    if (!isEnrichMode && !query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
     const cleanText = sanitizeText(String(text));
-    const cleanQuery = sanitizeText(String(query));
-    const systemPrompt = getSystemPrompt(cleanQuery);
-    const queryBlock = `\n\nTask:\n${cleanQuery}`;
+    const cleanQuery = query ? sanitizeText(String(query)) : '';
+    const systemPrompt = isEnrichMode
+      ? ENRICH_FLASHCARDS_PROMPT
+      : getSystemPrompt(cleanQuery);
+
+    const wordsList = isEnrichMode
+      ? (enrichWords as string[])
+          .map((word) => word.trim())
+          .filter(Boolean)
+          .map((word, index) => `${index + 1}. ${word}`)
+          .join('\n')
+      : '';
+
+    const queryBlock = isEnrichMode
+      ? `\n\nWords to enrich:\n${wordsList}`
+      : `\n\nTask:\n${cleanQuery}`;
 
     const maxInputChars = getMaxInputChars();
     const charLimits =
@@ -245,7 +276,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
               success: true,
               result,
-              query: cleanQuery,
+              query: isEnrichMode ? 'enrich-flashcards' : cleanQuery,
               truncated,
               model,
             });
@@ -265,7 +296,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           result,
-          query: cleanQuery,
+          query: isEnrichMode ? 'enrich-flashcards' : cleanQuery,
           truncated,
           model,
         });
