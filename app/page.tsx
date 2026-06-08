@@ -1,7 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
+import {
+  addToUrlHistory,
+  getUrlHistory,
+  type UrlHistoryItem,
+} from './lib/urlHistory';
 import VideoPlayer, { type VideoPlayerHandle } from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import TextProcessor from './components/TextProcessor';
@@ -23,6 +28,11 @@ export default function Home() {
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [urlHistory, setUrlHistory] = useState<UrlHistoryItem[]>([]);
+
+  useEffect(() => {
+    setUrlHistory(getUrlHistory());
+  }, []);
 
   const handleSeek = (seconds: number) => {
     videoPlayerRef.current?.seekTo(seconds);
@@ -48,6 +58,7 @@ export default function Home() {
 
       const data = await response.json();
       setVideoData(data);
+      setUrlHistory(addToUrlHistory(url, data.videoId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setVideoData(null);
@@ -61,7 +72,12 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <URLInput onSubmit={handleURLSubmit} isLoading={isLoading} />
+          <URLInput
+            onSubmit={handleURLSubmit}
+            isLoading={isLoading}
+            history={urlHistory}
+            onHistoryChange={setUrlHistory}
+          />
         </div>
 
         {/* Error Message */}
