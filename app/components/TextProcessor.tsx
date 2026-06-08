@@ -6,9 +6,16 @@ interface TextProcessorProps {
   text: string;
 }
 
+interface ResponseItem {
+  id: number;
+  query: string;
+  result: string;
+  truncated: boolean;
+}
+
 export default function TextProcessor({ text }: TextProcessorProps) {
   const [query, setQuery] = useState('');
-  const [result, setResult] = useState('');
+  const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,7 +27,6 @@ export default function TextProcessor({ text }: TextProcessorProps) {
 
     setLoading(true);
     setError('');
-    setResult('');
 
     try {
       const response = await fetch('/api/process-text', {
@@ -41,7 +47,15 @@ export default function TextProcessor({ text }: TextProcessorProps) {
         return;
       }
 
-      setResult(data.result);
+      setResponses((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          query,
+          result: data.result,
+          truncated: Boolean(data.truncated),
+        },
+      ]);
     } catch (err) {
       setError('Error connecting to AI service');
       console.error(err);
@@ -63,7 +77,11 @@ export default function TextProcessor({ text }: TextProcessorProps) {
       {/* Quick Action Buttons */}
       <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
         <button
-          onClick={() => setQuery('Extract all phrasal verbs from this text')}
+          onClick={() =>
+            setQuery(
+              'List every phrasal verb in this text with the sentence it appears in and a short meaning. Format as a numbered list.'
+            )
+          }
           className="px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
         >
           📌 Phrasal Verbs
@@ -116,6 +134,11 @@ export default function TextProcessor({ text }: TextProcessorProps) {
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 dark:border-red-500 rounded">
           <p className="text-red-800 dark:text-red-300 font-medium">Error:</p>
           <p className="text-red-700 dark:text-red-400">{error}</p>
+          {error.includes('OPENAI_API_KEY') && (
+            <p className="text-red-600 dark:text-red-400 text-sm mt-2">
+              ℹ️ Додайте OPENAI_API_KEY у .env.local
+            </p>
+          )}
           {error.includes('Cannot connect to AI API') && (
             <p className="text-red-600 dark:text-red-400 text-sm mt-2">
               ℹ️ Переконайтесь, що локальний AI-сервер запущено на порту 1234
@@ -124,22 +147,43 @@ export default function TextProcessor({ text }: TextProcessorProps) {
         </div>
       )}
 
-      {/* Result Display */}
-      {result && (
-        <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/40 border-l-4 border-green-400 dark:border-green-500 rounded">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Query: {query}</p>
-          <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800 max-h-96 overflow-y-auto">
-            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{result}</p>
+      {/* Response List */}
+      {responses.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Responses ({responses.length})
+          </h3>
+          <div className="max-h-[28rem] overflow-y-auto space-y-3 pr-1">
+            {responses.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 bg-green-50 dark:bg-green-950/40 border-l-4 border-green-400 dark:border-green-500 rounded"
+              >
+                {item.truncated && (
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+                    Текст було скорочено через обмеження контексту моделі.
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                  Query: {item.query}
+                </p>
+                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800 max-h-64 overflow-y-auto">
+                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                    {item.result}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(item.result);
+                    alert('Result copied to clipboard!');
+                  }}
+                  className="mt-2 px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition"
+                >
+                  📋 Copy Result
+                </button>
+              </div>
+            ))}
           </div>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(result);
-              alert('Result copied to clipboard!');
-            }}
-            className="mt-2 px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition"
-          >
-            📋 Copy Result
-          </button>
         </div>
       )}
     </div>
