@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎥 YouTube Translator
 
-## Getting Started
+Приложение для екстракции транскрипцій з YouTube видео та їх AI-обробки. Дозволяє витягувати текст, знаходити фразові дієслова, перекладати та аналізувати контент.
 
-First, run the development server:
+## 🚀 Можливості
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- ✅ **Екстракція транскрипцій** з YouTube (VTT, SRT, JSON формати)
+- ✅ **Часові мітки** - відображення часу для кожного рядка
+- ✅ **AI-аналіз тексту** через OpenAI ChatGPT
+- ✅ **Пошук та фільтрація** за текстом
+- ✅ **Копіювання та завантаження** транскрипцій
+- ✅ **Статистика** - слова, символи, рядки
+- ✅ **Швидкі дії**: Фразові дієслова, переклад, резюме, ключові слова
+
+## 🛠️ Технологічний стек
+
+- **Frontend:** Next.js 16, React, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes
+- **AI:** OpenAI ChatGPT API
+- **Інструменти:** yt-dlp (для екстракції субтитрів)
+
+## 📁 Структура проекту
+
+### Фронтенд
+```
+app/
+├── page.tsx                          ← Головна сторінка
+├── layout.tsx                        ← Лаут
+└── components/
+    ├── URLInput.tsx                  ← Введення YouTube URL
+    ├── VideoPlayer.tsx               ← YouTube плеєр
+    ├── TranscriptDisplay.tsx         ← Відображення транскрипцій
+    └── TextProcessor.tsx             ← AI-обробка тексту
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Бекенд
+```
+app/api/
+├── transcript/
+│   └── route.ts                      ← API екстракції транскрипцій
+└── process-text/
+    └── route.ts                      ← API обробки тексту (OpenAI)
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Конфіги
+```
+/root
+├── package.json                      ← Залежності npm
+├── tsconfig.json                     ← Конфіг TypeScript
+├── next.config.ts                    ← Конфіг Next.js
+├── tailwind.config.ts                ← Конфіг Tailwind CSS
+├── postcss.config.mjs                ← Конфіг PostCSS
+└── .env.local                        ← Секрети (API keys)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Швидкий старт
 
-## Learn More
+### 1. Встановлення залежностей
+```bash
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Встановлення yt-dlp (macOS)
+```bash
+brew install yt-dlp
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Налаштування OpenAI API
+1. Перейди на https://platform.openai.com/api-keys
+2. Створи новий Secret key
+3. Додай у `.env.local`:
+```
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Запуск сервера
+```bash
+npm run dev
+```
 
-## Deploy on Vercel
+Відкрий [http://localhost:3000](http://localhost:3000)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📖 Як використовувати
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Введи YouTube URL** з однією з підтримуваних форм:
+   - `https://youtube.com/watch?v=VIDEO_ID`
+   - `https://youtu.be/VIDEO_ID`
+   - `https://youtube.com/embed/VIDEO_ID`
+
+2. **Переглянь відео та транскрипцію** з часовими мітками
+
+3. **Використай Text Analysis** для:
+   - Витягування фразових дієслів
+   - Перекладу на українську
+   - Створення резюме
+   - Витягування ключових слів
+   - Довільних запитів до AI
+
+## 🔧 Розробка
+
+### Build
+```bash
+npm run build
+```
+
+### Lint
+```bash
+npm run lint
+```
+
+## 📝 Ліцензія
+
+MIT
