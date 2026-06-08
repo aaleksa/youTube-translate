@@ -6,23 +6,37 @@ import {
   useImperativeHandle,
   useRef,
   useId,
+  useState,
 } from 'react';
+
+export interface VideoPlayerState {
+  isPlaying: boolean;
+  isReady: boolean;
+}
 
 export interface VideoPlayerHandle {
   seekTo: (seconds: number) => void;
+  pause: () => void;
+  play: () => void;
+  stop: () => void;
 }
 
 interface VideoPlayerProps {
   videoId: string;
   onTimeUpdate?: (seconds: number) => void;
+  onStateChange?: (state: VideoPlayerState) => void;
 }
 
 interface YTPlayer {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   playVideo: () => void;
+  pauseVideo: () => void;
   getCurrentTime: () => number;
+  getPlayerState: () => number;
   destroy: () => void;
 }
+
+const YT_STATE_PLAYING = 1;
 
 declare global {
   interface Window {
@@ -36,6 +50,7 @@ declare global {
           playerVars?: Record<string, string | number>;
           events?: {
             onReady?: (event: { target: YTPlayer }) => void;
+            onStateChange?: (event: { data: number }) => void;
           };
         }
       ) => YTPlayer;
@@ -70,14 +85,25 @@ function loadYouTubeApi(): Promise<void> {
 }
 
 const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
-  function VideoPlayer({ videoId, onTimeUpdate }, ref) {
+  function VideoPlayer({ videoId, onTimeUpdate, onStateChange }, ref) {
     const playerId = useId().replace(/:/g, '');
     const playerRef = useRef<YTPlayer | null>(null);
     const onTimeUpdateRef = useRef(onTimeUpdate);
+    const onStateChangeRef = useRef(onStateChange);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
       onTimeUpdateRef.current = onTimeUpdate;
     }, [onTimeUpdate]);
+
+    useEffect(() => {
+      onStateChangeRef.current = onStateChange;
+    }, [onStateChange]);
+
+    useEffect(() => {
+      onStateChangeRef.current?.({ isPlaying, isReady });
+    }, [isPlaying, isReady]);
 
     useImperativeHandle(ref, () => ({
       seekTo(seconds: number) {
@@ -86,10 +112,24 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         playerRef.current.playVideo();
         onTimeUpdateRef.current?.(seconds);
       },
+      pause() {
+        playerRef.current?.pauseVideo();
+      },
+      play() {
+        playerRef.current?.playVideo();
+      },
+      stop() {
+        if (!playerRef.current) return;
+        playerRef.current.pauseVideo();
+        playerRef.current.seekTo(0, true);
+        onTimeUpdateRef.current?.(0);
+      },
     }));
 
     useEffect(() => {
       let cancelled = false;
+      setIsReady(false);
+      setIsPlaying(false);
 
       loadYouTubeApi().then(() => {
         if (cancelled || !window.YT?.Player) return;
@@ -103,6 +143,14 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             enablejsapi: 1,
             origin: window.location.origin,
             rel: 0,
+          },
+          events: {
+            onReady: () => {
+              if (!cancelled) setIsReady(true);
+            },
+            onStateChange: (event) => {
+              setIsPlaying(event.data === YT_STATE_PLAYING);
+            },
           },
         });
       });
@@ -131,8 +179,8 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     }, [videoId]);
 
     return (
-      <div className="w-full bg-black rounded-lg overflow-hidden shadow-lg">
-        <div id={playerId} className="w-full aspect-video max-h-[400px]" />
+      <div className="w-full aspect-video max-h-[400px] bg-black">
+        <div id={playerId} className="w-full h-full" />
       </div>
     );
   }

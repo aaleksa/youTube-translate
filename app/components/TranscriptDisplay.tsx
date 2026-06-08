@@ -175,14 +175,24 @@ export default function TranscriptDisplay({
   onSeek,
 }: TranscriptDisplayProps) {
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const seekClickRef = useRef(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedText, setSelectedText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(false);
   const [bilingualMode, setBilingualMode] = useState(false);
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
   const [translateError, setTranslateError] = useState('');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('yoytube-auto-scroll');
+    if (saved !== null) {
+      setAutoScroll(saved === 'true');
+    }
+  }, []);
 
   useEffect(() => {
     setBilingualMode(false);
@@ -193,9 +203,38 @@ export default function TranscriptDisplay({
   }, [videoId, transcript.length]);
 
   useEffect(() => {
+    if (!autoScroll && !seekClickRef.current) return;
+
+    const container = scrollContainerRef.current;
     const activeLine = lineRefs.current.get(activeLineIndex);
-    activeLine?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [activeLineIndex]);
+    if (!container || !activeLine) return;
+
+    const lineRect = activeLine.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const relativeTop = lineRect.top - containerRect.top + container.scrollTop;
+    const targetTop =
+      relativeTop - container.clientHeight / 2 + lineRect.height / 2;
+
+    container.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: 'smooth',
+    });
+
+    seekClickRef.current = false;
+  }, [activeLineIndex, autoScroll]);
+
+  const handleSeek = (seconds: number, lineIndex: number) => {
+    seekClickRef.current = true;
+    onSeek?.(seconds, lineIndex);
+  };
+
+  const toggleAutoScroll = () => {
+    setAutoScroll((prev) => {
+      const next = !prev;
+      localStorage.setItem('yoytube-auto-scroll', String(next));
+      return next;
+    });
+  };
 
   const setLineRef = (index: number) => (el: HTMLDivElement | null) => {
     if (el) {
@@ -291,9 +330,7 @@ export default function TranscriptDisplay({
 
         {onSeek && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            {bilingualMode
-              ? 'Двомовний режим. Клік по рядку перемотує відео; поточний рядок підсвічується синім.'
-              : 'Клік по рядку або таймкоду перемотує відео. Поточний рядок підсвічується під час відтворення.'}
+            Клік по рядку перемотує відео. Увімкніть автоскрол, якщо хочете слідкувати за текстом під час відтворення.
           </p>
         )}
 
@@ -319,6 +356,16 @@ export default function TranscriptDisplay({
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
           >
             Download Text
+          </button>
+          <button
+            onClick={toggleAutoScroll}
+            className={`px-4 py-2 rounded-lg transition ${
+              autoScroll
+                ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+                : 'bg-gray-300 text-gray-700 hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'
+            }`}
+          >
+            {autoScroll ? '📜 Автоскрол ON' : '📜 Автоскрол OFF'}
           </button>
           <button
             onClick={handleToggleBilingual}
@@ -366,8 +413,9 @@ export default function TranscriptDisplay({
         )}
 
         <div
+          ref={scrollContainerRef}
           onMouseUp={bilingualMode ? undefined : handleSelection}
-          className="max-h-[32rem] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg"
+          className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg"
         >
           {translating ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -386,7 +434,7 @@ export default function TranscriptDisplay({
                     translation={translations[index] ?? ''}
                     lineIndex={index}
                     isActive={index === activeLineIndex}
-                    onSeek={onSeek}
+                    onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                   />
                 ) : (
@@ -395,7 +443,7 @@ export default function TranscriptDisplay({
                     item={item}
                     lineIndex={index}
                     isActive={index === activeLineIndex}
-                    onSeek={onSeek}
+                    onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                   />
                 )
@@ -406,26 +454,6 @@ export default function TranscriptDisplay({
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-          <div className="bg-blue-50 dark:bg-blue-950/50 p-3 rounded">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Words</p>
-            <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              {fullText.split(/\s+/).length}
-            </p>
-          </div>
-          <div className="bg-green-50 dark:bg-green-950/50 p-3 rounded">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Characters</p>
-            <p className="text-lg font-bold text-green-600 dark:text-green-400">
-              {fullText.length}
-            </p>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-950/50 p-3 rounded">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Lines</p>
-            <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-              {transcript.length}
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

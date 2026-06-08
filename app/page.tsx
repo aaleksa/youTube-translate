@@ -7,7 +7,11 @@ import {
   getUrlHistory,
   type UrlHistoryItem,
 } from './lib/urlHistory';
-import VideoPlayer, { type VideoPlayerHandle } from './components/VideoPlayer';
+import VideoControls from './components/VideoControls';
+import VideoPlayer, {
+  type VideoPlayerHandle,
+  type VideoPlayerState,
+} from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import TextProcessor from './components/TextProcessor';
 import { findActiveLineIndex } from './lib/timestamp';
@@ -32,6 +36,10 @@ export default function Home() {
   const [urlHistory, setUrlHistory] = useState<UrlHistoryItem[]>([]);
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
+  const [playerState, setPlayerState] = useState<VideoPlayerState>({
+    isPlaying: false,
+    isReady: false,
+  });
 
   useEffect(() => {
     setUrlHistory(getUrlHistory());
@@ -50,6 +58,20 @@ export default function Home() {
 
   const handleTimeUpdate = (seconds: number) => {
     setCurrentPlaybackTime(seconds);
+  };
+
+  const handlePlayPause = () => {
+    if (playerState.isPlaying) {
+      videoPlayerRef.current?.pause();
+    } else {
+      videoPlayerRef.current?.play();
+    }
+  };
+
+  const handleStop = () => {
+    videoPlayerRef.current?.stop();
+    setCurrentPlaybackTime(0);
+    setActiveLineIndex(0);
   };
 
   const handleURLSubmit = async (url: string) => {
@@ -74,6 +96,7 @@ export default function Home() {
       setVideoData(data);
       setCurrentPlaybackTime(0);
       setActiveLineIndex(0);
+      setPlayerState({ isPlaying: false, isReady: false });
       setUrlHistory(addToUrlHistory(url, data.videoId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -85,7 +108,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-8">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
           <URLInput
@@ -106,62 +129,76 @@ export default function Home() {
 
         {/* Main Content */}
         {videoData ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Video Player (2 columns on large screens) */}
-            <div className="lg:col-span-2">
-              <VideoPlayer
-                ref={videoPlayerRef}
-                videoId={videoData.videoId}
-                onTimeUpdate={handleTimeUpdate}
-              />
-            </div>
-
-            {/* Quick Info */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-100">Quick Info</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Words</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {videoData.text.split(/\s+/).length}
-                  </p>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+              <div className="xl:sticky xl:top-4 space-y-4">
+                <div className="rounded-lg overflow-hidden shadow-lg bg-black">
+                  <VideoPlayer
+                    ref={videoPlayerRef}
+                    videoId={videoData.videoId}
+                    onTimeUpdate={handleTimeUpdate}
+                    onStateChange={setPlayerState}
+                  />
+                  <div className="hidden xl:block">
+                    <VideoControls
+                      isPlaying={playerState.isPlaying}
+                      isReady={playerState.isReady}
+                      onPlayPause={handlePlayPause}
+                      onStop={handleStop}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Characters</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {videoData.text.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Lines</p>
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {videoData.transcript.length}
-                  </p>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
+                  <h3 className="text-lg font-bold mb-3 text-gray-800 dark:text-gray-100">Quick Info</h3>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Words</p>
+                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {videoData.text.split(/\s+/).length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Chars</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {videoData.text.length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Lines</p>
+                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                        {videoData.transcript.length}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setVideoData(null)}
+                    className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
+                  >
+                    Load Another Video
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => setVideoData(null)}
-                className="w-full mt-6 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition"
-              >
-                Load Another Video
-              </button>
+
+              <div>
+                <div className="xl:hidden sticky top-2 z-10 mb-3 rounded-lg overflow-hidden shadow-lg">
+                  <VideoControls
+                    isPlaying={playerState.isPlaying}
+                    isReady={playerState.isReady}
+                    onPlayPause={handlePlayPause}
+                    onStop={handleStop}
+                  />
+                </div>
+                <TranscriptDisplay
+                  videoId={videoData.videoId}
+                  transcript={videoData.transcript}
+                  fullText={videoData.text}
+                  activeLineIndex={activeLineIndex}
+                  onSeek={handleSeek}
+                />
+              </div>
             </div>
 
-            {/* Transcript */}
-            <div className="lg:col-span-3">
-              <TranscriptDisplay
-                videoId={videoData.videoId}
-                transcript={videoData.transcript}
-                fullText={videoData.text}
-                activeLineIndex={activeLineIndex}
-                onSeek={handleSeek}
-              />
-            </div>
-
-            {/* Text Processor */}
-            <div className="lg:col-span-3">
-              <TextProcessor text={videoData.text} />
-            </div>
+            <TextProcessor text={videoData.text} />
           </div>
         ) : (
           <div className="text-center py-12">
