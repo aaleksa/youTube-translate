@@ -91,6 +91,28 @@ Rules:
 - No introductions, explanations, or frequency counts.
 - One line per word.`;
 
+const PREPARE_FLASHCARDS_PROMPT = `You prepare vocabulary flashcards for Ukrainian learners.
+You receive a video transcript and an AI analysis response in ANY format (lists, frequencies, explanations, markdown).
+
+Extract every English word or phrase worth learning. For each item provide:
+- word: English word or phrase (not Ukrainian)
+- translation: Ukrainian translation
+- example: one usage example from the transcript when possible
+
+Return ONLY valid JSON:
+{
+  "items": [
+    { "word": "get in", "translation": "сідати (в автомобіль)", "example": "Let's get in the taxi." }
+  ]
+}
+
+Rules:
+- Ignore frequency counts like "6 разів" or "37 times".
+- Ignore Ukrainian explanatory paragraphs; extract only learning pairs.
+- Skip duplicates and trivial function words (the, and, a) unless clearly important.
+- Include phrasal verbs and useful phrases as whole units.
+- No text outside JSON.`;
+
 function truncateByChars(
   text: string,
   maxChars: number
@@ -158,7 +180,8 @@ function extractLmStudioResult(data: Record<string, unknown>): string {
 
 async function callOpenAi(
   systemPrompt: string,
-  input: string
+  input: string,
+  options?: { json?: boolean }
 ): Promise<{ result: string; model: string }> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
@@ -171,8 +194,9 @@ async function callOpenAi(
       { role: 'system', content: systemPrompt },
       { role: 'user', content: input },
     ],
-    temperature: 0.7,
+    temperature: options?.json ? 0.2 : 0.7,
     max_tokens: MAX_OUTPUT_TOKENS,
+    ...(options?.json ? { response_format: { type: 'json_object' as const } } : {}),
   });
 
   const result = message.choices[0]?.message?.content?.trim() ?? '';
@@ -213,7 +237,7 @@ async function callLmStudio(
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, query, enrichWords } = await request.json();
+    const { text, query, enrichWords, prepareFromResponse } = await request.json();
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -224,15 +248,25 @@ export async function POST(request: NextRequest) {
       enrichWords.length > 0 &&
       enrichWords.every((word: unknown) => typeof word === 'string');
 
-    if (!isEnrichMode && !query) {
+    const isPrepareMode =
+      typeof prepareFromResponse === 'string' &&
+      prepareFromResponse.trim().length > 0;
+
+    if (!isEnrichMode && !isPrepareMode && !query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
     const cleanText = sanitizeText(String(text));
     const cleanQuery = query ? sanitizeText(String(query)) : '';
-    const systemPrompt = isEnrichMode
-      ? ENRICH_FLASHCARDS_PROMPT
-      : getSystemPrompt(cleanQuery);
+    const cleanAiResponse = isPrepareMode
+      ? sanitizeText(String(prepareFromResponse))
+      : '';
+
+    const systemPrompt = isPrepareMode
+      ? PREPARE_FLASHCARDS_PROMPT
+      : isEnrichMode
+        ? ENRICH_FLASHCARDS_PROMPT
+        : getSystemPrompt(cleanQuery);
 
     const wordsList = isEnrichMode
       ? (enrichWords as string[])
@@ -242,9 +276,11 @@ export async function POST(request: NextRequest) {
           .join('\n')
       : '';
 
-    const queryBlock = isEnrichMode
-      ? `\n\nWords to enrich:\n${wordsList}`
-      : `\n\nTask:\n${cleanQuery}`;
+    const queryBlock = isPrepareMode
+      ? `\n\nAI analysis response:\n${cleanAiResponse}`
+      : isEnrichMode
+        ? `\n\nWords to enrich:\n${wordsList}`
+        : `\n\nTask:\n${cleanQuery}`;
 
     const maxInputChars = getMaxInputChars();
     const charLimits =
@@ -271,12 +307,18 @@ export async function POST(request: NextRequest) {
 
       if (AI_PROVIDER === 'openai') {
         try {
-          const { result, model } = await callOpenAi(systemPrompt, input);
+          const { result, model } = await callOpenAi(systemPrompt, input, {
+            json: isPrepareMode,
+          });
           if (result) {
             return NextResponse.json({
               success: true,
               result,
-              query: isEnrichMode ? 'enrich-flashcards' : cleanQuery,
+              query: isPrepareMode
+                ? 'prepare-flashcards'
+                : isEnrichMode
+                  ? 'enrich-flashcards'
+                  : cleanQuery,
               truncated,
               model,
             });
@@ -296,7 +338,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           result,
-          query: isEnrichMode ? 'enrich-flashcards' : cleanQuery,
+          query: isPrepareMode
+            ? 'prepare-flashcards'
+            : isEnrichMode
+              ? 'enrich-flashcards'
+              : cleanQuery,
           truncated,
           model,
         });
