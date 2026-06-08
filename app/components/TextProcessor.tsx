@@ -57,8 +57,8 @@ export default function TextProcessor({ text }: TextProcessorProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Text Analysis</h2>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6 mb-6">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">Text Analysis</h2>
 
       {/* Quick Action Buttons */}
       <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -90,7 +90,7 @@ export default function TextProcessor({ text }: TextProcessorProps) {
 
       {/* Query Input */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Your Query (Ctrl+Enter to submit)
         </label>
         <textarea
@@ -98,7 +98,7 @@ export default function TextProcessor({ text }: TextProcessorProps) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="e.g., 'Extract all phrasal verbs', 'Translate to Ukrainian', 'Find similar phrases', etc."
-          className="w-full h-20 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+          className="w-full h-20 px-4 py-2 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:border-blue-500"
         />
       </div>
 
@@ -113,11 +113,11 @@ export default function TextProcessor({ text }: TextProcessorProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-400 rounded">
-          <p className="text-red-800 font-medium">Error:</p>
-          <p className="text-red-700">{error}</p>
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 dark:border-red-500 rounded">
+          <p className="text-red-800 dark:text-red-300 font-medium">Error:</p>
+          <p className="text-red-700 dark:text-red-400">{error}</p>
           {error.includes('API key') && (
-            <p className="text-red-600 text-sm mt-2">
+            <p className="text-red-600 dark:text-red-400 text-sm mt-2">
               ℹ️ Please set your OpenAI API key in .env.local
             </p>
           )}
@@ -126,10 +126,10 @@ export default function TextProcessor({ text }: TextProcessorProps) {
 
       {/* Result Display */}
       {result && (
-        <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-400 rounded">
-          <p className="text-sm text-gray-600 mb-2 font-medium">Query: {query}</p>
-          <div className="bg-white p-3 rounded border border-green-200 max-h-96 overflow-y-auto">
-            <p className="text-gray-800 whitespace-pre-wrap">{result}</p>
+        <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/40 border-l-4 border-green-400 dark:border-green-500 rounded">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Query: {query}</p>
+          <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800 max-h-96 overflow-y-auto">
+            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{result}</p>
           </div>
           <button
             onClick={() => {

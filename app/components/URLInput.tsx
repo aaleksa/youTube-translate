@@ -29,7 +29,7 @@ export default function URLInput({ onSubmit, isLoading }: URLInputProps) {
   };
 
   return (
-    <div className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+    <div className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-900 border border-blue-400 dark:border-blue-800 rounded-lg shadow-lg p-6 text-white">
       <h1 className="text-3xl font-bold mb-2">YouTube Translator</h1>
       <p className="text-blue-100 mb-6">
         Paste a YouTube URL to extract and work with its transcript
@@ -43,7 +43,7 @@ export default function URLInput({ onSubmit, isLoading }: URLInputProps) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading}
-            className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white focus:outline-none disabled:opacity-50"
+            className="w-full px-4 py-3 rounded-lg bg-white text-gray-800 placeholder-gray-400 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-white dark:focus:ring-blue-400 focus:outline-none disabled:opacity-50"
           />
         </div>
 
@@ -68,7 +68,7 @@ export default function URLInput({ onSubmit, isLoading }: URLInputProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-4 py-3 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 bg-white text-blue-600 dark:bg-blue-500 dark:text-white font-bold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Loading...' : 'Get Transcript'}
         </button>
