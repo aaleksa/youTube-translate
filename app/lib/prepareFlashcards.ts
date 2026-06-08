@@ -94,3 +94,41 @@ export async function prepareFlashcardsFromAiResponse(
 
   return prepareViaFallback(trimmedResponse, transcript);
 }
+
+export async function prepareFlashcardForWord(
+  word: string,
+  transcript: string,
+  fallbackExample = ''
+): Promise<ParsedFlashcardItem> {
+  const trimmed = word.trim();
+  if (!trimmed) {
+    throw new Error('Слово не вибрано');
+  }
+
+  const [enriched] = await enrichWordsForFlashcards([trimmed], transcript);
+  if (enriched?.translation.trim()) {
+    return {
+      word: enriched.word.trim() || trimmed,
+      translation: enriched.translation.trim(),
+      example: enriched.example.trim() || fallbackExample || trimmed,
+    };
+  }
+
+  const fromAi = await prepareViaAi(
+    `English word or phrase to learn: ${trimmed}`,
+    transcript
+  );
+  const match =
+    fromAi.find((item) => item.word.toLowerCase() === trimmed.toLowerCase()) ??
+    fromAi[0];
+
+  if (match?.translation.trim()) {
+    return {
+      word: match.word.trim() || trimmed,
+      translation: match.translation.trim(),
+      example: match.example.trim() || fallbackExample || trimmed,
+    };
+  }
+
+  throw new Error('AI не повернув переклад для цього слова');
+}
