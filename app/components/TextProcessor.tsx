@@ -116,9 +116,9 @@ export default function TextProcessor({ text }: TextProcessorProps) {
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 dark:border-red-500 rounded">
           <p className="text-red-800 dark:text-red-300 font-medium">Error:</p>
           <p className="text-red-700 dark:text-red-400">{error}</p>
-          {error.includes('API key') && (
+          {error.includes('Cannot connect to AI API') && (
             <p className="text-red-600 dark:text-red-400 text-sm mt-2">
-              ℹ️ Please set your OpenAI API key in .env.local
+              ℹ️ Переконайтесь, що локальний AI-сервер запущено на порту 1234
             </p>
           )}
         </div>
