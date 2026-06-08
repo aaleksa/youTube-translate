@@ -1,9 +1,34 @@
-import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAI (uncomment to switch back):
+// import { OpenAI } from 'openai';
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const message = await openai.chat.completions.create({
+//   model: process.env.OPENAI_MODEL ?? 'gpt-3.5-turbo',
+//   messages: [
+//     { role: 'system', content: 'You are a helpful assistant...' },
+//     { role: 'user', content: `Text:\n${text}\n\nQuery:\n${query}` },
+//   ],
+//   temperature: 0.7,
+//   max_tokens: 2000,
+// });
+// const result = message.choices[0]?.message?.content || 'No response generated';
+
+const AI_API_URL =
+  process.env.AI_API_URL ?? 'http://localhost:1234/api/v1/chat';
+
+function extractResult(data: Record<string, unknown>): string {
+  const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
+  const fromChoices = choices?.[0]?.message?.content;
+  if (fromChoices) return fromChoices;
+
+  for (const key of ['response', 'content', 'message', 'text', 'result']) {
+    const value = data[key];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+
+  return 'No response generated';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,30 +48,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.AI_API_KEY
+          ? { Authorization: `Bearer ${process.env.AI_API_KEY}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL ?? 'default',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text.',
+          },
+          {
+            role: 'user',
+            content: `Please process the following text and answer the query. Respond with clear, structured output.\n\nText:\n${text}\n\nQuery:\n${query}`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json(
-        { error: 'OpenAI API key is not configured' },
-        { status: 500 }
+        { error: `AI API error (${response.status}): ${errorText || response.statusText}` },
+        { status: response.status }
       );
     }
 
-    const message = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text.',
-        },
-        {
-          role: 'user',
-          content: `Please process the following text and answer the query. Respond with clear, structured output.\n\nText:\n${text}\n\nQuery:\n${query}`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
-
-    const result = message.choices[0]?.message?.content || 'No response generated';
+    const data = (await response.json()) as Record<string, unknown>;
+    const result = extractResult(data);
 
     return NextResponse.json({
       success: true,
@@ -55,20 +92,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error processing text:', error);
-    
-    if (error instanceof Error) {
-      if (error.message.includes('401')) {
-        return NextResponse.json(
-          { error: 'Invalid OpenAI API key' },
-          { status: 401 }
-        );
-      }
-      if (error.message.includes('429')) {
-        return NextResponse.json(
-          { error: 'API rate limit exceeded' },
-          { status: 429 }
-        );
-      }
+
+    if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        { error: `Cannot connect to AI API at ${AI_API_URL}` },
+        { status: 503 }
+      );
     }
 
     return NextResponse.json(
