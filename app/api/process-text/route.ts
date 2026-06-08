@@ -45,15 +45,18 @@ function getSystemPrompt(query: string): string {
 
   if (lower.includes('phrasal verb')) {
     return `You are an English language teacher specializing in phrasal verbs.
-Find every phrasal verb in the text (verb + particle: up, out, on, off, in, away, back, etc.).
-For each phrasal verb output exactly one line in this format:
-NUMBER. PHRASAL_VERB | EXAMPLE_SENTENCE | UKRAINIAN_MEANING
+Find every phrasal verb or useful phrase in the text (verb + particle: up, out, on, off, in, away, back, etc.).
+For each item output exactly ONE line in this format:
+NUMBER. ENGLISH_PHRASE | UKRAINIAN_TRANSLATION
 
 Example:
-1. give up | I will never give up on my dreams. | здаватися
+1. give up | здаватися
+2. pick me up | забрати мене
 
+Rules:
+- Only English phrase and Ukrainian translation — no explanations, examples, or bullet points.
+- Output ONLY the numbered list — no introduction or summary.
 If the text is in another language, still list English phrasal verbs if present.
-Output ONLY the numbered list — no introduction, title, or summary lines.
 Do not say "there are no phrasal verbs" without carefully reading the entire text.`;
   }
 
@@ -68,8 +71,8 @@ Do not say "there are no phrasal verbs" without carefully reading the entire tex
   if (lower.includes('keyword') || lower.includes('key word')) {
     return `Extract the most important keywords and concepts from the text.
 For each item output exactly one line:
-NUMBER. WORD_OR_PHRASE | SHORT_CONTEXT_OR_EXAMPLE | UKRAINIAN_EXPLANATION
-Output ONLY the numbered list — no introduction or summary.`;
+NUMBER. ENGLISH_WORD_OR_PHRASE | UKRAINIAN_TRANSLATION
+Output ONLY the numbered list — no explanations or introduction.`;
   }
 
   return 'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text. Provide clear, structured output.';
