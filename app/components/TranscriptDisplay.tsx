@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
 interface TranscriptItem {
   text: string;
@@ -11,26 +12,67 @@ interface TranscriptItem {
 interface TranscriptDisplayProps {
   transcript: TranscriptItem[];
   fullText: string;
+  onSeek?: (seconds: number) => void;
 }
 
-function formatTimestamp(timestamp?: string): string {
-  if (!timestamp) return '';
-  
-  // Handle formats like "00:00:05.440" or "0:00:05,440"
-  const cleaned = timestamp.replace(',', '.');
-  
-  // Check if it's already in proper format
-  if (/^\d{1,2}:\d{2}:\d{2}\.\d+$/.test(cleaned)) {
-    // Return just HH:MM:SS part
-    return cleaned.split('.')[0];
-  }
-  
-  return cleaned;
+function TranscriptLine({
+  item,
+  showTimestamps,
+  onSeek,
+}: {
+  item: TranscriptItem;
+  showTimestamps: boolean;
+  onSeek?: (seconds: number) => void;
+}) {
+  const canSeek = Boolean(item.start && onSeek);
+
+  const handleClick = () => {
+    const selection = window.getSelection()?.toString();
+    if (selection?.trim()) return;
+    if (!item.start || !onSeek) return;
+    onSeek(parseTimestampToSeconds(item.start));
+  };
+
+  return (
+    <div
+      role={canSeek ? 'button' : undefined}
+      tabIndex={canSeek ? 0 : undefined}
+      onClick={canSeek ? handleClick : undefined}
+      onKeyDown={
+        canSeek
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleClick();
+              }
+            }
+          : undefined
+      }
+      className={`text-gray-700 dark:text-gray-300 leading-relaxed p-2 rounded transition ${
+        canSeek
+          ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:ring-1 hover:ring-blue-200 dark:hover:ring-blue-800'
+          : 'cursor-text hover:bg-gray-200 dark:hover:bg-gray-800'
+      }`}
+      title={canSeek ? 'Jump to this moment in the video' : undefined}
+    >
+      {showTimestamps && item.start ? (
+        <div className="flex items-start gap-2">
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap bg-blue-100 dark:bg-blue-950 px-2 py-1 rounded shrink-0">
+            {formatTimestamp(item.start)}
+          </span>
+          <span className="text-gray-700 dark:text-gray-300 flex-1">{item.text}</span>
+        </div>
+      ) : (
+        <p>{item.text}</p>
+      )}
+    </div>
+  );
 }
 
 export default function TranscriptDisplay({
   transcript,
-  fullText
+  fullText,
+  onSeek,
 }: TranscriptDisplayProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedText, setSelectedText] = useState('');
@@ -40,6 +82,8 @@ export default function TranscriptDisplay({
   const filteredTranscript = transcript.filter((item) =>
     item.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const displayTranscript = searchTerm ? filteredTranscript : transcript;
 
   const handleCopyText = () => {
     navigator.clipboard.writeText(fullText);
@@ -67,7 +111,12 @@ export default function TranscriptDisplay({
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
         <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">Transcript</h2>
 
-        {/* Search Box */}
+        {onSeek && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            Click a line or timestamp to jump to that moment in the video.
+          </p>
+        )}
+
         <div className="mb-4">
           <input
             type="text"
@@ -78,7 +127,6 @@ export default function TranscriptDisplay({
           />
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-2 mb-4 flex-wrap">
           <button
             onClick={handleCopyText}
@@ -104,65 +152,33 @@ export default function TranscriptDisplay({
           </button>
         </div>
 
-        {/* Selected Text */}
         {selectedText && (
           <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-500 rounded">
             <p className="text-sm text-gray-600 dark:text-gray-400">Selected:</p>
-            <p className="text-gray-800 dark:text-gray-200 italic">"{selectedText}"</p>
+            <p className="text-gray-800 dark:text-gray-200 italic">&quot;{selectedText}&quot;</p>
           </div>
         )}
 
-        {/* Transcript Display */}
         <div
           onMouseUp={handleSelection}
           className="max-h-96 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg"
         >
-          {filteredTranscript.length > 0 ? (
+          {displayTranscript.length > 0 ? (
             <div className="space-y-2">
-              {filteredTranscript.map((item, index) => (
-                <div
-                  key={index}
-                  className="text-gray-700 dark:text-gray-300 leading-relaxed cursor-text hover:bg-gray-200 dark:hover:bg-gray-800 p-2 rounded transition"
-                >
-                  {showTimestamps && item.start ? (
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap bg-blue-100 dark:bg-blue-950 px-2 py-1 rounded">
-                        {formatTimestamp(item.start)}
-                      </span>
-                      <span className="text-gray-700 dark:text-gray-300 flex-1">{item.text}</span>
-                    </div>
-                  ) : (
-                    <p>{item.text}</p>
-                  )}
-                </div>
+              {displayTranscript.map((item, index) => (
+                <TranscriptLine
+                  key={`${item.start ?? 'line'}-${index}`}
+                  item={item}
+                  showTimestamps={showTimestamps}
+                  onSeek={onSeek}
+                />
               ))}
             </div>
-          ) : searchTerm ? (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No results found</p>
           ) : (
-            <div className="space-y-2">
-              {transcript.map((item, index) => (
-                <div
-                  key={index}
-                  className="text-gray-700 dark:text-gray-300 leading-relaxed cursor-text hover:bg-gray-200 dark:hover:bg-gray-800 p-2 rounded transition"
-                >
-                  {showTimestamps && item.start ? (
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs font-bold text-blue-600 dark:text-blue-300 whitespace-nowrap bg-blue-100 dark:bg-blue-950 px-2 py-1 rounded">
-                        {formatTimestamp(item.start)}
-                      </span>
-                      <span className="text-gray-700 dark:text-gray-300 flex-1">{item.text}</span>
-                    </div>
-                  ) : (
-                    <p>{item.text}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No results found</p>
           )}
         </div>
 
-        {/* Statistics */}
         <div className="mt-4 grid grid-cols-3 gap-4 text-center">
           <div className="bg-blue-50 dark:bg-blue-950/50 p-3 rounded">
             <p className="text-sm text-gray-600 dark:text-gray-400">Words</p>
