@@ -55,10 +55,21 @@ export default function Home() {
   const [bulkFlashcardItems, setBulkFlashcardItems] = useState<
     ParsedFlashcardItem[] | null
   >(null);
+  const [quickInfoOpen, setQuickInfoOpen] = useState(true);
 
   useEffect(() => {
     setUrlHistory(getUrlHistory());
+    const saved = localStorage.getItem('yoytube-quick-info-open');
+    if (saved !== null) setQuickInfoOpen(saved === 'true');
   }, []);
+
+  const toggleQuickInfo = () => {
+    setQuickInfoOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('yoytube-quick-info-open', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!videoData) return;
@@ -188,33 +199,49 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
-                  <h3 className="text-lg font-bold mb-3 text-gray-800 dark:text-gray-100">Quick Info</h3>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Words</p>
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                        {videoData.text.split(/\s+/).length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Chars</p>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {videoData.text.length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Lines</p>
-                      <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                        {videoData.transcript.length}
-                      </p>
-                    </div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                      Quick Info
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={toggleQuickInfo}
+                      aria-expanded={quickInfoOpen}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      {quickInfoOpen ? '▲ Згорнути' : '▼ Розгорнути'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setVideoData(null)}
-                    className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
-                  >
-                    Load Another Video
-                  </button>
+                  {quickInfoOpen && (
+                    <>
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Words</p>
+                          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            {videoData.text.split(/\s+/).length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Chars</p>
+                          <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                            {videoData.text.length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Lines</p>
+                          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                            {videoData.transcript.length}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setVideoData(null)}
+                        className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
+                      >
+                        Load Another Video
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
