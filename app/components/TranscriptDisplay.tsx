@@ -9,6 +9,7 @@ import {
 import { translateAllLines } from '../lib/translateLines';
 import { findExampleLine, hasFlashcard } from '../lib/flashcards';
 import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
+import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
 interface TranscriptItem {
@@ -284,9 +285,15 @@ export default function TranscriptDisplay({
   };
 
   const handleSelection = () => {
-    const text = window.getSelection()?.toString() || '';
-    setSelectedText(text.trim());
+    const text = cleanTranscriptText(window.getSelection()?.toString() || '');
+    setSelectedText(text);
     setSelectionError('');
+  };
+
+  const clearSelection = () => {
+    setSelectedText('');
+    setSelectionError('');
+    window.getSelection()?.removeAllRanges();
   };
 
   const handleSaveSelection = async () => {
@@ -453,9 +460,19 @@ export default function TranscriptDisplay({
         )}
 
         {selectedText && (
-          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-500 rounded">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Selected:</p>
-            <p className="text-gray-800 dark:text-gray-200 italic mb-3">
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-500 rounded relative">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Selected:</p>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-lg leading-none shrink-0"
+                aria-label="Прибрати виділення"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-gray-800 dark:text-gray-200 italic mb-3 pr-6">
               &quot;{selectedText}&quot;
             </p>
             {selectionError && (
