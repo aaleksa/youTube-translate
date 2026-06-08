@@ -89,18 +89,25 @@ export default function TextProcessor({
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6 mb-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">Text Analysis</h2>
+      <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-gray-100">
+        Text Analysis
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+        Задайте AI-запит до транскрипту відео: знайдіть фразові дієслова, перекладіть
+        фрагмент, зробіть резюме або поставте будь-яке питання про текст. Якщо відповідь
+        містить список слів — їх можна одразу зберегти у Flashcards.
+      </p>
 
       {/* Query Input */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Your Query (Ctrl+Enter to submit)
+          Ваш запит (Ctrl+Enter — надіслати)
         </label>
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Введіть запит для аналізу тексту..."
+          placeholder="Напр.: «Знайди всі phrasal verbs і дай переклад українською»"
           className="w-full h-20 px-4 py-2 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:border-blue-500"
         />
       </div>
@@ -111,7 +118,7 @@ export default function TextProcessor({
         disabled={loading || !query.trim()}
         className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
       >
-        {loading ? '⏳ Processing...' : '✨ Analyze Text'}
+        {loading ? '⏳ Обробка...' : '✨ Аналізувати текст'}
       </button>
 
       {/* Error Message */}
