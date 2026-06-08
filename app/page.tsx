@@ -130,6 +130,7 @@ export default function Home() {
             {/* Transcript */}
             <div className="lg:col-span-3">
               <TranscriptDisplay
+                videoId={videoData.videoId}
                 transcript={videoData.transcript}
                 fullText={videoData.text}
                 onSeek={handleSeek}
