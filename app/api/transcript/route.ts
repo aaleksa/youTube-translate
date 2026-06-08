@@ -286,6 +286,9 @@ async function fetchTranscriptMethod3(videoId: string): Promise<TranscriptEntry[
 
     // Get the first caption URL
     const firstMatch = baseUrlMatches[0];
+    if (!firstMatch) {
+      return await tryDirectCaptionFetch(videoId);
+    }
     const captionUrl = firstMatch
       .replace(/'baseUrl':'/, '')
       .replace(/'$/, '')

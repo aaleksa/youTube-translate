@@ -46,13 +46,15 @@ function getSystemPrompt(query: string): string {
   if (lower.includes('phrasal verb')) {
     return `You are an English language teacher specializing in phrasal verbs.
 Find every phrasal verb in the text (verb + particle: up, out, on, off, in, away, back, etc.).
-For each phrasal verb provide:
-1. The phrasal verb
-2. The sentence or phrase where it appears
-3. A brief meaning in English
+For each phrasal verb output exactly one line in this format:
+NUMBER. PHRASAL_VERB | EXAMPLE_SENTENCE | UKRAINIAN_MEANING
+
+Example:
+1. give up | I will never give up on my dreams. | здаватися
 
 If the text is in another language, still list English phrasal verbs if present.
-List results as a numbered list. Do not say "there are no phrasal verbs" without carefully reading the entire text.`;
+Output ONLY the numbered list — no introduction, title, or summary lines.
+Do not say "there are no phrasal verbs" without carefully reading the entire text.`;
   }
 
   if (lower.includes('translate') && lower.includes('ukrainian')) {
@@ -64,7 +66,10 @@ List results as a numbered list. Do not say "there are no phrasal verbs" without
   }
 
   if (lower.includes('keyword') || lower.includes('key word')) {
-    return 'Extract the most important keywords and concepts. Present them as a structured list with brief explanations.';
+    return `Extract the most important keywords and concepts from the text.
+For each item output exactly one line:
+NUMBER. WORD_OR_PHRASE | SHORT_CONTEXT_OR_EXAMPLE | UKRAINIAN_EXPLANATION
+Output ONLY the numbered list — no introduction or summary.`;
   }
 
   return 'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text. Provide clear, structured output.';

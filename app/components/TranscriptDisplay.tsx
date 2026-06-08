@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearBilingualCache,
   getBilingualCache,
   setBilingualCache,
 } from '../lib/bilingualCache';
 import { translateAllLines } from '../lib/translateLines';
+import { findExampleLine, hasFlashcard } from '../lib/flashcards';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
 interface TranscriptItem {
@@ -21,6 +22,8 @@ interface TranscriptDisplayProps {
   videoId: string;
   activeLineIndex?: number;
   onSeek?: (seconds: number, lineIndex: number) => void;
+  onSaveToFlashcards?: (word: string, example: string) => void;
+  flashcardsRefreshKey?: number;
 }
 
 function lineClassName(isActive: boolean, canSeek: boolean): string {
@@ -173,6 +176,8 @@ export default function TranscriptDisplay({
   videoId,
   activeLineIndex = 0,
   onSeek,
+  onSaveToFlashcards,
+  flashcardsRefreshKey = 0,
 }: TranscriptDisplayProps) {
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -273,8 +278,19 @@ export default function TranscriptDisplay({
 
   const handleSelection = () => {
     const text = window.getSelection()?.toString() || '';
-    setSelectedText(text);
+    setSelectedText(text.trim());
   };
+
+  const handleSaveSelection = () => {
+    if (!selectedText || !onSaveToFlashcards || hasFlashcard(selectedText)) return;
+    const example = findExampleLine(selectedText, transcript);
+    onSaveToFlashcards(selectedText, example);
+  };
+
+  const selectedAlreadySaved = useMemo(
+    () => Boolean(selectedText) && hasFlashcard(selectedText),
+    [selectedText, flashcardsRefreshKey]
+  );
 
   const loadTranslations = async () => {
     const lines = transcript.map((item) => item.text);
@@ -398,10 +414,27 @@ export default function TranscriptDisplay({
           </div>
         )}
 
-        {selectedText && !bilingualMode && (
+        {selectedText && (
           <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-500 rounded">
             <p className="text-sm text-gray-600 dark:text-gray-400">Selected:</p>
-            <p className="text-gray-800 dark:text-gray-200 italic">&quot;{selectedText}&quot;</p>
+            <p className="text-gray-800 dark:text-gray-200 italic mb-3">
+              &quot;{selectedText}&quot;
+            </p>
+            {onSaveToFlashcards && (
+              selectedAlreadySaved ? (
+                <span className="inline-flex px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg font-medium">
+                  ✓ Вже в картках
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveSelection}
+                  className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                >
+                  📇 Save to Flashcards
+                </button>
+              )
+            )}
           </div>
         )}
 
@@ -414,7 +447,7 @@ export default function TranscriptDisplay({
 
         <div
           ref={scrollContainerRef}
-          onMouseUp={bilingualMode ? undefined : handleSelection}
+          onMouseUp={handleSelection}
           className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg"
         >
           {translating ? (

@@ -13,7 +13,15 @@ import VideoPlayer, {
   type VideoPlayerState,
 } from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
+import BulkSaveFlashcardModal from './components/BulkSaveFlashcardModal';
+import FlashcardsPanel from './components/FlashcardsPanel';
+import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
+import {
+  type FlashcardDraft,
+  getVideoUrl,
+} from './lib/flashcards';
+import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
 
 interface TranscriptItem {
@@ -40,6 +48,13 @@ export default function Home() {
     isPlaying: false,
     isReady: false,
   });
+  const [flashcardDraft, setFlashcardDraft] = useState<FlashcardDraft | null>(
+    null
+  );
+  const [flashcardsRefreshKey, setFlashcardsRefreshKey] = useState(0);
+  const [bulkFlashcardItems, setBulkFlashcardItems] = useState<
+    ParsedFlashcardItem[] | null
+  >(null);
 
   useEffect(() => {
     setUrlHistory(getUrlHistory());
@@ -72,6 +87,30 @@ export default function Home() {
     videoPlayerRef.current?.stop();
     setCurrentPlaybackTime(0);
     setActiveLineIndex(0);
+  };
+
+  const handleSaveToFlashcards = (
+    word: string,
+    example: string,
+    translation = ''
+  ) => {
+    if (!videoData) return;
+    setFlashcardDraft({
+      word,
+      translation,
+      example,
+      videoId: videoData.videoId,
+      videoUrl: getVideoUrl(videoData.videoId),
+    });
+  };
+
+  const handleSaveManyToFlashcards = (items: ParsedFlashcardItem[]) => {
+    if (!videoData || items.length === 0) return;
+    setBulkFlashcardItems(items);
+  };
+
+  const handleFlashcardSaved = () => {
+    setFlashcardsRefreshKey((key) => key + 1);
   };
 
   const handleURLSubmit = async (url: string) => {
@@ -194,11 +233,19 @@ export default function Home() {
                   fullText={videoData.text}
                   activeLineIndex={activeLineIndex}
                   onSeek={handleSeek}
+                  onSaveToFlashcards={handleSaveToFlashcards}
+                  flashcardsRefreshKey={flashcardsRefreshKey}
                 />
               </div>
             </div>
 
-            <TextProcessor text={videoData.text} />
+            <TextProcessor
+              text={videoData.text}
+              videoId={videoData.videoId}
+              flashcardsRefreshKey={flashcardsRefreshKey}
+              onSaveToFlashcards={handleSaveToFlashcards}
+              onSaveManyToFlashcards={handleSaveManyToFlashcards}
+            />
           </div>
         ) : (
           <div className="text-center py-12">
@@ -206,6 +253,26 @@ export default function Home() {
               Enter a YouTube URL above to get started
             </p>
           </div>
+        )}
+
+        <div className="mt-6">
+          <FlashcardsPanel refreshKey={flashcardsRefreshKey} />
+        </div>
+
+        <SaveFlashcardModal
+          draft={flashcardDraft}
+          onClose={() => setFlashcardDraft(null)}
+          onSaved={handleFlashcardSaved}
+        />
+
+        {videoData && (
+          <BulkSaveFlashcardModal
+            items={bulkFlashcardItems}
+            videoId={videoData.videoId}
+            videoUrl={getVideoUrl(videoData.videoId)}
+            onClose={() => setBulkFlashcardItems(null)}
+            onSaved={() => handleFlashcardSaved()}
+          />
         )}
       </div>
     </div>
