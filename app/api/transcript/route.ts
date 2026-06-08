@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { cleanTranscriptText } from '../../lib/transcriptText';
 import { ensureTranscriptTimestamps } from '../../lib/timestamp';
 
 export async function POST(request: NextRequest) {
@@ -171,7 +172,7 @@ function formatSuccessResponse(videoId: string, transcript: any[]) {
   const normalizedTranscript = ensureTranscriptTimestamps(
     transcript
       .map((item: any) => ({
-        text: String(item.text || item).trim(),
+        text: cleanTranscriptText(String(item.text || item)),
         start: item.start?.toString() || '',
         duration: item.duration?.toString() || '',
       }))
