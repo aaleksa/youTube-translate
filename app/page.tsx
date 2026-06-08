@@ -1,65 +1,126 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import URLInput from './components/URLInput';
+import VideoPlayer from './components/VideoPlayer';
+import TranscriptDisplay from './components/TranscriptDisplay';
+
+interface TranscriptItem {
+  text: string;
+  start?: string;
+  duration?: string;
+}
+
+interface TranscriptResponse {
+  videoId: string;
+  transcript: TranscriptItem[];
+  text: string;
+}
 
 export default function Home() {
+  const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleURLSubmit = async (url: string) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/transcript', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch transcript');
+      }
+
+      const data = await response.json();
+      setVideoData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setVideoData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
+          <URLInput onSubmit={handleURLSubmit} isLoading={isLoading} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg shadow">
+            <p className="font-semibold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Main Content */}
+        {videoData ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Video Player (2 columns on large screens) */}
+            <div className="lg:col-span-2">
+              <VideoPlayer videoId={videoData.videoId} />
+            </div>
+
+            {/* Quick Info */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-bold mb-4 text-gray-800">Quick Info</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600">Words</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {videoData.text.split(/\s+/).length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Characters</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {videoData.text.length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Lines</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {videoData.transcript.length}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setVideoData(null)}
+                className="w-full mt-6 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+              >
+                Load Another Video
+              </button>
+            </div>
+
+            {/* Transcript */}
+            <div className="lg:col-span-3">
+              <TranscriptDisplay
+                transcript={videoData.transcript}
+                fullText={videoData.text}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">
+              Enter a YouTube URL above to get started
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
