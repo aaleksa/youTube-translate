@@ -8,6 +8,7 @@ import {
 } from '../lib/bilingualCache';
 import { translateAllLines } from '../lib/translateLines';
 import { findExampleLine, hasFlashcard } from '../lib/flashcards';
+import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
 interface TranscriptItem {
@@ -22,7 +23,11 @@ interface TranscriptDisplayProps {
   videoId: string;
   activeLineIndex?: number;
   onSeek?: (seconds: number, lineIndex: number) => void;
-  onSaveToFlashcards?: (word: string, example: string) => void;
+  onSaveToFlashcards?: (
+    word: string,
+    example: string,
+    translation?: string
+  ) => void;
   flashcardsRefreshKey?: number;
 }
 
@@ -184,6 +189,8 @@ export default function TranscriptDisplay({
   const seekClickRef = useRef(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedText, setSelectedText] = useState('');
+  const [savingSelection, setSavingSelection] = useState(false);
+  const [selectionError, setSelectionError] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const [bilingualMode, setBilingualMode] = useState(false);
@@ -279,12 +286,35 @@ export default function TranscriptDisplay({
   const handleSelection = () => {
     const text = window.getSelection()?.toString() || '';
     setSelectedText(text.trim());
+    setSelectionError('');
   };
 
-  const handleSaveSelection = () => {
+  const handleSaveSelection = async () => {
     if (!selectedText || !onSaveToFlashcards || hasFlashcard(selectedText)) return;
-    const example = findExampleLine(selectedText, transcript);
-    onSaveToFlashcards(selectedText, example);
+
+    setSavingSelection(true);
+    setSelectionError('');
+
+    try {
+      const fallbackExample = findExampleLine(selectedText, transcript);
+      const prepared = await prepareFlashcardForWord(
+        selectedText,
+        fullText,
+        fallbackExample
+      );
+
+      onSaveToFlashcards(
+        prepared.word,
+        prepared.example,
+        prepared.translation
+      );
+    } catch (error) {
+      setSelectionError(
+        error instanceof Error ? error.message : 'Не вдалося отримати переклад'
+      );
+    } finally {
+      setSavingSelection(false);
+    }
   };
 
   const selectedAlreadySaved = useMemo(
@@ -420,6 +450,11 @@ export default function TranscriptDisplay({
             <p className="text-gray-800 dark:text-gray-200 italic mb-3">
               &quot;{selectedText}&quot;
             </p>
+            {selectionError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mb-2">
+                {selectionError}
+              </p>
+            )}
             {onSaveToFlashcards && (
               selectedAlreadySaved ? (
                 <span className="inline-flex px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg font-medium">
@@ -429,9 +464,12 @@ export default function TranscriptDisplay({
                 <button
                   type="button"
                   onClick={handleSaveSelection}
-                  className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  disabled={savingSelection}
+                  className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
                 >
-                  📇 Save to Flashcards
+                  {savingSelection
+                    ? '⏳ Додаємо переклад...'
+                    : '📇 Зберегти в Flashcards'}
                 </button>
               )
             )}
