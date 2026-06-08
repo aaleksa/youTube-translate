@@ -4,6 +4,7 @@ import { useState } from 'react';
 import URLInput from './components/URLInput';
 import VideoPlayer from './components/VideoPlayer';
 import TranscriptDisplay from './components/TranscriptDisplay';
+import TextProcessor from './components/TextProcessor';
 
 interface TranscriptItem {
   text: string;
@@ -111,6 +112,11 @@ export default function Home() {
                 transcript={videoData.transcript}
                 fullText={videoData.text}
               />
+            </div>
+
+            {/* Text Processor */}
+            <div className="lg:col-span-3">
+              <TextProcessor text={videoData.text} />
             </div>
           </div>
         ) : (
