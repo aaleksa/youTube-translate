@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { getFlashcardWordSet, hasFlashcard } from '../lib/flashcards';
+import { parseFlashcardList } from '../lib/parseFlashcardList';
 
 interface TextProcessorProps {
   text: string;
+  videoId?: string;
+  flashcardsRefreshKey?: number;
+  onSaveToFlashcards?: (word: string, example: string, translation?: string) => void;
+  onSaveManyToFlashcards?: (items: ReturnType<typeof parseFlashcardList>) => void;
 }
 
 interface ResponseItem {
@@ -13,7 +19,18 @@ interface ResponseItem {
   truncated: boolean;
 }
 
-export default function TextProcessor({ text }: TextProcessorProps) {
+export default function TextProcessor({
+  text,
+  videoId,
+  flashcardsRefreshKey = 0,
+  onSaveToFlashcards,
+  onSaveManyToFlashcards,
+}: TextProcessorProps) {
+  const savedWords = useMemo(
+    () => getFlashcardWordSet(),
+    [flashcardsRefreshKey]
+  );
+
   const [query, setQuery] = useState('');
   const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,7 +96,7 @@ export default function TextProcessor({ text }: TextProcessorProps) {
         <button
           onClick={() =>
             setQuery(
-              'List every phrasal verb in this text with the sentence it appears in and a short meaning. Format as a numbered list.'
+              'List every phrasal verb in this text. Format: NUMBER. PHRASAL_VERB | EXAMPLE_SENTENCE | UKRAINIAN_MEANING'
             )
           }
           className="px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
@@ -154,35 +171,140 @@ export default function TextProcessor({ text }: TextProcessorProps) {
             Responses ({responses.length})
           </h3>
           <div className="max-h-[28rem] overflow-y-auto space-y-3 pr-1">
-            {responses.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 bg-green-50 dark:bg-green-950/40 border-l-4 border-green-400 dark:border-green-500 rounded"
-              >
-                {item.truncated && (
-                  <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
-                    Текст було скорочено через обмеження контексту моделі.
-                  </p>
-                )}
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
-                  Query: {item.query}
-                </p>
-                <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800 max-h-64 overflow-y-auto">
-                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {item.result}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(item.result);
-                    alert('Result copied to clipboard!');
-                  }}
-                  className="mt-2 px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition"
+            {responses.map((item) => {
+              const parsedItems = parseFlashcardList(item.result);
+              const hasList = parsedItems.length >= 2;
+              const newItems = parsedItems.filter(
+                (parsed) => !savedWords.has(parsed.word.trim().toLowerCase())
+              );
+
+              return (
+                <div
+                  key={item.id}
+                  className="p-4 bg-green-50 dark:bg-green-950/40 border-l-4 border-green-400 dark:border-green-500 rounded"
                 >
-                  📋 Copy Result
-                </button>
-              </div>
-            ))}
+                  {item.truncated && (
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+                      Текст було скорочено через обмеження контексту моделі.
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                    Query: {item.query}
+                  </p>
+                  <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800 max-h-64 overflow-y-auto">
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      {item.result}
+                    </p>
+                  </div>
+
+                  {hasList && (
+                    <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                        Знайдено {parsedItems.length} слів
+                        {newItems.length < parsedItems.length &&
+                          ` · нових: ${newItems.length}`}
+                        {parsedItems.length - newItems.length > 0 &&
+                          ` · вже є: ${parsedItems.length - newItems.length}`}
+                      </p>
+                      <ul className="space-y-1 max-h-40 overflow-y-auto text-sm">
+                        {parsedItems.map((parsed, index) => {
+                          const exists = savedWords.has(
+                            parsed.word.trim().toLowerCase()
+                          );
+
+                          return (
+                            <li
+                              key={`${parsed.word}-${index}`}
+                              className="flex items-start justify-between gap-2 text-gray-700 dark:text-gray-300"
+                            >
+                              <span className={exists ? 'opacity-60' : undefined}>
+                                <strong>{parsed.word}</strong>
+                                {parsed.translation && (
+                                  <span className="text-green-700 dark:text-green-400">
+                                    {' '}
+                                    — {parsed.translation}
+                                  </span>
+                                )}
+                                {exists && (
+                                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                                    вже в картках
+                                  </span>
+                                )}
+                              </span>
+                              {onSaveToFlashcards && videoId && !exists && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onSaveToFlashcards(
+                                      parsed.word,
+                                      parsed.example,
+                                      parsed.translation
+                                    )
+                                  }
+                                  className="shrink-0 text-amber-600 dark:text-amber-400 hover:underline text-xs"
+                                >
+                                  📇
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(item.result);
+                        alert('Result copied to clipboard!');
+                      }}
+                      className="px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition"
+                    >
+                      📋 Copy Result
+                    </button>
+                    {onSaveManyToFlashcards && videoId && hasList && (
+                      <button
+                        onClick={() => onSaveManyToFlashcards(parsedItems)}
+                        disabled={newItems.length === 0}
+                        className="px-4 py-2 bg-amber-500 text-white text-sm rounded hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
+                      >
+                        {newItems.length === parsedItems.length
+                          ? `📇 Зберегти всі (${parsedItems.length})`
+                          : `📇 Зберегти нові (${newItems.length})`}
+                      </button>
+                    )}
+                    {onSaveToFlashcards && videoId && !hasList && (
+                      <button
+                        onClick={() => {
+                          const single = parsedItems[0];
+                          if (single) {
+                            if (hasFlashcard(single.word)) return;
+                            onSaveToFlashcards(
+                              single.word,
+                              single.example,
+                              single.translation
+                            );
+                            return;
+                          }
+                          onSaveToFlashcards('', item.result);
+                        }}
+                        disabled={
+                          parsedItems[0]
+                            ? hasFlashcard(parsedItems[0].word)
+                            : false
+                        }
+                        className="px-4 py-2 bg-amber-500 text-white text-sm rounded hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                      >
+                        {parsedItems[0] && hasFlashcard(parsedItems[0].word)
+                          ? '✓ Вже в картках'
+                          : '📇 Save to Flashcards'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
