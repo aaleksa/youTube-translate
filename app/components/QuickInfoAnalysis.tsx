@@ -5,16 +5,19 @@ import type { GrammarHighlightsResult } from '../lib/grammarHighlights';
 import { getGrammarCache, setGrammarCache } from '../lib/grammarCache';
 import type { VideoSummaryResult } from '../lib/videoSummary';
 import { getSummaryCache, setSummaryCache } from '../lib/summaryCache';
+import { shouldAutoPause } from '../lib/learningSettings';
 import VideoQuizPanel from './VideoQuizPanel';
 
 interface QuickInfoAnalysisProps {
   videoId: string;
   transcriptText: string;
+  onPauseVideo?: () => void;
 }
 
 export default function QuickInfoAnalysis({
   videoId,
   transcriptText,
+  onPauseVideo,
 }: QuickInfoAnalysisProps) {
   const [summary, setSummary] = useState<VideoSummaryResult | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -84,6 +87,10 @@ export default function QuickInfoAnalysis({
   };
 
   const handleGrammar = async () => {
+    if (shouldAutoPause('grammarAnalysis')) {
+      onPauseVideo?.();
+    }
+
     setGrammarError('');
     setShowGrammar(true);
 
@@ -154,7 +161,14 @@ export default function QuickInfoAnalysis({
         </button>
         <button
           type="button"
-          onClick={() => setShowQuiz((prev) => !prev)}
+          onClick={() =>
+            setShowQuiz((prev) => {
+              if (!prev && shouldAutoPause('quiz')) {
+                onPauseVideo?.();
+              }
+              return !prev;
+            })
+          }
           className={`px-3 py-1.5 text-sm rounded-lg transition ${
             showQuiz
               ? 'bg-cyan-500 text-white hover:bg-cyan-600'

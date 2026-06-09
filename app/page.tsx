@@ -20,6 +20,7 @@ import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
+import LearningSettings from './components/LearningSettings';
 import {
   type FlashcardDraft,
   getVideoUrl,
@@ -101,6 +102,10 @@ export default function Home() {
     videoPlayerRef.current?.stop();
     setCurrentPlaybackTime(0);
     setActiveLineIndex(0);
+  };
+
+  const handlePauseVideo = () => {
+    videoPlayerRef.current?.pause();
   };
 
   const handleSaveToFlashcards = (
@@ -238,6 +243,7 @@ export default function Home() {
                   isPlayerReady={playerState.isReady}
                   onSeek={handleSeek}
                 />
+                <LearningSettings />
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
@@ -277,6 +283,7 @@ export default function Home() {
                       <QuickInfoAnalysis
                         videoId={videoData.videoId}
                         transcriptText={videoData.text}
+                        onPauseVideo={handlePauseVideo}
                       />
                       <VideoDifficultyPanel
                         videoId={videoData.videoId}
@@ -310,6 +317,7 @@ export default function Home() {
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}
+                  onPauseVideo={handlePauseVideo}
                 />
               </div>
             </div>

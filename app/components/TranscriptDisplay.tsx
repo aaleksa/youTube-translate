@@ -17,6 +17,8 @@ import { downloadSrtFile, downloadVttFile } from '../lib/exportSubtitles';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 import SelectionAnalysis from './SelectionAnalysis';
+import SelectionTranslate from './SelectionTranslate';
+import SentenceExplanation from './SentenceExplanation';
 import ToolbarMenu from './ToolbarMenu';
 
 interface TranscriptItem {
@@ -37,6 +39,7 @@ interface TranscriptDisplayProps {
     translation?: string
   ) => void;
   flashcardsRefreshKey?: number;
+  onPauseVideo?: () => void;
 }
 
 function countSelectionWords(text: string): number {
@@ -195,6 +198,7 @@ export default function TranscriptDisplay({
   onSeek,
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
+  onPauseVideo,
 }: TranscriptDisplayProps) {
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -344,6 +348,8 @@ export default function TranscriptDisplay({
 
   const canSaveSelectionToFlashcards =
     selectedWordCount >= 1 && selectedWordCount <= 3;
+
+  const canExplainSentence = selectedWordCount >= 2;
 
   const selectedAlreadySaved = useMemo(
     () => Boolean(selectedText) && hasFlashcard(selectedText),
@@ -527,7 +533,7 @@ export default function TranscriptDisplay({
                 {selectionError}
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-start">
               {onSaveToFlashcards &&
                 canSaveSelectionToFlashcards &&
                 (selectedAlreadySaved ? (
@@ -546,6 +552,16 @@ export default function TranscriptDisplay({
                       : '📇 Зберегти в Flashcards'}
                   </button>
                 ))}
+              {canExplainSentence && (
+                <SentenceExplanation
+                  sentence={selectedText}
+                  onPauseVideo={onPauseVideo}
+                />
+              )}
+              <SelectionTranslate
+                selectedText={selectedText}
+                onPauseVideo={onPauseVideo}
+              />
             </div>
             <SelectionAnalysis selectedText={selectedText} />
           </div>
