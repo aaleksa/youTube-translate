@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const title = await fetchVideoTitle(url);
+
     // Create a temporary directory for transcript files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-transcript-'));
     
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
         // Fallback to manual methods
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(videoId, fallbackTranscript);
+          return formatSuccessResponse(videoId, fallbackTranscript, title);
         }
         
         return NextResponse.json(
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
         console.log('Transcript parsing returned 0 items');
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(videoId, fallbackTranscript);
+          return formatSuccessResponse(videoId, fallbackTranscript, title);
         }
         
         return NextResponse.json(
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      return formatSuccessResponse(videoId, transcript);
+      return formatSuccessResponse(videoId, transcript, title);
       
     } catch (execError) {
       console.error('yt-dlp execution error:', execError);
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
       // Fallback to manual methods
       const fallbackTranscript = await fetchTranscriptFallback(videoId);
       if (fallbackTranscript.length > 0) {
-        return formatSuccessResponse(videoId, fallbackTranscript);
+        return formatSuccessResponse(videoId, fallbackTranscript, title);
       }
       
       return NextResponse.json(
@@ -168,7 +170,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function formatSuccessResponse(videoId: string, transcript: any[]) {
+async function fetchVideoTitle(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+      { next: { revalidate: 3600 } }
+    );
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as { title?: string };
+    const title = data.title?.trim();
+    return title || null;
+  } catch {
+    return null;
+  }
+}
+
+function formatSuccessResponse(
+  videoId: string,
+  transcript: any[],
+  title?: string | null
+) {
   const normalizedTranscript = ensureTranscriptTimestamps(
     transcript
       .map((item: any) => ({
@@ -183,8 +206,9 @@ function formatSuccessResponse(videoId: string, transcript: any[]) {
 
   return NextResponse.json({
     videoId,
+    title: title?.trim() || videoId,
     transcript: normalizedTranscript,
-    text: fullText
+    text: fullText,
   });
 }
 
