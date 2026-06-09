@@ -9,6 +9,7 @@ import { shouldAutoPause } from '../lib/learningSettings';
 import { useI18n } from './InterfaceLanguageProvider';
 import VideoNotesPanel from './VideoNotesPanel';
 import VideoQuizPanel from './VideoQuizPanel';
+import VideoChaptersPanel from './VideoChaptersPanel';
 import VideoTimelinePanel from './VideoTimelinePanel';
 
 interface TranscriptItem {
@@ -46,6 +47,7 @@ export default function QuickInfoAnalysis({
   const [showQuiz, setShowQuiz] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [showChapters, setShowChapters] = useState(false);
 
   useEffect(() => {
     setSummary(null);
@@ -61,6 +63,7 @@ export default function QuickInfoAnalysis({
     setShowQuiz(false);
     setShowNotes(false);
     setShowTimeline(false);
+    setShowChapters(false);
   }, [videoId, transcriptText.length]);
 
   const handleSummary = async () => {
@@ -189,6 +192,17 @@ export default function QuickInfoAnalysis({
           }`}
         >
           {t('actions.notes')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowChapters((prev) => !prev)}
+          className={`px-3 py-1.5 text-sm rounded-lg transition ${
+            showChapters
+              ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+              : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900'
+          }`}
+        >
+          {t('actions.chapters')}
         </button>
         <button
           type="button"
@@ -335,6 +349,16 @@ export default function QuickInfoAnalysis({
         showPanel={showQuiz}
         onShowPanelChange={setShowQuiz}
         hideButton
+      />
+
+      <VideoChaptersPanel
+        videoId={videoId}
+        transcript={transcript}
+        transcriptTextLength={transcriptText.length}
+        showPanel={showChapters}
+        onShowPanelChange={setShowChapters}
+        hideButton
+        onSeek={onSeek}
       />
 
       <VideoTimelinePanel
