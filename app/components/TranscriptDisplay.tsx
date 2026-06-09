@@ -47,6 +47,7 @@ import {
   getFormalityStyle,
   type SlangItem,
 } from '../lib/slang';
+import { downloadSrtFile } from '../lib/exportSrt';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 import VocabularyMenu from './VocabularyMenu';
@@ -474,6 +475,10 @@ export default function TranscriptDisplay({
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const handleExportSrt = () => {
+    downloadSrtFile(transcript, `${videoId}.srt`);
   };
 
   const handleSelection = () => {
@@ -981,6 +986,13 @@ export default function TranscriptDisplay({
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
           >
             Download Text
+          </button>
+          <button
+            type="button"
+            onClick={handleExportSrt}
+            className="px-4 py-2 bg-lime-600 text-white rounded-lg hover:bg-lime-700 transition"
+          >
+            Export SRT
           </button>
           <button
             onClick={toggleAutoScroll}
