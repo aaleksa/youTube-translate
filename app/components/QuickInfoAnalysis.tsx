@@ -5,6 +5,7 @@ import type { GrammarHighlightsResult } from '../lib/grammarHighlights';
 import { getGrammarCache, setGrammarCache } from '../lib/grammarCache';
 import type { VideoSummaryResult } from '../lib/videoSummary';
 import { getSummaryCache, setSummaryCache } from '../lib/summaryCache';
+import VideoQuizPanel from './VideoQuizPanel';
 
 interface QuickInfoAnalysisProps {
   videoId: string;
@@ -26,6 +27,7 @@ export default function QuickInfoAnalysis({
   const [grammarError, setGrammarError] = useState('');
   const [grammarFromCache, setGrammarFromCache] = useState(false);
   const [showGrammar, setShowGrammar] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   useEffect(() => {
     setSummary(null);
@@ -38,6 +40,7 @@ export default function QuickInfoAnalysis({
     setGrammarError('');
     setGrammarFromCache(false);
     setShowGrammar(false);
+    setShowQuiz(false);
   }, [videoId, transcriptText.length]);
 
   const handleSummary = async () => {
@@ -149,6 +152,17 @@ export default function QuickInfoAnalysis({
         >
           {grammarLoading ? '⏳...' : '📐 Grammar'}
         </button>
+        <button
+          type="button"
+          onClick={() => setShowQuiz((prev) => !prev)}
+          className={`px-3 py-1.5 text-sm rounded-lg transition ${
+            showQuiz
+              ? 'bg-cyan-500 text-white hover:bg-cyan-600'
+              : 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200 dark:bg-cyan-950 dark:text-cyan-200 dark:hover:bg-cyan-900'
+          }`}
+        >
+          ❓ Quiz
+        </button>
       </div>
 
       {showSummary && (
@@ -250,6 +264,14 @@ export default function QuickInfoAnalysis({
           )}
         </div>
       )}
+
+      <VideoQuizPanel
+        videoId={videoId}
+        transcriptText={transcriptText}
+        showPanel={showQuiz}
+        onShowPanelChange={setShowQuiz}
+        hideButton
+      />
     </div>
   );
 }
