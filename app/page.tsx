@@ -201,8 +201,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 py-6 sm:py-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-14">
         {/* Header */}
         <div className="mb-8">
           <URLInput
@@ -224,8 +224,8 @@ export default function Home() {
         {/* Main Content */}
         {videoData ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-              <div className="xl:sticky xl:top-4 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+              <div className="lg:sticky lg:top-4 space-y-4">
                 <div className="rounded-lg overflow-hidden shadow-lg bg-black">
                   <VideoPlayer
                     ref={videoPlayerRef}
@@ -233,7 +233,7 @@ export default function Home() {
                     onTimeUpdate={handleTimeUpdate}
                     onStateChange={setPlayerState}
                   />
-                  <div className="hidden xl:block">
+                  <div className="hidden lg:block">
                     <VideoControls
                       isPlaying={playerState.isPlaying}
                       isReady={playerState.isReady}
@@ -318,7 +318,7 @@ export default function Home() {
               </div>
 
               <div>
-                <div className="xl:hidden sticky top-2 z-10 mb-3 rounded-lg overflow-hidden shadow-lg">
+                <div className="lg:hidden sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 mb-3 rounded-lg overflow-hidden shadow-lg">
                   <VideoControls
                     isPlaying={playerState.isPlaying}
                     isReady={playerState.isReady}

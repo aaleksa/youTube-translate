@@ -137,7 +137,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         playerRef.current?.destroy();
         playerRef.current = new window.YT.Player(playerId, {
           videoId,
-          height: '400',
+          height: '100%',
           width: '100%',
           playerVars: {
             enablejsapi: 1,
@@ -179,8 +179,8 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     }, [videoId]);
 
     return (
-      <div className="w-full aspect-video max-h-[400px] bg-black">
-        <div id={playerId} className="w-full h-full" />
+      <div className="w-full aspect-video max-h-[min(400px,70dvh)] bg-black">
+        <div id={playerId} className="w-full h-full min-h-[180px]" />
       </div>
     );
   }

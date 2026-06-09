@@ -25,7 +25,7 @@ export default function VideoControls({
         type="button"
         onClick={onPlayPause}
         disabled={!isReady}
-        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
+        className="flex-1 min-h-11 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
       >
         {isPlaying ? t('video.pause') : t('video.play')}
       </button>
@@ -33,7 +33,7 @@ export default function VideoControls({
         type="button"
         onClick={onStop}
         disabled={!isReady}
-        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
+        className="min-h-11 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
       >
         {t('video.stop')}
       </button>

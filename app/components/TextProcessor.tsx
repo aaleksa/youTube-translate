@@ -124,8 +124,8 @@ export default function TextProcessor({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6 mb-6">
-      <h2 className="text-2xl font-bold mb-2 text-gray-800 dark:text-gray-100">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 mb-6">
+      <h2 className="text-xl sm:text-2xl font-bold mb-2 text-gray-800 dark:text-gray-100">
         {t('textAnalysis.title')}
       </h2>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
@@ -163,7 +163,7 @@ export default function TextProcessor({
       <button
         onClick={handleProcess}
         disabled={loading || !query.trim()}
-        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
+        className="w-full min-h-11 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
       >
         {loading ? t('textAnalysis.processing') : t('textAnalysis.analyze')}
       </button>
