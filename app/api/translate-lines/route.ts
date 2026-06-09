@@ -1,6 +1,10 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { getTranslationLanguageName } from '../../lib/translationLanguages';
+import { getAiResponseLanguageName } from '../../lib/aiInterfaceLanguage';
+import {
+  isTranslationLanguage,
+  type TranslationLanguageCode,
+} from '../../lib/translationLanguages';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,10 +21,10 @@ function sanitizeLine(text: string): string {
 
 async function translateChunk(
   lines: string[],
-  targetLanguage: string
+  targetLanguage: TranslationLanguageCode
 ): Promise<string[]> {
   const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
-  const targetName = getTranslationLanguageName(targetLanguage);
+  const targetName = getAiResponseLanguageName(targetLanguage);
   const numbered = lines.map((line, index) => `${index + 1}. ${line}`).join('\n');
 
   const response = await openai.chat.completions.create({
@@ -29,7 +33,8 @@ async function translateChunk(
       {
         role: 'system',
         content: `You are a professional translator for language learners watching English videos.
-Translate each numbered English transcript line into ${targetName} (language code: ${targetLanguage}).
+Translate each numbered English transcript line into ${targetName}.
+Use language code "${targetLanguage}" — output MUST be in ${targetName}, not English.
 Return JSON only: {"translations":["translation of line 1","translation of line 2",...]}
 The translations array MUST have exactly ${lines.length} items in the same order.
 Keep the meaning natural. Do not merge or split lines.`,
@@ -74,11 +79,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { lines, targetLanguage = 'uk' } = await request.json();
+    const { lines, targetLanguage } = await request.json();
     const language =
-      typeof targetLanguage === 'string' && targetLanguage.trim()
-        ? targetLanguage.trim()
-        : 'uk';
+      typeof targetLanguage === 'string' ? targetLanguage.trim() : '';
+
+    if (!language || !isTranslationLanguage(language)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing target language' },
+        { status: 400 }
+      );
+    }
 
     if (!Array.isArray(lines) || lines.length === 0) {
       return NextResponse.json(

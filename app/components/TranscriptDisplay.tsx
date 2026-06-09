@@ -26,15 +26,15 @@ import TranslationLanguageSelect from './TranslationLanguageSelect';
 import ToolbarMenu from './ToolbarMenu';
 import {
   DEFAULT_TRANSLATION_LANGUAGE,
+  getTranslationLanguageName,
+  getTranslationLanguageShortCode,
+  isTranslationLanguage,
+  type TranslationLanguageCode,
 } from '../lib/translationLanguages';
 import {
   getSavedTranslationLanguage,
   saveTranslationLanguage,
 } from '../lib/languageSettings';
-import {
-  getTranslationLanguageName,
-  getTranslationLanguageShortCode,
-} from '../lib/translationLanguages';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
@@ -230,9 +230,8 @@ export default function TranscriptDisplay({
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const [translationEnabled, setTranslationEnabled] = useState(false);
-  const [translationLanguage, setTranslationLanguage] = useState(
-    DEFAULT_TRANSLATION_LANGUAGE
-  );
+  const [translationLanguage, setTranslationLanguage] =
+    useState<TranslationLanguageCode>(DEFAULT_TRANSLATION_LANGUAGE);
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
@@ -261,7 +260,7 @@ export default function TranscriptDisplay({
   }, []);
 
   const loadTranslations = useCallback(
-    async (targetLanguage: string) => {
+    async (targetLanguage: TranslationLanguageCode) => {
       const lines = transcript.map((item) => item.text);
       const cached = getBilingualCache(videoId, lines.length, targetLanguage);
       if (cached) {
@@ -462,6 +461,8 @@ export default function TranscriptDisplay({
   );
 
   const handleTranslationLanguageChange = (languageCode: string) => {
+    if (!isTranslationLanguage(languageCode)) return;
+
     saveTranslationLanguage(languageCode);
     setTranslationLanguage(languageCode);
     if (translationEnabled) {

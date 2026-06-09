@@ -3,7 +3,11 @@ import {
   isInterfaceLanguage,
   type InterfaceLanguage,
 } from './i18n';
-import { DEFAULT_TRANSLATION_LANGUAGE, isTranslationLanguage } from './translationLanguages';
+import {
+  DEFAULT_TRANSLATION_LANGUAGE,
+  isTranslationLanguage,
+  type TranslationLanguageCode,
+} from './translationLanguages';
 
 const STORAGE_KEY = 'yoytube-language-settings';
 const LEGACY_TRANSLATION_KEY = 'yoytube-translation-language';
@@ -11,14 +15,15 @@ const LEGACY_TRANSLATION_KEY = 'yoytube-translation-language';
 export interface LanguageSettings {
   interfaceLanguage: InterfaceLanguage;
   transcriptLanguage: string;
-  translationLanguage: string;
+  translationLanguage: TranslationLanguageCode;
 }
 
 function defaultSettings(): LanguageSettings {
+  const interfaceLanguage = detectBrowserInterfaceLanguage();
   return {
-    interfaceLanguage: detectBrowserInterfaceLanguage(),
+    interfaceLanguage,
     transcriptLanguage: 'en',
-    translationLanguage: DEFAULT_TRANSLATION_LANGUAGE,
+    translationLanguage: interfaceLanguage,
   };
 }
 
@@ -65,7 +70,9 @@ export function getLanguageSettings(): LanguageSettings {
         parsed.translationLanguage &&
         isTranslationLanguage(parsed.translationLanguage)
           ? parsed.translationLanguage
-          : migrated.translationLanguage,
+          : isTranslationLanguage(migrated.interfaceLanguage)
+            ? migrated.interfaceLanguage
+            : DEFAULT_TRANSLATION_LANGUAGE,
     };
   } catch {
     return migrateLegacySettings();
@@ -92,11 +99,14 @@ export function saveInterfaceLanguage(code: InterfaceLanguage): LanguageSettings
   return saveLanguageSettings({ interfaceLanguage: code });
 }
 
-export function getSavedTranslationLanguage(): string {
+export function getSavedTranslationLanguage(): TranslationLanguageCode {
   return getLanguageSettings().translationLanguage;
 }
 
 export function saveTranslationLanguage(code: string): LanguageSettings {
+  if (!isTranslationLanguage(code)) {
+    return getLanguageSettings();
+  }
   return saveLanguageSettings({ translationLanguage: code });
 }
 

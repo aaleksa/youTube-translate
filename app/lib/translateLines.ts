@@ -1,3 +1,5 @@
+import type { TranslationLanguageCode } from './translationLanguages';
+
 const CHUNK_SIZE = 40;
 
 export class TranslationCancelledError extends Error {
@@ -15,7 +17,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 
 export async function translateAllLines(
   lines: string[],
-  targetLanguage: string,
+  targetLanguage: TranslationLanguageCode,
   onProgress?: (completed: number, total: number) => void,
   signal?: AbortSignal
 ): Promise<string[]> {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { shouldAutoPause } from '../lib/learningSettings';
+import { DEFAULT_TRANSLATION_LANGUAGE } from '../lib/translationLanguages';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface SelectionTranslateProps {
@@ -12,7 +13,7 @@ interface SelectionTranslateProps {
 
 export default function SelectionTranslate({
   selectedText,
-  targetLanguage = 'uk',
+  targetLanguage = DEFAULT_TRANSLATION_LANGUAGE,
   onPauseVideo,
 }: SelectionTranslateProps) {
   const { t } = useI18n();
