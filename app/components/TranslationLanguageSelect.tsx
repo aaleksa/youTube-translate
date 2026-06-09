@@ -44,7 +44,7 @@ export default function TranslationLanguageSelect({
         </label>
         {translationEnabled && !isLoading && (
           <span className="text-xs font-medium text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 px-2 py-0.5 rounded-full">
-            {t('transcript.bilingualMode')}
+            {t('transcript.sideBySideMode')}
           </span>
         )}
       </div>

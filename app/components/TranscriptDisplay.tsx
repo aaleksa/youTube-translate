@@ -78,12 +78,14 @@ function TranscriptLine({
   isActive,
   onSeek,
   lineRef,
+  seekTitle,
 }: {
   item: TranscriptItem;
   lineIndex: number;
   isActive: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   lineRef?: (el: HTMLDivElement | null) => void;
+  seekTitle: string;
 }) {
   const canSeek = Boolean(item.start && onSeek);
 
@@ -111,7 +113,7 @@ function TranscriptLine({
           : undefined
       }
       className={`text-gray-800 dark:text-gray-200 leading-relaxed py-2.5 px-3 rounded-r-md transition ${lineClassName(isActive, canSeek)}`}
-      title={canSeek ? 'Jump to this moment in the video' : undefined}
+      title={canSeek ? seekTitle : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
       <div className="flex items-start gap-2">
@@ -133,19 +135,19 @@ function TranscriptLine({
 function BilingualLine({
   item,
   translation,
-  translationLabel,
   lineIndex,
   isActive,
   onSeek,
   lineRef,
+  seekTitle,
 }: {
   item: TranscriptItem;
   translation: string;
-  translationLabel: string;
   lineIndex: number;
   isActive: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   lineRef?: (el: HTMLDivElement | null) => void;
+  seekTitle: string;
 }) {
   const canSeek = Boolean(item.start && onSeek);
 
@@ -172,19 +174,19 @@ function BilingualLine({
             }
           : undefined
       }
-      className={`grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
+      className={`grid grid-cols-2 gap-3 sm:gap-5 items-stretch py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
         isActive
           ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400'
           : canSeek
             ? 'border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60'
             : 'border-l-transparent'
       }`}
-      title={canSeek ? 'Jump to this moment in the video' : undefined}
+      title={canSeek ? seekTitle : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex flex-col justify-center border-r border-gray-200 dark:border-gray-700 pr-3 sm:pr-5">
         <span
-          className={`inline-block text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded mb-1 ${
+          className={`inline-block w-fit text-[10px] sm:text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded mb-1 ${
             isActive
               ? 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
               : 'text-gray-500 dark:text-gray-400'
@@ -192,15 +194,12 @@ function BilingualLine({
         >
           {formatTimestamp(item.start)}
         </span>
-        <p className="text-[15px] text-gray-800 dark:text-gray-200 leading-relaxed">
+        <p className="text-sm sm:text-[15px] text-gray-800 dark:text-gray-200 leading-relaxed">
           {item.text}
         </p>
       </div>
-      <div className="min-w-0 md:border-l md:border-gray-200 md:dark:border-gray-700 md:pl-5">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-teal-600 dark:text-teal-400 mb-1 md:hidden">
-          {translationLabel}
-        </p>
-        <p className="text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed">
+      <div className="min-w-0 flex flex-col justify-center pl-1 sm:pl-0">
+        <p className="text-sm sm:text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed">
           {translation || '—'}
         </p>
       </div>
@@ -664,9 +663,13 @@ export default function TranscriptDisplay({
           className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-white dark:bg-gray-900"
         >
           {bilingualMode && translations && !translating && (
-            <div className="hidden md:grid md:grid-cols-2 gap-5 sticky top-0 z-10 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
-              <span>{t('transcript.english')}</span>
-              <span className="text-teal-600 dark:text-teal-400">{translationLabel}</span>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 sticky top-0 z-10 px-3 sm:px-5 py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+              <span className="border-r border-gray-200 dark:border-gray-700 pr-3 sm:pr-5">
+                {t('transcript.english')}
+              </span>
+              <span className="text-teal-600 dark:text-teal-400 pl-1 sm:pl-0">
+                {translationLabel}
+              </span>
             </div>
           )}
 
@@ -679,7 +682,10 @@ export default function TranscriptDisplay({
                 })}
               </p>
               <p className="text-sm">
-                {translateProgress.done} / {translateProgress.total} рядків
+                {t('transcript.translatingProgress', {
+                  done: translateProgress.done,
+                  total: translateProgress.total,
+                })}
               </p>
             </div>
           ) : filteredIndices.length > 0 ? (
@@ -690,11 +696,11 @@ export default function TranscriptDisplay({
                     key={`${item.start ?? 'line'}-${index}`}
                     item={item}
                     translation={translations[index] ?? ''}
-                    translationLabel={translationLabel}
                     lineIndex={index}
                     isActive={index === activeLineIndex}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
+                    seekTitle={t('transcript.seekLine')}
                   />
                 ) : (
                   <TranscriptLine
@@ -704,6 +710,7 @@ export default function TranscriptDisplay({
                     isActive={index === activeLineIndex}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
+                    seekTitle={t('transcript.seekLine')}
                   />
                 )
               )}
