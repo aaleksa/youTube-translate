@@ -1,12 +1,11 @@
-import { parseTimestampToSeconds } from './timestamp';
+import {
+  getCueEndSeconds,
+  type TranscriptCue,
+} from './transcriptCue';
 
 const DEFAULT_READING_WPM = 200;
 
-export interface ReadingStatsTranscriptLine {
-  text: string;
-  start?: string;
-  duration?: string;
-}
+export type ReadingStatsTranscriptLine = TranscriptCue;
 
 export interface ReadingStats {
   wordCount: number;
@@ -15,36 +14,13 @@ export interface ReadingStats {
   estimatedReadingSeconds: number;
 }
 
-function getCueEndSeconds(
-  item: ReadingStatsTranscriptLine,
-  index: number,
-  transcript: ReadingStatsTranscriptLine[]
-): number {
-  const startSeconds = parseTimestampToSeconds(item.start);
-  const durationValue = parseTimestampToSeconds(item.duration);
-
-  if (item.duration?.trim() && durationValue > startSeconds) {
-    return durationValue;
-  }
-
-  if (index < transcript.length - 1) {
-    const nextStart = parseTimestampToSeconds(transcript[index + 1].start);
-    if (nextStart > startSeconds) {
-      return nextStart;
-    }
-  }
-
-  const estimated = Math.max(2, Math.min(8, item.text.length / 12));
-  return startSeconds + estimated;
-}
-
 export function getTranscriptDurationSeconds(
   transcript: ReadingStatsTranscriptLine[]
 ): number {
   if (transcript.length === 0) return 0;
 
   const lastIndex = transcript.length - 1;
-  return getCueEndSeconds(transcript[lastIndex], lastIndex, transcript);
+  return getCueEndSeconds(lastIndex, transcript);
 }
 
 export function countTranscriptWords(text: string): number {

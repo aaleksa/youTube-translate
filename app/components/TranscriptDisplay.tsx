@@ -55,6 +55,7 @@ interface TranscriptDisplayProps {
   videoTitle?: string;
   videoUrl?: string;
   activeLineIndex?: number;
+  shadowingLineIndex?: number | null;
   isPlaying?: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   onSaveToFlashcards?: (
@@ -64,14 +65,22 @@ interface TranscriptDisplayProps {
   ) => void;
   flashcardsRefreshKey?: number;
   onPauseVideo?: () => void;
+  onShadowingClick?: () => void;
 }
 
 function countSelectionWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function lineClassName(isActive: boolean, canSeek: boolean): string {
+function lineClassName(
+  isActive: boolean,
+  canSeek: boolean,
+  isShadowing = false
+): string {
   if (isActive) {
+    if (isShadowing) {
+      return 'bg-violet-50 dark:bg-violet-950/50 border-l-[3px] border-l-violet-500 dark:border-l-violet-400 ring-1 ring-inset ring-violet-200/80 dark:ring-violet-700/60 shadow-sm';
+    }
     return 'bg-blue-50 dark:bg-blue-950/50 border-l-[3px] border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm';
   }
   if (canSeek) {
@@ -84,6 +93,7 @@ function TranscriptLine({
   item,
   lineIndex,
   isActive,
+  isShadowing = false,
   onSeek,
   lineRef,
   seekTitle,
@@ -91,6 +101,7 @@ function TranscriptLine({
   item: TranscriptItem;
   lineIndex: number;
   isActive: boolean;
+  isShadowing?: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   lineRef?: (el: HTMLDivElement | null) => void;
   seekTitle: string;
@@ -120,7 +131,7 @@ function TranscriptLine({
             }
           : undefined
       }
-      className={`text-gray-800 dark:text-gray-200 leading-relaxed py-2.5 px-3 rounded-r-md transition ${lineClassName(isActive, canSeek)}`}
+      className={`text-gray-800 dark:text-gray-200 leading-relaxed py-2.5 px-3 rounded-r-md transition ${lineClassName(isActive, canSeek, isShadowing)}`}
       title={canSeek ? seekTitle : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
@@ -128,7 +139,9 @@ function TranscriptLine({
         <span
           className={`text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded shrink-0 ${
             isActive
-              ? 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
+              ? isShadowing
+                ? 'text-violet-700 dark:text-violet-200 bg-violet-100 dark:bg-violet-900/60'
+                : 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
               : 'text-gray-500 dark:text-gray-400'
           }`}
         >
@@ -149,6 +162,7 @@ function BilingualLine({
   translation,
   lineIndex,
   isActive,
+  isShadowing = false,
   onSeek,
   lineRef,
   seekTitle,
@@ -157,6 +171,7 @@ function BilingualLine({
   translation: string;
   lineIndex: number;
   isActive: boolean;
+  isShadowing?: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   lineRef?: (el: HTMLDivElement | null) => void;
   seekTitle: string;
@@ -188,7 +203,9 @@ function BilingualLine({
       }
       className={`grid grid-cols-1 min-[480px]:grid-cols-2 gap-2 min-[480px]:gap-3 sm:gap-5 items-stretch py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
         isActive
-          ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm'
+          ? isShadowing
+            ? 'bg-violet-50 dark:bg-violet-950/50 border-l-violet-500 dark:border-l-violet-400 ring-1 ring-inset ring-violet-200/80 dark:ring-violet-700/60 shadow-sm'
+            : 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm'
           : canSeek
             ? 'border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60'
             : 'border-l-transparent'
@@ -200,7 +217,9 @@ function BilingualLine({
         <span
           className={`inline-block w-fit text-[10px] sm:text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded mb-1 ${
             isActive
-              ? 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
+              ? isShadowing
+                ? 'text-violet-700 dark:text-violet-200 bg-violet-100 dark:bg-violet-900/60'
+                : 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
               : 'text-gray-500 dark:text-gray-400'
           }`}
         >
@@ -238,13 +257,17 @@ export default function TranscriptDisplay({
   videoTitle,
   videoUrl,
   activeLineIndex = 0,
+  shadowingLineIndex = null,
   isPlaying = false,
   onSeek,
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
   onPauseVideo,
+  onShadowingClick,
 }: TranscriptDisplayProps) {
   const { t, language } = useI18n();
+  const highlightLineIndex = shadowingLineIndex ?? activeLineIndex;
+  const isShadowingMode = shadowingLineIndex !== null;
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const seekClickRef = useRef(false);
@@ -364,11 +387,11 @@ export default function TranscriptDisplay({
 
   useEffect(() => {
     const shouldScroll =
-      seekClickRef.current || (autoScroll && isPlaying);
+      seekClickRef.current || isShadowingMode || (autoScroll && isPlaying);
     if (!shouldScroll) return;
 
     const container = scrollContainerRef.current;
-    const activeLine = lineRefs.current.get(activeLineIndex);
+    const activeLine = lineRefs.current.get(highlightLineIndex);
     if (!container || !activeLine) return;
 
     const lineRect = activeLine.getBoundingClientRect();
@@ -390,7 +413,7 @@ export default function TranscriptDisplay({
     });
 
     seekClickRef.current = false;
-  }, [activeLineIndex, autoScroll, isPlaying]);
+  }, [highlightLineIndex, autoScroll, isPlaying, isShadowingMode]);
 
   const handleSeek = (seconds: number, lineIndex: number) => {
     seekClickRef.current = true;
@@ -601,6 +624,15 @@ export default function TranscriptDisplay({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onShadowingClick && (
+              <button
+                type="button"
+                onClick={onShadowingClick}
+                className="px-3 py-1.5 text-sm rounded-lg transition bg-violet-100 text-violet-900 hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900 font-semibold"
+              >
+                {t('actions.shadowing')}
+              </button>
+            )}
             <ToolbarMenu
               label={copied ? '✓ Export' : t('actions.export')}
               active={copied}
@@ -805,7 +837,8 @@ export default function TranscriptDisplay({
                     item={item}
                     translation={translations[index] ?? ''}
                     lineIndex={index}
-                    isActive={index === activeLineIndex}
+                    isActive={index === highlightLineIndex}
+                    isShadowing={isShadowingMode && index === highlightLineIndex}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                     seekTitle={t('transcript.seekLine')}
@@ -815,7 +848,8 @@ export default function TranscriptDisplay({
                     key={`${item.start ?? 'line'}-${index}`}
                     item={item}
                     lineIndex={index}
-                    isActive={index === activeLineIndex}
+                    isActive={index === highlightLineIndex}
+                    isShadowing={isShadowingMode && index === highlightLineIndex}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                     seekTitle={t('transcript.seekLine')}
