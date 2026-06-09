@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { getFlashcardWordSet } from '../lib/flashcards';
 import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import { prepareFlashcardsFromAiResponse } from '../lib/prepareFlashcards';
+import VocabularyAnalysis from './VocabularyAnalysis';
 
 interface TextProcessorProps {
   text: string;
@@ -24,6 +25,7 @@ export default function TextProcessor({
   text,
   videoId,
   flashcardsRefreshKey = 0,
+  onSaveToFlashcards,
   onSaveManyToFlashcards,
 }: TextProcessorProps) {
   const savedWords = useMemo(
@@ -126,10 +128,27 @@ export default function TextProcessor({
       </h2>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
         Задайте будь-який запит до транскрипту. Формат відповіді AI може бути
-        різним — для Flashcards натисніть «Підготувати Flashcards»: AI сам
-        витягне англійські слова, додасть переклад українською та приклад з
-        відео, після чого ви зможете зберегти картки.
+        різним — вбудовані vocabulary-інструменти допоможуть швидко знайти
+        ключові слова, вирази та фрази, а для довільних відповідей натисніть
+        «Підготувати Flashcards»: AI сам витягне англійські слова, додасть
+        переклад українською та приклад з відео, після чого ви зможете зберегти
+        картки.
       </p>
+
+      {videoId && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+            Vocabulary
+          </p>
+          <VocabularyAnalysis
+            videoId={videoId}
+            text={text}
+            flashcardsRefreshKey={flashcardsRefreshKey}
+            onSaveToFlashcards={onSaveToFlashcards}
+            onSaveManyToFlashcards={onSaveManyToFlashcards}
+          />
+        </div>
+      )}
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

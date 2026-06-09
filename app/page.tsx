@@ -271,7 +271,6 @@ export default function Home() {
                   activeLineIndex={activeLineIndex}
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
-                  onSaveManyToFlashcards={handleSaveManyToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}
                 />
               </div>
