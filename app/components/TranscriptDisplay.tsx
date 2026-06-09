@@ -16,6 +16,31 @@ import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
 import { getIdiomsCache, setIdiomsCache } from '../lib/idiomsCache';
 import type { IdiomItem } from '../lib/idioms';
+import {
+  getKeyVocabularyCache,
+  setKeyVocabularyCache,
+} from '../lib/keyVocabularyCache';
+import type { KeyVocabularyItem } from '../lib/keyVocabulary';
+import {
+  getFrequentWordsCache,
+  setFrequentWordsCache,
+} from '../lib/frequentWordsCache';
+import type { FrequentWordItem } from '../lib/frequentWords';
+import {
+  getPhrasalVerbsCache,
+  setPhrasalVerbsCache,
+} from '../lib/phrasalVerbsCache';
+import type { PhrasalVerbItem } from '../lib/phrasalVerbs';
+import {
+  getUsefulPhrasesCache,
+  setUsefulPhrasesCache,
+} from '../lib/usefulPhrasesCache';
+import type { UsefulPhraseItem } from '../lib/usefulPhrases';
+import {
+  getCollocationsCache,
+  setCollocationsCache,
+} from '../lib/collocationsCache';
+import type { CollocationItem } from '../lib/collocations';
 import { getSlangCache, setSlangCache } from '../lib/slangCache';
 import {
   getFormalityLabel,
@@ -214,11 +239,46 @@ export default function TranscriptDisplay({
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
   const [translateError, setTranslateError] = useState('');
+  const [keyVocabulary, setKeyVocabulary] = useState<KeyVocabularyItem[] | null>(
+    null
+  );
+  const [keyVocabularyLoading, setKeyVocabularyLoading] = useState(false);
+  const [keyVocabularyError, setKeyVocabularyError] = useState('');
+  const [keyVocabularyFromCache, setKeyVocabularyFromCache] = useState(false);
+  const [showKeyVocabulary, setShowKeyVocabulary] = useState(false);
+  const [frequentWords, setFrequentWords] = useState<FrequentWordItem[] | null>(
+    null
+  );
+  const [frequentWordsLoading, setFrequentWordsLoading] = useState(false);
+  const [frequentWordsError, setFrequentWordsError] = useState('');
+  const [frequentWordsFromCache, setFrequentWordsFromCache] = useState(false);
+  const [showFrequentWords, setShowFrequentWords] = useState(false);
   const [idioms, setIdioms] = useState<IdiomItem[] | null>(null);
   const [idiomsLoading, setIdiomsLoading] = useState(false);
   const [idiomsError, setIdiomsError] = useState('');
   const [idiomsFromCache, setIdiomsFromCache] = useState(false);
   const [showIdioms, setShowIdioms] = useState(false);
+  const [phrasalVerbs, setPhrasalVerbs] = useState<PhrasalVerbItem[] | null>(
+    null
+  );
+  const [phrasalVerbsLoading, setPhrasalVerbsLoading] = useState(false);
+  const [phrasalVerbsError, setPhrasalVerbsError] = useState('');
+  const [phrasalVerbsFromCache, setPhrasalVerbsFromCache] = useState(false);
+  const [showPhrasalVerbs, setShowPhrasalVerbs] = useState(false);
+  const [usefulPhrases, setUsefulPhrases] = useState<UsefulPhraseItem[] | null>(
+    null
+  );
+  const [usefulPhrasesLoading, setUsefulPhrasesLoading] = useState(false);
+  const [usefulPhrasesError, setUsefulPhrasesError] = useState('');
+  const [usefulPhrasesFromCache, setUsefulPhrasesFromCache] = useState(false);
+  const [showUsefulPhrases, setShowUsefulPhrases] = useState(false);
+  const [collocations, setCollocations] = useState<CollocationItem[] | null>(
+    null
+  );
+  const [collocationsLoading, setCollocationsLoading] = useState(false);
+  const [collocationsError, setCollocationsError] = useState('');
+  const [collocationsFromCache, setCollocationsFromCache] = useState(false);
+  const [showCollocations, setShowCollocations] = useState(false);
   const [slang, setSlang] = useState<SlangItem[] | null>(null);
   const [slangLoading, setSlangLoading] = useState(false);
   const [slangError, setSlangError] = useState('');
@@ -230,6 +290,28 @@ export default function TranscriptDisplay({
     [flashcardsRefreshKey]
   );
 
+  const visibleKeyVocabulary = useMemo(() => {
+    if (!keyVocabulary) return [];
+    return keyVocabulary.filter(
+      (item) => !savedWords.has(item.word.trim().toLowerCase())
+    );
+  }, [keyVocabulary, savedWords]);
+
+  const savedKeyVocabularyCount = keyVocabulary
+    ? keyVocabulary.length - visibleKeyVocabulary.length
+    : 0;
+
+  const visibleFrequentWords = useMemo(() => {
+    if (!frequentWords) return [];
+    return frequentWords.filter(
+      (item) => !savedWords.has(item.word.trim().toLowerCase())
+    );
+  }, [frequentWords, savedWords]);
+
+  const savedFrequentWordsCount = frequentWords
+    ? frequentWords.length - visibleFrequentWords.length
+    : 0;
+
   const visibleIdioms = useMemo(() => {
     if (!idioms) return [];
     return idioms.filter(
@@ -238,6 +320,39 @@ export default function TranscriptDisplay({
   }, [idioms, savedWords]);
 
   const savedIdiomsCount = idioms ? idioms.length - visibleIdioms.length : 0;
+
+  const visiblePhrasalVerbs = useMemo(() => {
+    if (!phrasalVerbs) return [];
+    return phrasalVerbs.filter(
+      (item) => !savedWords.has(item.phrasalVerb.trim().toLowerCase())
+    );
+  }, [phrasalVerbs, savedWords]);
+
+  const savedPhrasalVerbsCount = phrasalVerbs
+    ? phrasalVerbs.length - visiblePhrasalVerbs.length
+    : 0;
+
+  const visibleUsefulPhrases = useMemo(() => {
+    if (!usefulPhrases) return [];
+    return usefulPhrases.filter(
+      (item) => !savedWords.has(item.phrase.trim().toLowerCase())
+    );
+  }, [usefulPhrases, savedWords]);
+
+  const savedUsefulPhrasesCount = usefulPhrases
+    ? usefulPhrases.length - visibleUsefulPhrases.length
+    : 0;
+
+  const visibleCollocations = useMemo(() => {
+    if (!collocations) return [];
+    return collocations.filter(
+      (item) => !savedWords.has(item.collocation.trim().toLowerCase())
+    );
+  }, [collocations, savedWords]);
+
+  const savedCollocationsCount = collocations
+    ? collocations.length - visibleCollocations.length
+    : 0;
 
   const visibleSlang = useMemo(() => {
     if (!slang) return [];
@@ -260,10 +375,30 @@ export default function TranscriptDisplay({
     setTranslations(null);
     setTranslateError('');
     setTranslateProgress({ done: 0, total: 0 });
+    setKeyVocabulary(null);
+    setKeyVocabularyError('');
+    setKeyVocabularyFromCache(false);
+    setShowKeyVocabulary(false);
+    setFrequentWords(null);
+    setFrequentWordsError('');
+    setFrequentWordsFromCache(false);
+    setShowFrequentWords(false);
     setIdioms(null);
     setIdiomsError('');
     setIdiomsFromCache(false);
     setShowIdioms(false);
+    setPhrasalVerbs(null);
+    setPhrasalVerbsError('');
+    setPhrasalVerbsFromCache(false);
+    setShowPhrasalVerbs(false);
+    setUsefulPhrases(null);
+    setUsefulPhrasesError('');
+    setUsefulPhrasesFromCache(false);
+    setShowUsefulPhrases(false);
+    setCollocations(null);
+    setCollocationsError('');
+    setCollocationsFromCache(false);
+    setShowCollocations(false);
     setSlang(null);
     setSlangError('');
     setSlangFromCache(false);
@@ -432,6 +567,114 @@ export default function TranscriptDisplay({
     await loadTranslations();
   };
 
+  const handleFindKeyVocabulary = async () => {
+    setKeyVocabularyError('');
+    setShowKeyVocabulary(true);
+
+    const cached = getKeyVocabularyCache(videoId, fullText.length);
+    if (cached) {
+      setKeyVocabulary(cached);
+      setKeyVocabularyFromCache(true);
+      return;
+    }
+
+    setKeyVocabularyLoading(true);
+    setKeyVocabularyFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-key-vocabulary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find key vocabulary');
+      }
+
+      const found: KeyVocabularyItem[] = data.vocabulary ?? [];
+      setKeyVocabularyCache(videoId, fullText.length, found);
+      setKeyVocabulary(found);
+    } catch (error) {
+      setKeyVocabularyError(
+        error instanceof Error
+          ? error.message
+          : 'Помилка пошуку ключової лексики'
+      );
+      setKeyVocabulary(null);
+    } finally {
+      setKeyVocabularyLoading(false);
+    }
+  };
+
+  const handleSaveAllKeyVocabulary = () => {
+    if (!onSaveManyToFlashcards || visibleKeyVocabulary.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleKeyVocabulary.map((item) => ({
+        word: item.word,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
+  const handleFindFrequentWords = async () => {
+    setFrequentWordsError('');
+    setShowFrequentWords(true);
+
+    const cached = getFrequentWordsCache(videoId, fullText.length);
+    if (cached) {
+      setFrequentWords(cached);
+      setFrequentWordsFromCache(true);
+      return;
+    }
+
+    setFrequentWordsLoading(true);
+    setFrequentWordsFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-frequent-words', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find frequent words');
+      }
+
+      const found: FrequentWordItem[] = data.frequentWords ?? [];
+      setFrequentWordsCache(videoId, fullText.length, found);
+      setFrequentWords(found);
+    } catch (error) {
+      setFrequentWordsError(
+        error instanceof Error
+          ? error.message
+          : 'Помилка підрахунку частих слів'
+      );
+      setFrequentWords(null);
+    } finally {
+      setFrequentWordsLoading(false);
+    }
+  };
+
+  const handleSaveAllFrequentWords = () => {
+    if (!onSaveManyToFlashcards || visibleFrequentWords.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleFrequentWords.map((item) => ({
+        word: item.word,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
   const handleFindIdioms = async () => {
     setIdiomsError('');
     setShowIdioms(true);
@@ -478,6 +721,166 @@ export default function TranscriptDisplay({
     onSaveManyToFlashcards(
       visibleIdioms.map((item) => ({
         word: item.idiom,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
+  const handleFindPhrasalVerbs = async () => {
+    setPhrasalVerbsError('');
+    setShowPhrasalVerbs(true);
+
+    const cached = getPhrasalVerbsCache(videoId, fullText.length);
+    if (cached) {
+      setPhrasalVerbs(cached);
+      setPhrasalVerbsFromCache(true);
+      return;
+    }
+
+    setPhrasalVerbsLoading(true);
+    setPhrasalVerbsFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-phrasal-verbs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find phrasal verbs');
+      }
+
+      const found: PhrasalVerbItem[] = data.phrasalVerbs ?? [];
+      setPhrasalVerbsCache(videoId, fullText.length, found);
+      setPhrasalVerbs(found);
+    } catch (error) {
+      setPhrasalVerbsError(
+        error instanceof Error
+          ? error.message
+          : 'Помилка пошуку фразових дієслів'
+      );
+      setPhrasalVerbs(null);
+    } finally {
+      setPhrasalVerbsLoading(false);
+    }
+  };
+
+  const handleSaveAllPhrasalVerbs = () => {
+    if (!onSaveManyToFlashcards || visiblePhrasalVerbs.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visiblePhrasalVerbs.map((item) => ({
+        word: item.phrasalVerb,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
+  const handleFindUsefulPhrases = async () => {
+    setUsefulPhrasesError('');
+    setShowUsefulPhrases(true);
+
+    const cached = getUsefulPhrasesCache(videoId, fullText.length);
+    if (cached) {
+      setUsefulPhrases(cached);
+      setUsefulPhrasesFromCache(true);
+      return;
+    }
+
+    setUsefulPhrasesLoading(true);
+    setUsefulPhrasesFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-useful-phrases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find useful phrases');
+      }
+
+      const found: UsefulPhraseItem[] = data.phrases ?? [];
+      setUsefulPhrasesCache(videoId, fullText.length, found);
+      setUsefulPhrases(found);
+    } catch (error) {
+      setUsefulPhrasesError(
+        error instanceof Error
+          ? error.message
+          : 'Помилка пошуку корисних фраз'
+      );
+      setUsefulPhrases(null);
+    } finally {
+      setUsefulPhrasesLoading(false);
+    }
+  };
+
+  const handleSaveAllUsefulPhrases = () => {
+    if (!onSaveManyToFlashcards || visibleUsefulPhrases.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleUsefulPhrases.map((item) => ({
+        word: item.phrase,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
+  const handleFindCollocations = async () => {
+    setCollocationsError('');
+    setShowCollocations(true);
+
+    const cached = getCollocationsCache(videoId, fullText.length);
+    if (cached) {
+      setCollocations(cached);
+      setCollocationsFromCache(true);
+      return;
+    }
+
+    setCollocationsLoading(true);
+    setCollocationsFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-collocations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find collocations');
+      }
+
+      const found: CollocationItem[] = data.collocations ?? [];
+      setCollocationsCache(videoId, fullText.length, found);
+      setCollocations(found);
+    } catch (error) {
+      setCollocationsError(
+        error instanceof Error ? error.message : 'Помилка пошуку колокацій'
+      );
+      setCollocations(null);
+    } finally {
+      setCollocationsLoading(false);
+    }
+  };
+
+  const handleSaveAllCollocations = () => {
+    if (!onSaveManyToFlashcards || visibleCollocations.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleCollocations.map((item) => ({
+        word: item.collocation,
         translation: item.meaning,
         example: item.example,
       }))
@@ -612,6 +1015,39 @@ export default function TranscriptDisplay({
             </button>
           )}
           <button
+            onClick={handleFindKeyVocabulary}
+            disabled={keyVocabularyLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showKeyVocabulary
+                ? 'bg-sky-500 text-white hover:bg-sky-600'
+                : 'bg-sky-100 text-sky-800 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:hover:bg-sky-900'
+            }`}
+          >
+            {keyVocabularyLoading ? '⏳...' : '📚 Key Words'}
+          </button>
+          <button
+            onClick={handleFindFrequentWords}
+            disabled={frequentWordsLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showFrequentWords
+                ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+                : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900'
+            }`}
+          >
+            {frequentWordsLoading ? '⏳...' : '📊 Frequent Words'}
+          </button>
+          <button
+            onClick={handleFindPhrasalVerbs}
+            disabled={phrasalVerbsLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showPhrasalVerbs
+                ? 'bg-teal-500 text-white hover:bg-teal-600'
+                : 'bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-950 dark:text-teal-200 dark:hover:bg-teal-900'
+            }`}
+          >
+            {phrasalVerbsLoading ? '⏳...' : '🔤 Phrasal Verbs'}
+          </button>
+          <button
             onClick={handleFindIdioms}
             disabled={idiomsLoading}
             className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
@@ -621,6 +1057,28 @@ export default function TranscriptDisplay({
             }`}
           >
             {idiomsLoading ? '⏳...' : '💬 Find Idioms'}
+          </button>
+          <button
+            onClick={handleFindUsefulPhrases}
+            disabled={usefulPhrasesLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showUsefulPhrases
+                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:hover:bg-orange-900'
+            }`}
+          >
+            {usefulPhrasesLoading ? '⏳...' : '💡 Useful Phrases'}
+          </button>
+          <button
+            onClick={handleFindCollocations}
+            disabled={collocationsLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showCollocations
+                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:hover:bg-emerald-900'
+            }`}
+          >
+            {collocationsLoading ? '⏳...' : '🔗 Collocations'}
           </button>
           <button
             onClick={handleFindSlang}
@@ -638,6 +1096,324 @@ export default function TranscriptDisplay({
         {translateError && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 rounded text-red-700 dark:text-red-300 text-sm">
             {translateError}
+          </div>
+        )}
+
+        {showKeyVocabulary && (
+          <div className="mb-4 p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-sky-800 dark:text-sky-200">
+                Key Vocabulary
+                {keyVocabulary && ` (${visibleKeyVocabulary.length})`}
+                {savedKeyVocabularyCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-sky-500 dark:text-sky-400">
+                    · в картках: {savedKeyVocabularyCount}
+                  </span>
+                )}
+                {keyVocabularyFromCache && (
+                  <span className="ml-2 text-xs font-normal text-sky-500 dark:text-sky-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowKeyVocabulary(false)}
+                className="text-sky-400 hover:text-sky-600 dark:hover:text-sky-200 transition"
+                aria-label="Закрити список ключової лексики"
+              >
+                ✕
+              </button>
+            </div>
+
+            {keyVocabularyLoading && (
+              <p className="text-sm text-sky-700 dark:text-sky-300">
+                ⏳ AI витягує ключову лексику з транскрипту...
+              </p>
+            )}
+
+            {keyVocabularyError && !keyVocabularyLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {keyVocabularyError}
+              </p>
+            )}
+
+            {keyVocabulary &&
+              !keyVocabularyLoading &&
+              keyVocabulary.length === 0 && (
+                <p className="text-sm text-sky-700 dark:text-sky-300">
+                  Ключову лексику не знайдено в цьому транскрипті.
+                </p>
+              )}
+
+            {keyVocabulary &&
+              !keyVocabularyLoading &&
+              keyVocabulary.length > 0 &&
+              visibleKeyVocabulary.length === 0 && (
+                <p className="text-sm text-sky-700 dark:text-sky-300">
+                  Усі знайдені слова вже збережені в картках.
+                </p>
+              )}
+
+            {visibleKeyVocabulary.length > 0 && !keyVocabularyLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllKeyVocabulary}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleKeyVocabulary.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleKeyVocabulary.map((item, index) => (
+                    <li
+                      key={`${item.word}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-sky-100 dark:border-sky-900"
+                    >
+                      <p className="font-bold text-sky-700 dark:text-sky-300">
+                        {item.word}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.word,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        {showFrequentWords && (
+          <div className="mb-4 p-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">
+                Frequent Words
+                {frequentWords && ` (${visibleFrequentWords.length})`}
+                {savedFrequentWordsCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-indigo-500 dark:text-indigo-400">
+                    · в картках: {savedFrequentWordsCount}
+                  </span>
+                )}
+                {frequentWordsFromCache && (
+                  <span className="ml-2 text-xs font-normal text-indigo-500 dark:text-indigo-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowFrequentWords(false)}
+                className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200 transition"
+                aria-label="Закрити список частих слів"
+              >
+                ✕
+              </button>
+            </div>
+
+            {frequentWordsLoading && (
+              <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                ⏳ Підраховуємо частоту слів і додаємо переклад...
+              </p>
+            )}
+
+            {frequentWordsError && !frequentWordsLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {frequentWordsError}
+              </p>
+            )}
+
+            {frequentWords &&
+              !frequentWordsLoading &&
+              frequentWords.length === 0 && (
+                <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                  Частих слів не знайдено в цьому транскрипті.
+                </p>
+              )}
+
+            {frequentWords &&
+              !frequentWordsLoading &&
+              frequentWords.length > 0 &&
+              visibleFrequentWords.length === 0 && (
+                <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                  Усі знайдені слова вже збережені в картках.
+                </p>
+              )}
+
+            {visibleFrequentWords.length > 0 && !frequentWordsLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllFrequentWords}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleFrequentWords.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleFrequentWords.map((item, index) => (
+                    <li
+                      key={`${item.word}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-indigo-100 dark:border-indigo-900"
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-indigo-700 dark:text-indigo-300">
+                          {item.word}
+                        </p>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 font-medium">
+                          {item.count}×
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.word,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        {showPhrasalVerbs && (
+          <div className="mb-4 p-4 bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-teal-800 dark:text-teal-200">
+                Phrasal Verbs
+                {phrasalVerbs && ` (${visiblePhrasalVerbs.length})`}
+                {savedPhrasalVerbsCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-teal-500 dark:text-teal-400">
+                    · в картках: {savedPhrasalVerbsCount}
+                  </span>
+                )}
+                {phrasalVerbsFromCache && (
+                  <span className="ml-2 text-xs font-normal text-teal-500 dark:text-teal-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPhrasalVerbs(false)}
+                className="text-teal-400 hover:text-teal-600 dark:hover:text-teal-200 transition"
+                aria-label="Закрити список фразових дієслів"
+              >
+                ✕
+              </button>
+            </div>
+
+            {phrasalVerbsLoading && (
+              <p className="text-sm text-teal-700 dark:text-teal-300">
+                ⏳ AI шукає фразові дієслова в транскрипті...
+              </p>
+            )}
+
+            {phrasalVerbsError && !phrasalVerbsLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {phrasalVerbsError}
+              </p>
+            )}
+
+            {phrasalVerbs && !phrasalVerbsLoading && phrasalVerbs.length === 0 && (
+              <p className="text-sm text-teal-700 dark:text-teal-300">
+                Фразових дієслів не знайдено в цьому транскрипті.
+              </p>
+            )}
+
+            {phrasalVerbs &&
+              !phrasalVerbsLoading &&
+              phrasalVerbs.length > 0 &&
+              visiblePhrasalVerbs.length === 0 && (
+                <p className="text-sm text-teal-700 dark:text-teal-300">
+                  Усі знайдені фразові дієслова вже збережені в картках.
+                </p>
+              )}
+
+            {visiblePhrasalVerbs.length > 0 && !phrasalVerbsLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllPhrasalVerbs}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visiblePhrasalVerbs.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visiblePhrasalVerbs.map((item, index) => (
+                    <li
+                      key={`${item.phrasalVerb}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-teal-100 dark:border-teal-900"
+                    >
+                      <p className="font-bold text-teal-700 dark:text-teal-300">
+                        {item.phrasalVerb}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.phrasalVerb,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
 
@@ -833,6 +1609,216 @@ export default function TranscriptDisplay({
                           onClick={() =>
                             onSaveToFlashcards(
                               item.idiom,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        {showUsefulPhrases && (
+          <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                Useful Phrases
+                {usefulPhrases && ` (${visibleUsefulPhrases.length})`}
+                {savedUsefulPhrasesCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-orange-500 dark:text-orange-400">
+                    · в картках: {savedUsefulPhrasesCount}
+                  </span>
+                )}
+                {usefulPhrasesFromCache && (
+                  <span className="ml-2 text-xs font-normal text-orange-500 dark:text-orange-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowUsefulPhrases(false)}
+                className="text-orange-400 hover:text-orange-600 dark:hover:text-orange-200 transition"
+                aria-label="Закрити список корисних фраз"
+              >
+                ✕
+              </button>
+            </div>
+
+            {usefulPhrasesLoading && (
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                ⏳ AI шукає корисні фрази в транскрипті...
+              </p>
+            )}
+
+            {usefulPhrasesError && !usefulPhrasesLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {usefulPhrasesError}
+              </p>
+            )}
+
+            {usefulPhrases &&
+              !usefulPhrasesLoading &&
+              usefulPhrases.length === 0 && (
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  Корисних фраз не знайдено в цьому транскрипті.
+                </p>
+              )}
+
+            {usefulPhrases &&
+              !usefulPhrasesLoading &&
+              usefulPhrases.length > 0 &&
+              visibleUsefulPhrases.length === 0 && (
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  Усі знайдені фрази вже збережені в картках.
+                </p>
+              )}
+
+            {visibleUsefulPhrases.length > 0 && !usefulPhrasesLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllUsefulPhrases}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleUsefulPhrases.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleUsefulPhrases.map((item, index) => (
+                    <li
+                      key={`${item.phrase}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-orange-100 dark:border-orange-900"
+                    >
+                      <p className="font-bold text-orange-700 dark:text-orange-300">
+                        {item.phrase}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.phrase,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        {showCollocations && (
+          <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                Collocations
+                {collocations && ` (${visibleCollocations.length})`}
+                {savedCollocationsCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-emerald-500 dark:text-emerald-400">
+                    · в картках: {savedCollocationsCount}
+                  </span>
+                )}
+                {collocationsFromCache && (
+                  <span className="ml-2 text-xs font-normal text-emerald-500 dark:text-emerald-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCollocations(false)}
+                className="text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-200 transition"
+                aria-label="Закрити список колокацій"
+              >
+                ✕
+              </button>
+            </div>
+
+            {collocationsLoading && (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                ⏳ AI шукає колокації в транскрипті...
+              </p>
+            )}
+
+            {collocationsError && !collocationsLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {collocationsError}
+              </p>
+            )}
+
+            {collocations &&
+              !collocationsLoading &&
+              collocations.length === 0 && (
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                  Колокацій не знайдено в цьому транскрипті.
+                </p>
+              )}
+
+            {collocations &&
+              !collocationsLoading &&
+              collocations.length > 0 &&
+              visibleCollocations.length === 0 && (
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                  Усі знайдені колокації вже збережені в картках.
+                </p>
+              )}
+
+            {visibleCollocations.length > 0 && !collocationsLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllCollocations}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleCollocations.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleCollocations.map((item, index) => (
+                    <li
+                      key={`${item.collocation}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-emerald-100 dark:border-emerald-900"
+                    >
+                      <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                        {item.collocation}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.collocation,
                               item.example,
                               item.meaning
                             )

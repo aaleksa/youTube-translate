@@ -17,6 +17,7 @@ import BulkSaveFlashcardModal from './components/BulkSaveFlashcardModal';
 import FlashcardsPanel from './components/FlashcardsPanel';
 import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
+import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import {
   type FlashcardDraft,
@@ -235,6 +236,10 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <QuickInfoAnalysis
+                        videoId={videoData.videoId}
+                        transcriptText={videoData.text}
+                      />
                       <VideoDifficultyPanel
                         videoId={videoData.videoId}
                         transcriptText={videoData.text}
