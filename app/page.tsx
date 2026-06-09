@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
+import { addToUrlHistory } from './lib/urlHistory';
 import {
-  addToUrlHistory,
-  getUrlHistory,
-  type UrlHistoryItem,
-} from './lib/urlHistory';
+  saveToTranscriptHistory,
+  type TranscriptHistoryEntry,
+} from './lib/transcriptHistory';
 import VideoControls from './components/VideoControls';
 import VideoPlayer, {
   type VideoPlayerHandle,
@@ -34,6 +34,7 @@ interface TranscriptItem {
 
 interface TranscriptResponse {
   videoId: string;
+  title?: string;
   transcript: TranscriptItem[];
   text: string;
 }
@@ -43,7 +44,7 @@ export default function Home() {
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [urlHistory, setUrlHistory] = useState<UrlHistoryItem[]>([]);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
   const [playerState, setPlayerState] = useState<VideoPlayerState>({
@@ -60,7 +61,6 @@ export default function Home() {
   const [quickInfoOpen, setQuickInfoOpen] = useState(true);
 
   useEffect(() => {
-    setUrlHistory(getUrlHistory());
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
   }, []);
@@ -126,6 +126,40 @@ export default function Home() {
     setFlashcardsRefreshKey((key) => key + 1);
   };
 
+  const loadVideoData = (data: TranscriptResponse, url?: string) => {
+    setVideoData(data);
+    setCurrentPlaybackTime(0);
+    setActiveLineIndex(0);
+    setPlayerState({ isPlaying: false, isReady: false });
+    setError('');
+
+    if (url) {
+      addToUrlHistory(url, data.videoId);
+    }
+
+    saveToTranscriptHistory({
+      videoId: data.videoId,
+      url: url || `https://www.youtube.com/watch?v=${data.videoId}`,
+      title: data.title || data.videoId,
+      text: data.text,
+      transcript: data.transcript,
+    });
+    setHistoryRefreshKey((key) => key + 1);
+  };
+
+  const handleLoadFromHistory = (entry: TranscriptHistoryEntry) => {
+    if (isLoading) return;
+    loadVideoData(
+      {
+        videoId: entry.videoId,
+        title: entry.title,
+        transcript: entry.transcript,
+        text: entry.text,
+      },
+      entry.url
+    );
+  };
+
   const handleURLSubmit = async (url: string) => {
     setIsLoading(true);
     setError('');
@@ -145,11 +179,7 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setVideoData(data);
-      setCurrentPlaybackTime(0);
-      setActiveLineIndex(0);
-      setPlayerState({ isPlaying: false, isReady: false });
-      setUrlHistory(addToUrlHistory(url, data.videoId));
+      loadVideoData(data, url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setVideoData(null);
@@ -166,8 +196,8 @@ export default function Home() {
           <URLInput
             onSubmit={handleURLSubmit}
             isLoading={isLoading}
-            history={urlHistory}
-            onHistoryChange={setUrlHistory}
+            historyRefreshKey={historyRefreshKey}
+            onLoadFromHistory={handleLoadFromHistory}
           />
         </div>
 
@@ -271,7 +301,6 @@ export default function Home() {
                   activeLineIndex={activeLineIndex}
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
-                  onSaveManyToFlashcards={handleSaveManyToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}
                 />
               </div>

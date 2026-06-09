@@ -1,25 +1,21 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import {
-  clearUrlHistory,
-  formatHistoryDate,
-  removeFromUrlHistory,
-  type UrlHistoryItem,
-} from '../lib/urlHistory';
+import type { TranscriptHistoryEntry } from '../lib/transcriptHistory';
+import TranscriptHistorySearch from './TranscriptHistorySearch';
 
 interface URLInputProps {
   onSubmit: (url: string) => Promise<void>;
   isLoading: boolean;
-  history?: UrlHistoryItem[];
-  onHistoryChange?: (history: UrlHistoryItem[]) => void;
+  historyRefreshKey?: number;
+  onLoadFromHistory?: (entry: TranscriptHistoryEntry) => void;
 }
 
 export default function URLInput({
   onSubmit,
   isLoading,
-  history = [],
-  onHistoryChange,
+  historyRefreshKey = 0,
+  onLoadFromHistory,
 }: URLInputProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
@@ -39,26 +35,6 @@ export default function URLInput({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
-  };
-
-  const handleHistorySelect = async (historyUrl: string) => {
-    if (isLoading) return;
-    setError('');
-    try {
-      await onSubmit(historyUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
-  const handleRemoveHistory = (historyUrl: string) => {
-    const updated = removeFromUrlHistory(historyUrl);
-    onHistoryChange?.(updated);
-  };
-
-  const handleClearHistory = () => {
-    clearUrlHistory();
-    onHistoryChange?.([]);
   };
 
   return (
@@ -107,53 +83,12 @@ export default function URLInput({
         </button>
       </form>
 
-      {history.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-blue-400/40">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-blue-100">Нещодавні відео</p>
-            <button
-              type="button"
-              onClick={handleClearHistory}
-              className="text-xs text-blue-200 hover:text-white transition"
-            >
-              Очистити
-            </button>
-          </div>
-          <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {history.map((item) => (
-              <li
-                key={`${item.videoId}-${item.openedAt}`}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleHistorySelect(item.url)}
-                  disabled={isLoading}
-                  className="flex-1 text-left px-3 py-2 min-w-0 disabled:opacity-50"
-                  title={item.url}
-                >
-                  <span className="block text-sm font-medium truncate">
-                    {item.videoId}
-                  </span>
-                  <span className="block text-xs text-blue-200 truncate">
-                    {item.url}
-                  </span>
-                  <span className="block text-xs text-blue-300/80 mt-0.5">
-                    {formatHistoryDate(item.openedAt)}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveHistory(item.url)}
-                  className="shrink-0 px-3 py-2 text-blue-200 hover:text-white transition"
-                  aria-label="Remove from history"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {onLoadFromHistory && (
+        <TranscriptHistorySearch
+          isLoading={isLoading}
+          refreshKey={historyRefreshKey}
+          onLoad={onLoadFromHistory}
+        />
       )}
 
       <div className="mt-4 text-sm text-blue-100">
