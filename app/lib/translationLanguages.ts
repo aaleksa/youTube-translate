@@ -1,26 +1,38 @@
+import {
+  INTERFACE_LANGUAGES,
+  detectBrowserInterfaceLanguage,
+  isInterfaceLanguage,
+  type InterfaceLanguage,
+} from './i18n';
+
+export type TranslationLanguageCode = InterfaceLanguage;
+
 export interface TranslationLanguage {
-  code: string;
+  code: TranslationLanguageCode;
   name: string;
 }
 
-export const DEFAULT_TRANSLATION_LANGUAGE = 'uk';
+export const TRANSLATION_LANGUAGES: TranslationLanguage[] = INTERFACE_LANGUAGES.map(
+  (lang) => ({ code: lang.code, name: lang.name })
+);
 
-export const TRANSLATION_LANGUAGES: TranslationLanguage[] = [
-  { code: 'uk', name: 'Українська' },
-  { code: 'en', name: 'English' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'pl', name: 'Polski' },
-  { code: 'es', name: 'Español' },
-  { code: 'fr', name: 'Français' },
-  { code: 'it', name: 'Italiano' },
-  { code: 'pt', name: 'Português' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'cs', name: 'Čeština' },
-  { code: 'sk', name: 'Slovenčina' },
-];
+export const DEFAULT_TRANSLATION_LANGUAGE: TranslationLanguageCode =
+  detectBrowserInterfaceLanguage();
 
-export function isTranslationLanguage(code: string): boolean {
-  return TRANSLATION_LANGUAGES.some((lang) => lang.code === code);
+export function isTranslationLanguage(
+  code: string
+): code is TranslationLanguageCode {
+  return isInterfaceLanguage(code);
+}
+
+export function resolveTranslationLanguage(
+  value: unknown,
+  fallback: TranslationLanguageCode = DEFAULT_TRANSLATION_LANGUAGE
+): TranslationLanguageCode {
+  if (typeof value === 'string' && isTranslationLanguage(value)) {
+    return value;
+  }
+  return fallback;
 }
 
 export function getTranslationLanguageName(code: string): string {

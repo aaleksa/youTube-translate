@@ -6,7 +6,10 @@ import {
   getBilingualCache,
   setBilingualCache,
 } from '../lib/bilingualCache';
-import { translateAllLines } from '../lib/translateLines';
+import {
+  TranslationCancelledError,
+  translateAllLines,
+} from '../lib/translateLines';
 import {
   findExampleLine,
   getFlashcardWordSet,
@@ -23,15 +26,15 @@ import TranslationLanguageSelect from './TranslationLanguageSelect';
 import ToolbarMenu from './ToolbarMenu';
 import {
   DEFAULT_TRANSLATION_LANGUAGE,
+  getTranslationLanguageName,
+  getTranslationLanguageShortCode,
+  isTranslationLanguage,
+  type TranslationLanguageCode,
 } from '../lib/translationLanguages';
 import {
   getSavedTranslationLanguage,
   saveTranslationLanguage,
 } from '../lib/languageSettings';
-import {
-  getTranslationLanguageName,
-  getTranslationLanguageShortCode,
-} from '../lib/translationLanguages';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
@@ -219,6 +222,7 @@ export default function TranscriptDisplay({
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const seekClickRef = useRef(false);
+  const translateAbortRef = useRef<AbortController | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedText, setSelectedText] = useState('');
   const [savingSelection, setSavingSelection] = useState(false);
@@ -226,9 +230,8 @@ export default function TranscriptDisplay({
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
   const [translationEnabled, setTranslationEnabled] = useState(false);
-  const [translationLanguage, setTranslationLanguage] = useState(
-    DEFAULT_TRANSLATION_LANGUAGE
-  );
+  const [translationLanguage, setTranslationLanguage] =
+    useState<TranslationLanguageCode>(DEFAULT_TRANSLATION_LANGUAGE);
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
@@ -246,14 +249,28 @@ export default function TranscriptDisplay({
     setTranslationLanguage(getSavedTranslationLanguage());
   }, []);
 
+  const cancelTranslation = useCallback(() => {
+    translateAbortRef.current?.abort();
+    translateAbortRef.current = null;
+    setTranslating(false);
+    setTranslationEnabled(false);
+    setTranslations(null);
+    setTranslateProgress({ done: 0, total: 0 });
+    setTranslateError('');
+  }, []);
+
   const loadTranslations = useCallback(
-    async (targetLanguage: string) => {
+    async (targetLanguage: TranslationLanguageCode) => {
       const lines = transcript.map((item) => item.text);
       const cached = getBilingualCache(videoId, lines.length, targetLanguage);
       if (cached) {
         setTranslations(cached);
         return;
       }
+
+      translateAbortRef.current?.abort();
+      const controller = new AbortController();
+      translateAbortRef.current = controller;
 
       setTranslating(true);
       setTranslateError('');
@@ -265,30 +282,57 @@ export default function TranscriptDisplay({
           targetLanguage,
           (done, total) => {
             setTranslateProgress({ done, total });
-          }
+          },
+          controller.signal
         );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
         setTranslations(result);
         setBilingualCache(videoId, lines.length, targetLanguage, result);
       } catch (error) {
+        if (
+          error instanceof TranslationCancelledError ||
+          (error instanceof DOMException && error.name === 'AbortError')
+        ) {
+          return;
+        }
+
         setTranslateError(
           error instanceof Error ? error.message : 'Failed to translate transcript'
         );
         setTranslations(null);
         setTranslationEnabled(false);
       } finally {
-        setTranslating(false);
+        if (translateAbortRef.current === controller) {
+          translateAbortRef.current = null;
+        }
+        if (!controller.signal.aborted) {
+          setTranslating(false);
+        }
       }
     },
     [transcript, videoId]
   );
 
   useEffect(() => {
+    translateAbortRef.current?.abort();
+    translateAbortRef.current = null;
     setTranslationEnabled(false);
     setTranslations(null);
     setTranslateError('');
     setTranslateProgress({ done: 0, total: 0 });
+    setTranslating(false);
     lineRefs.current.clear();
   }, [videoId, transcript.length]);
+
+  useEffect(() => {
+    return () => {
+      translateAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!autoScroll && !seekClickRef.current) return;
@@ -417,6 +461,8 @@ export default function TranscriptDisplay({
   );
 
   const handleTranslationLanguageChange = (languageCode: string) => {
+    if (!isTranslationLanguage(languageCode)) return;
+
     saveTranslationLanguage(languageCode);
     setTranslationLanguage(languageCode);
     if (translationEnabled) {
@@ -520,6 +566,7 @@ export default function TranscriptDisplay({
             onChange={handleTranslationLanguageChange}
             onToggleTranslation={handleToggleTranslation}
             onRetranslate={handleRetranslate}
+            onCancelTranslation={cancelTranslation}
           />
 
           <div className="relative">

@@ -16,6 +16,7 @@ interface TranslationLanguageSelectProps {
   onChange: (languageCode: string) => void;
   onToggleTranslation?: () => void;
   onRetranslate?: () => void;
+  onCancelTranslation?: () => void;
 }
 
 export default function TranslationLanguageSelect({
@@ -28,6 +29,7 @@ export default function TranslationLanguageSelect({
   onChange,
   onToggleTranslation,
   onRetranslate,
+  onCancelTranslation,
 }: TranslationLanguageSelectProps) {
   const { t } = useI18n();
 
@@ -107,12 +109,23 @@ export default function TranslationLanguageSelect({
               }}
             />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {t('transcript.translating', {
-              done: translateProgress.done,
-              total: translateProgress.total,
-            })}
-          </p>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('transcript.translating', {
+                done: translateProgress.done,
+                total: translateProgress.total,
+              })}
+            </p>
+            {onCancelTranslation && (
+              <button
+                type="button"
+                onClick={onCancelTranslation}
+                className="shrink-0 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition"
+              >
+                {t('transcript.cancelTranslation')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
