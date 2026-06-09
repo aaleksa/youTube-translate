@@ -29,6 +29,12 @@ import {
 } from './lib/flashcards';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
+import {
+  getCachedTranscript,
+  getCachedTranscriptByUrl,
+  setCachedTranscript,
+  type TranscriptCacheData,
+} from './lib/transcriptCache';
 interface TranscriptItem {
   text: string;
   start?: string;
@@ -69,6 +75,7 @@ export default function Home() {
   >(null);
   const [quickInfoOpen, setQuickInfoOpen] = useState(true);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+  const [cacheNotice, setCacheNotice] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
@@ -140,12 +147,17 @@ export default function Home() {
     setFlashcardsRefreshKey((key) => key + 1);
   };
 
-  const loadVideoData = (data: TranscriptResponse, url?: string) => {
+  const loadVideoData = (
+    data: TranscriptResponse,
+    url?: string,
+    options?: { fromCache?: boolean }
+  ) => {
     setVideoData(data);
     setCurrentPlaybackTime(0);
     setActiveLineIndex(0);
     setPlayerState({ isPlaying: false, isReady: false });
     setError('');
+    setCacheNotice(options?.fromCache ? t('transcript.cacheLoaded') : '');
 
     if (url) {
       setCurrentVideoUrl(url);
@@ -164,8 +176,15 @@ export default function Home() {
     setHistoryRefreshKey((key) => key + 1);
   };
 
-  const handleLoadFromHistory = (entry: TranscriptHistoryEntry) => {
+  const handleLoadFromHistory = async (entry: TranscriptHistoryEntry) => {
     if (isLoading) return;
+
+    const cached = await getCachedTranscript(entry.videoId);
+    if (cached) {
+      loadVideoData(cached.data, cached.url || entry.url, { fromCache: true });
+      return;
+    }
+
     loadVideoData(
       {
         videoId: entry.videoId,
@@ -180,14 +199,23 @@ export default function Home() {
   const handleURLSubmit = async (url: string) => {
     setIsLoading(true);
     setError('');
+    setCacheNotice('');
+
+    const trimmedUrl = url.trim();
 
     try {
+      const cached = await getCachedTranscriptByUrl(trimmedUrl);
+      if (cached) {
+        loadVideoData(cached.data, cached.url || trimmedUrl, { fromCache: true });
+        return;
+      }
+
       const response = await fetch('/api/transcript', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: trimmedUrl }),
       });
 
       if (!response.ok) {
@@ -195,11 +223,13 @@ export default function Home() {
         throw new Error(errorData.error || 'Failed to fetch transcript');
       }
 
-      const data = await response.json();
-      loadVideoData(data, url);
+      const data = (await response.json()) as TranscriptCacheData;
+      await setCachedTranscript(trimmedUrl, data);
+      loadVideoData(data, trimmedUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setVideoData(null);
+      setCacheNotice('');
     } finally {
       setIsLoading(false);
     }
@@ -219,6 +249,12 @@ export default function Home() {
         </div>
 
         {/* Error Message */}
+        {cacheNotice && !error && (
+          <div className="mb-6 p-4 bg-sky-100 text-sky-900 dark:bg-sky-950/40 dark:text-sky-200 dark:border dark:border-sky-800 rounded-lg shadow">
+            <p>{cacheNotice}</p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 p-4 bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300 dark:border dark:border-red-800 rounded-lg shadow">
             <p className="font-semibold">{t('page.errorTitle')}</p>

@@ -60,6 +60,8 @@ const uk = {
   'common.error': 'Помилка',
   'common.clear': 'Очистити',
   'transcript.title': 'Транскрипт',
+  'transcript.cacheLoaded':
+    'Транскрипт завантажено з кешу — повторний запит до API не виконувався.',
   'transcript.lines': 'рядків',
   'transcript.seekHint': 'клік по рядку — перемотка',
   'transcript.searchPlaceholder': 'Пошук слова або фрази…',
@@ -258,6 +260,8 @@ const en: Record<keyof typeof uk, string> = {
   'common.error': 'Error',
   'common.clear': 'Clear',
   'transcript.title': 'Transcript',
+  'transcript.cacheLoaded':
+    'Transcript loaded from cache — no repeat API request was made.',
   'transcript.lines': 'lines',
   'transcript.seekHint': 'click a line to seek',
   'transcript.searchPlaceholder': 'Search word or phrase…',
