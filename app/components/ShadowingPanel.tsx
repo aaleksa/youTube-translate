@@ -222,7 +222,6 @@ export default function ShadowingPanel({
               speechLanguage={speechLanguage}
               resetKey={`shadowing-${lineIndex}`}
               onReplayOriginal={() => playLine(lineIndex)}
-              compact
             />
           )}
 
