@@ -555,6 +555,7 @@ export default function Home() {
                     transcript={videoData.transcript}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
+                    speechLanguage={videoData.selectedLanguage}
                     onSeek={handleSeek}
                     onPauseVideo={handlePauseVideo}
                     onLineIndexChange={setShadowingLineIndex}

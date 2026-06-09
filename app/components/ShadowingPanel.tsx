@@ -8,8 +8,8 @@ import {
 } from '../lib/transcriptCue';
 import { formatTimestamp } from '../lib/timestamp';
 import { useI18n } from './InterfaceLanguageProvider';
-
-const REPEAT_PAUSE_OPTIONS = [2, 3, 5, 8] as const;
+import PronunciationChecker from './PronunciationChecker';
+import { isSpeechRecognitionSupported } from '../lib/speechRecognition';
 
 type ShadowingPhase = 'idle' | 'listen' | 'repeat';
 
@@ -18,6 +18,7 @@ interface ShadowingPanelProps {
   transcript: TranscriptCue[];
   currentPlaybackTime: number;
   isPlayerReady: boolean;
+  speechLanguage?: string;
   onSeek: (seconds: number, lineIndex: number) => void;
   onPauseVideo: () => void;
   onLineIndexChange?: (lineIndex: number | null) => void;
@@ -28,6 +29,7 @@ export default function ShadowingPanel({
   transcript,
   currentPlaybackTime,
   isPlayerReady,
+  speechLanguage,
   onSeek,
   onPauseVideo,
   onLineIndexChange,
@@ -36,57 +38,58 @@ export default function ShadowingPanel({
   const [active, setActive] = useState(false);
   const [lineIndex, setLineIndex] = useState(0);
   const [phase, setPhase] = useState<ShadowingPhase>('idle');
-  const [repeatPauseSeconds, setRepeatPauseSeconds] = useState(3);
   const [finished, setFinished] = useState(false);
-  const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [requirePronunciation, setRequirePronunciation] = useState(true);
+  const [pronunciationChecked, setPronunciationChecked] = useState(false);
   const listenStartedRef = useRef(false);
-
-  const clearRepeatTimer = useCallback(() => {
-    if (repeatTimerRef.current) {
-      clearTimeout(repeatTimerRef.current);
-      repeatTimerRef.current = null;
-    }
-  }, []);
+  const speechSupported = isSpeechRecognitionSupported();
+  const pronunciationRequired = requirePronunciation && speechSupported;
 
   const stopShadowing = useCallback(() => {
-    clearRepeatTimer();
     setActive(false);
     setPhase('idle');
     setFinished(false);
+    setPronunciationChecked(false);
     listenStartedRef.current = false;
     onLineIndexChange?.(null);
     onPauseVideo();
-  }, [clearRepeatTimer, onLineIndexChange, onPauseVideo]);
+  }, [onLineIndexChange, onPauseVideo]);
 
   const playLine = useCallback(
     (index: number) => {
       if (!transcript[index]) return;
-      clearRepeatTimer();
       listenStartedRef.current = false;
       setLineIndex(index);
       setFinished(false);
+      setPronunciationChecked(false);
       onLineIndexChange?.(index);
       const start = getCueStartSeconds(transcript[index]);
       onSeek(start, index);
       setPhase('listen');
     },
-    [clearRepeatTimer, onLineIndexChange, onSeek, transcript]
+    [onLineIndexChange, onSeek, transcript]
   );
 
   const goToNextLine = useCallback(() => {
+    if (phase === 'repeat' && pronunciationRequired && !pronunciationChecked) {
+      return;
+    }
+
     if (lineIndex >= transcript.length - 1) {
-      clearRepeatTimer();
       setPhase('idle');
       setFinished(true);
+      setPronunciationChecked(false);
       onPauseVideo();
       return;
     }
     playLine(lineIndex + 1);
   }, [
-    clearRepeatTimer,
     lineIndex,
     onPauseVideo,
+    phase,
     playLine,
+    pronunciationChecked,
+    pronunciationRequired,
     transcript.length,
   ]);
 
@@ -110,6 +113,7 @@ export default function ShadowingPanel({
     if (!listenStartedRef.current || currentPlaybackTime < end - 0.08) return;
 
     onPauseVideo();
+    setPronunciationChecked(false);
     setPhase('repeat');
   }, [
     active,
@@ -121,35 +125,14 @@ export default function ShadowingPanel({
   ]);
 
   useEffect(() => {
-    if (!active || phase !== 'repeat') return;
-
-    repeatTimerRef.current = setTimeout(() => {
-      goToNextLine();
-    }, repeatPauseSeconds * 1000);
-
-    return clearRepeatTimer;
-  }, [
-    active,
-    clearRepeatTimer,
-    goToNextLine,
-    lineIndex,
-    phase,
-    repeatPauseSeconds,
-  ]);
-
-  useEffect(() => {
-    return () => clearRepeatTimer();
-  }, [clearRepeatTimer]);
-
-  useEffect(() => {
-    clearRepeatTimer();
     setActive(false);
     setPhase('idle');
     setLineIndex(0);
     setFinished(false);
+    setPronunciationChecked(false);
     listenStartedRef.current = false;
     onLineIndexChange?.(null);
-  }, [videoId, clearRepeatTimer, onLineIndexChange]);
+  }, [videoId, onLineIndexChange]);
 
   const currentCue = transcript[lineIndex];
   const phaseLabel =
@@ -177,6 +160,18 @@ export default function ShadowingPanel({
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         {t('shadowing.description')}
       </p>
+
+      <label className="flex items-start gap-2 mb-4 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={requirePronunciation}
+          onChange={(e) => setRequirePronunciation(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+        />
+        <span className="text-sm text-gray-700 dark:text-gray-300">
+          {t('shadowing.requirePronunciation')}
+        </span>
+      </label>
 
       {!active ? (
         <div className="space-y-2">
@@ -213,6 +208,22 @@ export default function ShadowingPanel({
             </div>
           )}
 
+          {phase === 'repeat' && requirePronunciation && currentCue && (
+            <PronunciationChecker
+              expectedText={currentCue.text}
+              speechLanguage={speechLanguage}
+              resetKey={`shadowing-${lineIndex}`}
+              onReplayOriginal={() => playLine(lineIndex)}
+              onChecked={() => setPronunciationChecked(true)}
+            />
+          )}
+
+          {phase === 'repeat' && pronunciationRequired && !pronunciationChecked && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
+              {t('shadowing.checkBeforeNext')}
+            </p>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -224,7 +235,6 @@ export default function ShadowingPanel({
             <button
               type="button"
               onClick={() => {
-                clearRepeatTimer();
                 if (lineIndex > 0) playLine(lineIndex - 1);
               }}
               disabled={lineIndex === 0}
@@ -234,36 +244,17 @@ export default function ShadowingPanel({
             </button>
             <button
               type="button"
-              onClick={() => {
-                clearRepeatTimer();
-                goToNextLine();
-              }}
-              className="flex-1 min-w-[7rem] min-h-10 px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 text-sm font-semibold transition"
+              onClick={goToNextLine}
+              disabled={
+                phase === 'listen' ||
+                (phase === 'repeat' &&
+                  pronunciationRequired &&
+                  !pronunciationChecked)
+              }
+              className="flex-1 min-w-[7rem] min-h-10 px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {finished ? t('shadowing.done') : t('shadowing.next')}
             </button>
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-              {t('shadowing.pauseDuration')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {REPEAT_PAUSE_OPTIONS.map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  onClick={() => setRepeatPauseSeconds(seconds)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    repeatPauseSeconds === seconds
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </div>
           </div>
 
           <button
