@@ -9,8 +9,61 @@ export interface SubtitleLanguage {
 export interface YtDlpVideoMetadata {
   id?: string;
   title?: string;
+  channel?: string;
+  uploader?: string;
+  duration?: number;
   subtitles?: Record<string, Array<{ ext?: string; url?: string }>>;
   automatic_captions?: Record<string, Array<{ ext?: string; url?: string }>>;
+}
+
+export interface ExtractedVideoMetadata {
+  title?: string;
+  channelName?: string;
+  durationSeconds?: number;
+}
+
+export interface SelectedSubtitleLanguage {
+  code: string;
+  name: string;
+  kind: 'manual' | 'auto';
+}
+
+export function extractVideoMetadata(
+  metadata: YtDlpVideoMetadata
+): ExtractedVideoMetadata {
+  const duration =
+    typeof metadata.duration === 'number' && metadata.duration > 0
+      ? Math.round(metadata.duration)
+      : undefined;
+
+  return {
+    title: metadata.title?.trim() || undefined,
+    channelName:
+      metadata.channel?.trim() || metadata.uploader?.trim() || undefined,
+    durationSeconds: duration,
+  };
+}
+
+export function getSelectedSubtitleLanguage(
+  languages: SubtitleLanguage[],
+  selectedCode?: string
+): SelectedSubtitleLanguage | null {
+  if (!selectedCode?.trim()) return null;
+
+  const match = languages.find((language) => language.code === selectedCode);
+  if (match) {
+    return {
+      code: match.code,
+      name: match.name,
+      kind: match.kind,
+    };
+  }
+
+  return {
+    code: selectedCode,
+    name: formatLanguageName(selectedCode),
+    kind: 'auto',
+  };
 }
 
 export function extractVideoId(url: string): string | null {

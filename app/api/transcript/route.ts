@@ -7,13 +7,14 @@ import { cleanTranscriptText } from '../../lib/transcriptText';
 import { ensureTranscriptTimestamps } from '../../lib/timestamp';
 import {
   extractVideoId,
+  extractVideoMetadata,
   fetchSubtitleContent,
   fetchVideoMetadata,
   getAvailableLanguages,
   getSubtitleVttUrl,
   parseLanguageFromSubtitleFilename,
   pickDefaultLanguage,
-  tryLoadAvailableLanguages,
+  type ExtractedVideoMetadata,
   type SubtitleLanguage,
 } from '../../lib/youtubeSubtitles';
 
@@ -39,12 +40,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const title = await fetchVideoTitle(url);
-    let availableLanguages = tryLoadAvailableLanguages(url);
+    const titleFromOembed = await fetchVideoTitle(url);
+    let availableLanguages: SubtitleLanguage[] = [];
+    let extractedMetadata: ExtractedVideoMetadata = {};
 
     try {
       const metadata = fetchVideoMetadata(url);
+      extractedMetadata = extractVideoMetadata(metadata);
       availableLanguages = getAvailableLanguages(metadata);
+      const title = extractedMetadata.title ?? titleFromOembed;
       const selectedLanguage =
         typeof lang === 'string' && lang.trim()
           ? lang.trim()
@@ -57,19 +61,21 @@ export async function POST(request: NextRequest) {
           const transcript = parseVTTTranscript(vttContent);
 
           if (transcript.length > 0) {
-            return formatSuccessResponse(
-              videoId,
-              transcript,
-              title ?? metadata.title,
+            return formatSuccessResponse(videoId, transcript, {
+              title,
+              channelName: extractedMetadata.channelName,
+              durationSeconds: extractedMetadata.durationSeconds,
               availableLanguages,
-              selectedLanguage
-            );
+              selectedLanguage,
+            });
           }
         }
       }
     } catch (metadataError) {
       console.log('Metadata subtitle fetch failed, using fallback:', metadataError);
     }
+
+    const title = extractedMetadata.title ?? titleFromOembed;
 
     // Create a temporary directory for transcript files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-transcript-'));
@@ -127,13 +133,13 @@ export async function POST(request: NextRequest) {
         // Fallback to manual methods
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(
-            videoId,
-            fallbackTranscript,
+          return formatSuccessResponse(videoId, fallbackTranscript, {
             title,
+            channelName: extractedMetadata.channelName,
+            durationSeconds: extractedMetadata.durationSeconds,
             availableLanguages,
-            pickDefaultLanguage(availableLanguages) ?? 'en'
-          );
+            selectedLanguage: pickDefaultLanguage(availableLanguages) ?? 'en',
+          });
         }
 
         return NextResponse.json(
@@ -176,13 +182,13 @@ export async function POST(request: NextRequest) {
         console.log('Transcript parsing returned 0 items');
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(
-            videoId,
-            fallbackTranscript,
+          return formatSuccessResponse(videoId, fallbackTranscript, {
             title,
+            channelName: extractedMetadata.channelName,
+            durationSeconds: extractedMetadata.durationSeconds,
             availableLanguages,
-            pickDefaultLanguage(availableLanguages) ?? 'en'
-          );
+            selectedLanguage: pickDefaultLanguage(availableLanguages) ?? 'en',
+          });
         }
 
         return NextResponse.json(
@@ -196,13 +202,13 @@ export async function POST(request: NextRequest) {
         pickDefaultLanguage(availableLanguages) ??
         'en';
 
-      return formatSuccessResponse(
-        videoId,
-        transcript,
+      return formatSuccessResponse(videoId, transcript, {
         title,
+        channelName: extractedMetadata.channelName,
+        durationSeconds: extractedMetadata.durationSeconds,
         availableLanguages,
-        fileLanguage
-      );
+        selectedLanguage: fileLanguage,
+      });
 
     } catch (execError) {
       console.error('yt-dlp execution error:', execError);
@@ -210,13 +216,13 @@ export async function POST(request: NextRequest) {
       // Fallback to manual methods
       const fallbackTranscript = await fetchTranscriptFallback(videoId);
       if (fallbackTranscript.length > 0) {
-        return formatSuccessResponse(
-          videoId,
-          fallbackTranscript,
+        return formatSuccessResponse(videoId, fallbackTranscript, {
           title,
+          channelName: extractedMetadata.channelName,
+          durationSeconds: extractedMetadata.durationSeconds,
           availableLanguages,
-          pickDefaultLanguage(availableLanguages) ?? 'en'
-        );
+          selectedLanguage: pickDefaultLanguage(availableLanguages) ?? 'en',
+        });
       }
 
       return NextResponse.json(
@@ -260,13 +266,27 @@ async function fetchVideoTitle(url: string): Promise<string | null> {
   }
 }
 
+interface TranscriptSuccessOptions {
+  title?: string | null;
+  channelName?: string;
+  durationSeconds?: number;
+  availableLanguages?: SubtitleLanguage[];
+  selectedLanguage?: string;
+}
+
 function formatSuccessResponse(
   videoId: string,
   transcript: any[],
-  title?: string | null,
-  availableLanguages?: SubtitleLanguage[],
-  selectedLanguage?: string
+  options: TranscriptSuccessOptions = {}
 ) {
+  const {
+    title,
+    channelName,
+    durationSeconds,
+    availableLanguages = [],
+    selectedLanguage,
+  } = options;
+
   const normalizedTranscript = ensureTranscriptTimestamps(
     transcript
       .map((item: any) => ({
@@ -278,14 +298,29 @@ function formatSuccessResponse(
   );
 
   const fullText = normalizedTranscript.map((item) => item.text).join(' ');
+  const selectedSubtitle = availableLanguages.find(
+    (language) => language.code === selectedLanguage
+  );
 
   return NextResponse.json({
     videoId,
     title: title?.trim() || videoId,
+    ...(channelName ? { channelName } : {}),
+    ...(typeof durationSeconds === 'number' && durationSeconds > 0
+      ? { durationSeconds }
+      : {}),
     transcript: normalizedTranscript,
     text: fullText,
-    availableLanguages: availableLanguages ?? [],
+    availableLanguages,
     ...(selectedLanguage ? { selectedLanguage } : {}),
+    ...(selectedSubtitle
+      ? {
+          subtitleLanguageName: selectedSubtitle.name,
+          subtitleLanguageKind: selectedSubtitle.kind,
+        }
+      : selectedLanguage
+        ? { subtitleLanguageName: selectedLanguage }
+        : {}),
   });
 }
 
