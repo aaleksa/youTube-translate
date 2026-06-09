@@ -6,6 +6,7 @@ import { getGrammarCache, setGrammarCache } from '../lib/grammarCache';
 import type { VideoSummaryResult } from '../lib/videoSummary';
 import { getSummaryCache, setSummaryCache } from '../lib/summaryCache';
 import { shouldAutoPause } from '../lib/learningSettings';
+import VideoNotesPanel from './VideoNotesPanel';
 import VideoQuizPanel from './VideoQuizPanel';
 
 interface QuickInfoAnalysisProps {
@@ -31,6 +32,7 @@ export default function QuickInfoAnalysis({
   const [grammarFromCache, setGrammarFromCache] = useState(false);
   const [showGrammar, setShowGrammar] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => {
     setSummary(null);
@@ -44,6 +46,7 @@ export default function QuickInfoAnalysis({
     setGrammarFromCache(false);
     setShowGrammar(false);
     setShowQuiz(false);
+    setShowNotes(false);
   }, [videoId, transcriptText.length]);
 
   const handleSummary = async () => {
@@ -158,6 +161,17 @@ export default function QuickInfoAnalysis({
           }`}
         >
           {grammarLoading ? '⏳...' : '📐 Grammar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowNotes((prev) => !prev)}
+          className={`px-3 py-1.5 text-sm rounded-lg transition ${
+            showNotes
+              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+              : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:hover:bg-emerald-900'
+          }`}
+        >
+          📓 Нотатки
         </button>
         <button
           type="button"
@@ -278,6 +292,14 @@ export default function QuickInfoAnalysis({
           )}
         </div>
       )}
+
+      <VideoNotesPanel
+        videoId={videoId}
+        transcriptText={transcriptText}
+        showPanel={showNotes}
+        onShowPanelChange={setShowNotes}
+        hideButton
+      />
 
       <VideoQuizPanel
         videoId={videoId}
