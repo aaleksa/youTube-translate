@@ -46,8 +46,8 @@ export function createSpeechRecognition(
 
   const recognition = new Constructor();
   recognition.lang = language;
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  recognition.continuous = true;
+  recognition.interimResults = true;
   recognition.maxAlternatives = 1;
   return recognition;
 }
