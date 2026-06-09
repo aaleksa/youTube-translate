@@ -50,6 +50,7 @@ import {
 import { downloadSrtFile } from '../lib/exportSrt';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
+import ToolbarMenu from './ToolbarMenu';
 import VocabularyMenu from './VocabularyMenu';
 
 interface TranscriptItem {
@@ -974,84 +975,99 @@ export default function TranscriptDisplay({
           )}
         </div>
 
-        <div className="flex gap-2 mb-2 flex-wrap">
-          <button
-            onClick={handleCopyText}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-          >
-            {copied ? '✓ Copied' : 'Copy All Text'}
-          </button>
-          <button
-            onClick={handleDownloadText}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-          >
-            Download Text
-          </button>
-          <button
-            type="button"
-            onClick={handleExportSrt}
-            className="px-4 py-2 bg-lime-600 text-white rounded-lg hover:bg-lime-700 transition"
-          >
-            Export SRT
-          </button>
-          <button
-            onClick={toggleAutoScroll}
-            className={`px-4 py-2 rounded-lg transition ${
-              autoScroll
-                ? 'bg-indigo-500 text-white hover:bg-indigo-600'
-                : 'bg-gray-300 text-gray-700 hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'
-            }`}
-          >
-            {autoScroll ? '📜 Автоскрол ON' : '📜 Автоскрол OFF'}
-          </button>
-          <button
-            onClick={handleToggleBilingual}
-            disabled={translating}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              bilingualMode
-                ? 'bg-amber-500 text-white hover:bg-amber-600'
-                : 'bg-teal-500 text-white hover:bg-teal-600'
-            }`}
-          >
-            {translating
-              ? `🌍 ${translateProgress.done}/${translateProgress.total}...`
-              : bilingualMode
-                ? '🌍 Bilingual ON'
-                : '🌍 Bilingual EN/UA'}
-          </button>
-          {bilingualMode && translations && !translating && (
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ToolbarMenu
+              label={copied ? '✓ Export' : '📥 Export ▾'}
+              active={copied}
+              items={[
+                {
+                  id: 'copy',
+                  label: copied ? '✓ Copied' : '📋 Copy text',
+                  onClick: handleCopyText,
+                },
+                {
+                  id: 'txt',
+                  label: '📄 Download .txt',
+                  onClick: handleDownloadText,
+                },
+                {
+                  id: 'srt',
+                  label: '🎬 Export .srt',
+                  onClick: handleExportSrt,
+                },
+              ]}
+            />
+            <span
+              className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600"
+              aria-hidden
+            />
             <button
-              onClick={handleRetranslate}
-              className="px-4 py-2 bg-gray-400 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-500 dark:hover:bg-gray-500 transition"
+              type="button"
+              onClick={toggleAutoScroll}
+              className={`px-3 py-1.5 text-sm rounded-lg transition ${
+                autoScroll
+                  ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+              }`}
             >
-              🔄 Retranslate
+              {autoScroll ? '📜 Scroll ON' : '📜 Scroll'}
             </button>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={handleToggleBilingual}
+              disabled={translating}
+              className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${
+                bilingualMode
+                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                  : 'bg-teal-600 text-white hover:bg-teal-700'
+              }`}
+            >
+              {translating
+                ? `🌍 ${translateProgress.done}/${translateProgress.total}`
+                : bilingualMode
+                  ? '🌍 UA ON'
+                  : '🌍 +UA'}
+            </button>
+            {bilingualMode && translations && !translating && (
+              <button
+                type="button"
+                onClick={handleRetranslate}
+                className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition"
+              >
+                🔄
+              </button>
+            )}
+          </div>
 
-        <div className="flex gap-2 mb-4 flex-wrap items-center">
-          <button
-            onClick={handleFindKeyVocabulary}
-            disabled={keyVocabularyLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showKeyVocabulary
-                ? 'bg-sky-500 text-white hover:bg-sky-600'
-                : 'bg-sky-100 text-sky-800 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:hover:bg-sky-900'
-            }`}
-          >
-            {keyVocabularyLoading ? '⏳...' : '📚 Key Words'}
-          </button>
-          <button
-            onClick={handleFindFrequentWords}
-            disabled={frequentWordsLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showFrequentWords
-                ? 'bg-indigo-500 text-white hover:bg-indigo-600'
-                : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900'
-            }`}
-          >
-            {frequentWordsLoading ? '⏳...' : '📊 Frequent Words'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 w-full sm:w-auto">
+              Vocabulary:
+            </span>
+            <button
+              type="button"
+              onClick={handleFindKeyVocabulary}
+              disabled={keyVocabularyLoading}
+              className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${
+                showKeyVocabulary
+                  ? 'bg-sky-500 text-white hover:bg-sky-600'
+                  : 'bg-sky-100 text-sky-800 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:hover:bg-sky-900'
+              }`}
+            >
+              {keyVocabularyLoading ? '⏳' : '📚 Key Words'}
+            </button>
+            <button
+              type="button"
+              onClick={handleFindFrequentWords}
+              disabled={frequentWordsLoading}
+              className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${
+                showFrequentWords
+                  ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+                  : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900'
+              }`}
+            >
+              {frequentWordsLoading ? '⏳' : '📊 Frequent'}
+            </button>
           <VocabularyMenu
             items={[
               {
@@ -1091,6 +1107,7 @@ export default function TranscriptDisplay({
               },
             ]}
           />
+          </div>
         </div>
 
         {translateError && (
