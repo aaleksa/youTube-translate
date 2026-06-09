@@ -49,6 +49,7 @@ import {
 } from '../lib/slang';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
+import VocabularyMenu from './VocabularyMenu';
 
 interface TranscriptItem {
   text: string;
@@ -968,7 +969,7 @@ export default function TranscriptDisplay({
           )}
         </div>
 
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-2 flex-wrap">
           <button
             onClick={handleCopyText}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
@@ -1014,6 +1015,9 @@ export default function TranscriptDisplay({
               🔄 Retranslate
             </button>
           )}
+        </div>
+
+        <div className="flex gap-2 mb-4 flex-wrap items-center">
           <button
             onClick={handleFindKeyVocabulary}
             disabled={keyVocabularyLoading}
@@ -1036,61 +1040,45 @@ export default function TranscriptDisplay({
           >
             {frequentWordsLoading ? '⏳...' : '📊 Frequent Words'}
           </button>
-          <button
-            onClick={handleFindPhrasalVerbs}
-            disabled={phrasalVerbsLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showPhrasalVerbs
-                ? 'bg-teal-500 text-white hover:bg-teal-600'
-                : 'bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-950 dark:text-teal-200 dark:hover:bg-teal-900'
-            }`}
-          >
-            {phrasalVerbsLoading ? '⏳...' : '🔤 Phrasal Verbs'}
-          </button>
-          <button
-            onClick={handleFindIdioms}
-            disabled={idiomsLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showIdioms
-                ? 'bg-violet-500 text-white hover:bg-violet-600'
-                : 'bg-violet-100 text-violet-800 hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900'
-            }`}
-          >
-            {idiomsLoading ? '⏳...' : '💬 Find Idioms'}
-          </button>
-          <button
-            onClick={handleFindUsefulPhrases}
-            disabled={usefulPhrasesLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showUsefulPhrases
-                ? 'bg-orange-500 text-white hover:bg-orange-600'
-                : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:hover:bg-orange-900'
-            }`}
-          >
-            {usefulPhrasesLoading ? '⏳...' : '💡 Useful Phrases'}
-          </button>
-          <button
-            onClick={handleFindCollocations}
-            disabled={collocationsLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showCollocations
-                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:hover:bg-emerald-900'
-            }`}
-          >
-            {collocationsLoading ? '⏳...' : '🔗 Collocations'}
-          </button>
-          <button
-            onClick={handleFindSlang}
-            disabled={slangLoading}
-            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
-              showSlang
-                ? 'bg-rose-500 text-white hover:bg-rose-600'
-                : 'bg-rose-100 text-rose-800 hover:bg-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:hover:bg-rose-900'
-            }`}
-          >
-            {slangLoading ? '⏳...' : '🔥 Find Slang'}
-          </button>
+          <VocabularyMenu
+            items={[
+              {
+                id: 'phrasal-verbs',
+                label: '🔤 Phrasal Verbs',
+                loading: phrasalVerbsLoading,
+                active: showPhrasalVerbs,
+                onClick: handleFindPhrasalVerbs,
+              },
+              {
+                id: 'idioms',
+                label: '💬 Idioms',
+                loading: idiomsLoading,
+                active: showIdioms,
+                onClick: handleFindIdioms,
+              },
+              {
+                id: 'useful-phrases',
+                label: '💡 Useful Phrases',
+                loading: usefulPhrasesLoading,
+                active: showUsefulPhrases,
+                onClick: handleFindUsefulPhrases,
+              },
+              {
+                id: 'collocations',
+                label: '🔗 Collocations',
+                loading: collocationsLoading,
+                active: showCollocations,
+                onClick: handleFindCollocations,
+              },
+              {
+                id: 'slang',
+                label: '🔥 Slang',
+                loading: slangLoading,
+                active: showSlang,
+                onClick: handleFindSlang,
+              },
+            ]}
+          />
         </div>
 
         {translateError && (
