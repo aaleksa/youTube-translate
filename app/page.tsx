@@ -17,6 +17,7 @@ import FlashcardsPanel from './components/FlashcardsPanel';
 import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
+import ReadingStatsPanel from './components/ReadingStatsPanel';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
 import { useI18n } from './components/InterfaceLanguageProvider';
@@ -290,6 +291,10 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <ReadingStatsPanel
+                        fullText={videoData.text}
+                        transcript={videoData.transcript}
+                      />
                       <QuickInfoAnalysis
                         videoId={videoData.videoId}
                         transcriptText={videoData.text}
