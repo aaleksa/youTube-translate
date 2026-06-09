@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { getTranslationLanguageName } from '../../lib/translationLanguages';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,8 +15,12 @@ function sanitizeLine(text: string): string {
     .trim();
 }
 
-async function translateChunk(lines: string[]): Promise<string[]> {
+async function translateChunk(
+  lines: string[],
+  targetLanguage: string
+): Promise<string[]> {
   const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
+  const targetName = getTranslationLanguageName(targetLanguage);
   const numbered = lines.map((line, index) => `${index + 1}. ${line}`).join('\n');
 
   const response = await openai.chat.completions.create({
@@ -23,9 +28,9 @@ async function translateChunk(lines: string[]): Promise<string[]> {
     messages: [
       {
         role: 'system',
-        content: `You are a professional English-to-Ukrainian translator.
-Translate each numbered line into Ukrainian.
-Return JSON only: {"translations":["uk translation of line 1","uk translation of line 2",...]}
+        content: `You are a professional translator for language learners watching English videos.
+Translate each numbered English transcript line into ${targetName} (language code: ${targetLanguage}).
+Return JSON only: {"translations":["translation of line 1","translation of line 2",...]}
 The translations array MUST have exactly ${lines.length} items in the same order.
 Keep the meaning natural. Do not merge or split lines.`,
       },
@@ -69,7 +74,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { lines } = await request.json();
+    const { lines, targetLanguage = 'uk' } = await request.json();
+    const language =
+      typeof targetLanguage === 'string' && targetLanguage.trim()
+        ? targetLanguage.trim()
+        : 'uk';
 
     if (!Array.isArray(lines) || lines.length === 0) {
       return NextResponse.json(
@@ -86,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanLines = lines.map((line) => sanitizeLine(String(line)));
-    const translations = await translateChunk(cleanLines);
+    const translations = await translateChunk(cleanLines, language);
 
     return NextResponse.json({
       success: true,

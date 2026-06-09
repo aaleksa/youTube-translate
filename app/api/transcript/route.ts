@@ -5,12 +5,23 @@ import * as path from 'path';
 import * as os from 'os';
 import { cleanTranscriptText } from '../../lib/transcriptText';
 import { ensureTranscriptTimestamps } from '../../lib/timestamp';
+import {
+  extractVideoId,
+  fetchSubtitleContent,
+  fetchVideoMetadata,
+  getAvailableLanguages,
+  getSubtitleVttUrl,
+  parseLanguageFromSubtitleFilename,
+  pickDefaultLanguage,
+  tryLoadAvailableLanguages,
+  type SubtitleLanguage,
+} from '../../lib/youtubeSubtitles';
 
 export async function POST(request: NextRequest) {
   let tempDir: string | null = null;
   
   try {
-    const { url } = await request.json();
+    const { url, lang } = await request.json();
     
     if (!url) {
       return NextResponse.json(
@@ -29,6 +40,36 @@ export async function POST(request: NextRequest) {
     }
 
     const title = await fetchVideoTitle(url);
+    let availableLanguages = tryLoadAvailableLanguages(url);
+
+    try {
+      const metadata = fetchVideoMetadata(url);
+      availableLanguages = getAvailableLanguages(metadata);
+      const selectedLanguage =
+        typeof lang === 'string' && lang.trim()
+          ? lang.trim()
+          : pickDefaultLanguage(availableLanguages);
+
+      if (selectedLanguage) {
+        const vttUrl = getSubtitleVttUrl(metadata, selectedLanguage);
+        if (vttUrl) {
+          const vttContent = await fetchSubtitleContent(vttUrl);
+          const transcript = parseVTTTranscript(vttContent);
+
+          if (transcript.length > 0) {
+            return formatSuccessResponse(
+              videoId,
+              transcript,
+              title ?? metadata.title,
+              availableLanguages,
+              selectedLanguage
+            );
+          }
+        }
+      }
+    } catch (metadataError) {
+      console.log('Metadata subtitle fetch failed, using fallback:', metadataError);
+    }
 
     // Create a temporary directory for transcript files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-transcript-'));
@@ -86,11 +127,20 @@ export async function POST(request: NextRequest) {
         // Fallback to manual methods
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(videoId, fallbackTranscript, title);
+          return formatSuccessResponse(
+            videoId,
+            fallbackTranscript,
+            title,
+            availableLanguages,
+            pickDefaultLanguage(availableLanguages) ?? 'en'
+          );
         }
-        
+
         return NextResponse.json(
-          { error: 'No captions found for this video. Try:\n1. Check if the video has captions enabled on YouTube\n2. Use a video with manually added or auto-generated captions\n3. Check the video\'s language settings' },
+          {
+            error:
+              "No captions found for this video. Try:\n1. Check if the video has captions enabled on YouTube\n2. Use a video with manually added or auto-generated captions\n3. Check the video's language settings",
+          },
           { status: 400 }
         );
       }
@@ -126,32 +176,55 @@ export async function POST(request: NextRequest) {
         console.log('Transcript parsing returned 0 items');
         const fallbackTranscript = await fetchTranscriptFallback(videoId);
         if (fallbackTranscript.length > 0) {
-          return formatSuccessResponse(videoId, fallbackTranscript, title);
+          return formatSuccessResponse(
+            videoId,
+            fallbackTranscript,
+            title,
+            availableLanguages,
+            pickDefaultLanguage(availableLanguages) ?? 'en'
+          );
         }
-        
+
         return NextResponse.json(
           { error: 'Caption file was empty or could not be parsed. This video may not have usable captions.' },
           { status: 400 }
         );
       }
-      
-      return formatSuccessResponse(videoId, transcript, title);
-      
+
+      const fileLanguage =
+        parseLanguageFromSubtitleFilename(subtitleFile) ??
+        pickDefaultLanguage(availableLanguages) ??
+        'en';
+
+      return formatSuccessResponse(
+        videoId,
+        transcript,
+        title,
+        availableLanguages,
+        fileLanguage
+      );
+
     } catch (execError) {
       console.error('yt-dlp execution error:', execError);
       
       // Fallback to manual methods
       const fallbackTranscript = await fetchTranscriptFallback(videoId);
       if (fallbackTranscript.length > 0) {
-        return formatSuccessResponse(videoId, fallbackTranscript, title);
+        return formatSuccessResponse(
+          videoId,
+          fallbackTranscript,
+          title,
+          availableLanguages,
+          pickDefaultLanguage(availableLanguages) ?? 'en'
+        );
       }
-      
+
       return NextResponse.json(
         { error: 'Failed to fetch transcript. Please ensure the video has captions enabled.' },
         { status: 400 }
       );
     }
-    
+
   } catch (error) {
     console.error('Error fetching transcript:', error);
     return NextResponse.json(
@@ -190,7 +263,9 @@ async function fetchVideoTitle(url: string): Promise<string | null> {
 function formatSuccessResponse(
   videoId: string,
   transcript: any[],
-  title?: string | null
+  title?: string | null,
+  availableLanguages?: SubtitleLanguage[],
+  selectedLanguage?: string
 ) {
   const normalizedTranscript = ensureTranscriptTimestamps(
     transcript
@@ -209,23 +284,9 @@ function formatSuccessResponse(
     title: title?.trim() || videoId,
     transcript: normalizedTranscript,
     text: fullText,
+    availableLanguages: availableLanguages ?? [],
+    ...(selectedLanguage ? { selectedLanguage } : {}),
   });
-}
-
-function extractVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-    /youtube\.com\/embed\/([^&\n?#]+)/
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) {
-      return match[1];
-    }
-  }
-
-  return null;
 }
 
 interface TranscriptEntry {
