@@ -5,21 +5,32 @@ const STORAGE_PREFIX = 'yoytube-difficulty-';
 export interface DifficultyCacheEntry extends VideoDifficultyResult {
   videoId: string;
   textLength: number;
+  interfaceLanguage: string;
   savedAt: number;
+}
+
+function cacheKey(videoId: string, interfaceLanguage: string): string {
+  return `${STORAGE_PREFIX}${videoId}-${interfaceLanguage}`;
 }
 
 export function getDifficultyCache(
   videoId: string,
-  textLength: number
+  textLength: number,
+  interfaceLanguage: string
 ): VideoDifficultyResult | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = localStorage.getItem(cacheKey(videoId, interfaceLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as DifficultyCacheEntry;
-    if (entry.textLength !== textLength || !entry.level || !entry.explanation) {
+    if (
+      entry.textLength !== textLength ||
+      entry.interfaceLanguage !== interfaceLanguage ||
+      !entry.level ||
+      !entry.explanation
+    ) {
       return null;
     }
 
@@ -35,19 +46,30 @@ export function getDifficultyCache(
 export function setDifficultyCache(
   videoId: string,
   textLength: number,
+  interfaceLanguage: string,
   result: VideoDifficultyResult
 ): void {
   const entry: DifficultyCacheEntry = {
     videoId,
     textLength,
+    interfaceLanguage,
     level: result.level,
     explanation: result.explanation,
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  localStorage.setItem(
+    cacheKey(videoId, interfaceLanguage),
+    JSON.stringify(entry)
+  );
 }
 
 export function clearDifficultyCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+  const prefix = `${STORAGE_PREFIX}${videoId}`;
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      localStorage.removeItem(key);
+    }
+  }
 }

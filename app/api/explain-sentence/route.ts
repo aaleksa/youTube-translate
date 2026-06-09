@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildExplainSentencePrompt } from '../../lib/aiPrompts';
+import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseSentenceExplanationResponse } from '../../lib/sentenceExplanation';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,29 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1024;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const EXPLAIN_SENTENCE_PROMPT = `You are an English teacher helping Ukrainian learners understand one sentence from a video transcript.
-
-Explain the sentence in simple Ukrainian and highlight difficult English words or phrases.
-
-Return ONLY valid JSON:
-{
-  "meaning": "1-3 простих речення українською: що означає це речення в контексті.",
-  "difficultWords": [
-    {
-      "word": "English word or phrase",
-      "explanation": "коротке пояснення українською"
-    }
-  ]
-}
-
-Rules:
-- meaning must be simple and clear for A2-B1 learners
-- difficultWords: 0-5 items that may confuse learners (idioms, rare words, phrasal verbs)
-- explanation for each word: one short sentence in Ukrainian
-- If the sentence is very simple, return an empty difficultWords array
-- Do not invent context beyond the sentence
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -56,7 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { sentence } = await request.json();
+    const { sentence, interfaceLanguage } = await request.json();
+    const language = resolveInterfaceLanguage(interfaceLanguage);
 
     if (!sentence) {
       return NextResponse.json({ error: 'Sentence is required' }, { status: 400 });
@@ -81,7 +61,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: EXPLAIN_SENTENCE_PROMPT },
+          { role: 'system', content: buildExplainSentencePrompt(language) },
           { role: 'user', content: input },
         ],
         temperature: 0.4,

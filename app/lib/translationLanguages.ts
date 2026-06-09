@@ -19,25 +19,8 @@ export const TRANSLATION_LANGUAGES: TranslationLanguage[] = [
   { code: 'sk', name: 'Slovenčina' },
 ];
 
-const STORAGE_KEY = 'yoytube-translation-language';
-
 export function isTranslationLanguage(code: string): boolean {
   return TRANSLATION_LANGUAGES.some((lang) => lang.code === code);
-}
-
-export function getSavedTranslationLanguage(): string {
-  if (typeof window === 'undefined') return DEFAULT_TRANSLATION_LANGUAGE;
-
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved && isTranslationLanguage(saved)) {
-    return saved;
-  }
-
-  return DEFAULT_TRANSLATION_LANGUAGE;
-}
-
-export function saveTranslationLanguage(code: string): void {
-  localStorage.setItem(STORAGE_KEY, code);
 }
 
 export function getTranslationLanguageName(code: string): string {

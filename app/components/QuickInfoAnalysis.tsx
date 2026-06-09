@@ -6,6 +6,7 @@ import { getGrammarCache, setGrammarCache } from '../lib/grammarCache';
 import type { VideoSummaryResult } from '../lib/videoSummary';
 import { getSummaryCache, setSummaryCache } from '../lib/summaryCache';
 import { shouldAutoPause } from '../lib/learningSettings';
+import { useI18n } from './InterfaceLanguageProvider';
 import VideoNotesPanel from './VideoNotesPanel';
 import VideoQuizPanel from './VideoQuizPanel';
 
@@ -20,6 +21,7 @@ export default function QuickInfoAnalysis({
   transcriptText,
   onPauseVideo,
 }: QuickInfoAnalysisProps) {
+  const { language, t } = useI18n();
   const [summary, setSummary] = useState<VideoSummaryResult | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState('');
@@ -67,7 +69,10 @@ export default function QuickInfoAnalysis({
       const response = await fetch('/api/video-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: transcriptText }),
+        body: JSON.stringify({
+          text: transcriptText,
+          interfaceLanguage: language,
+        }),
       });
 
       const data = await response.json();
@@ -148,7 +153,7 @@ export default function QuickInfoAnalysis({
               : 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-900'
           }`}
         >
-          {summaryLoading ? '⏳...' : '📝 Summary'}
+          {summaryLoading ? t('common.loading') : t('actions.summary')}
         </button>
         <button
           type="button"
@@ -160,7 +165,7 @@ export default function QuickInfoAnalysis({
               : 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950 dark:text-purple-200 dark:hover:bg-purple-900'
           }`}
         >
-          {grammarLoading ? '⏳...' : '📐 Grammar'}
+          {grammarLoading ? t('common.loading') : t('actions.grammar')}
         </button>
         <button
           type="button"
@@ -171,7 +176,7 @@ export default function QuickInfoAnalysis({
               : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:hover:bg-emerald-900'
           }`}
         >
-          📓 Нотатки
+          {t('actions.notes')}
         </button>
         <button
           type="button"
@@ -189,7 +194,7 @@ export default function QuickInfoAnalysis({
               : 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200 dark:bg-cyan-950 dark:text-cyan-200 dark:hover:bg-cyan-900'
           }`}
         >
-          ❓ Quiz
+          {t('actions.quiz')}
         </button>
       </div>
 
@@ -197,10 +202,10 @@ export default function QuickInfoAnalysis({
         <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
-              Резюме (UA)
+              {t('quickInfo.summaryTitle')}
               {summaryFromCache && (
                 <span className="ml-2 text-xs font-normal text-blue-500 dark:text-blue-400">
-                  кеш
+                  {t('common.cache')}
                 </span>
               )}
             </p>
@@ -216,7 +221,7 @@ export default function QuickInfoAnalysis({
 
           {summaryLoading && (
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              ⏳ AI готує короткий виклад відео...
+              {t('quickInfo.summaryLoading')}
             </p>
           )}
 
@@ -236,11 +241,11 @@ export default function QuickInfoAnalysis({
         <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg">
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">
-              Grammar Highlights
+              {t('quickInfo.grammarTitle')}
               {grammar?.highlights && ` (${grammar.highlights.length})`}
               {grammarFromCache && (
                 <span className="ml-2 text-xs font-normal text-purple-500 dark:text-purple-400">
-                  кеш
+                  {t('common.cache')}
                 </span>
               )}
             </p>

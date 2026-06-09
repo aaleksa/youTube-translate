@@ -36,6 +36,7 @@ import {
   type SlangItem,
 } from '../lib/slang';
 import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
+import { useI18n } from './InterfaceLanguageProvider';
 import VocabularyMenu from './VocabularyMenu';
 
 interface VocabularyAnalysisProps {
@@ -53,6 +54,7 @@ export default function VocabularyAnalysis({
   onSaveToFlashcards,
   onSaveManyToFlashcards,
 }: VocabularyAnalysisProps) {
+  const { t } = useI18n();
   const [keyVocabulary, setKeyVocabulary] = useState<KeyVocabularyItem[] | null>(
     null
   );
@@ -589,7 +591,7 @@ export default function VocabularyAnalysis({
               : 'bg-sky-100 text-sky-800 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:hover:bg-sky-900'
           }`}
         >
-          {keyVocabularyLoading ? '⏳' : '📚 Key Words'}
+          {keyVocabularyLoading ? t('common.loading') : t('actions.keyWords')}
         </button>
         <button
           type="button"
@@ -601,13 +603,13 @@ export default function VocabularyAnalysis({
               : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900'
           }`}
         >
-          {frequentWordsLoading ? '⏳' : '📊 Frequent'}
+          {frequentWordsLoading ? t('common.loading') : t('actions.frequentWords')}
         </button>
         <VocabularyMenu
           items={[
             {
               id: 'phrasal-verbs',
-              label: '🔤 Phrasal Verbs',
+              label: t('actions.findPhrasalVerbs'),
               loading: phrasalVerbsLoading,
               active: showPhrasalVerbs,
               onClick: handleFindPhrasalVerbs,

@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildDifficultyPrompt } from '../../lib/aiPrompts';
+import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseDifficultyResponse } from '../../lib/cefrLevel';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,21 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1024;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const DIFFICULTY_PROMPT = `You are an expert English teacher assessing video transcript difficulty using the CEFR scale (A1, A2, B1, B2, C1, C2).
-
-Analyze vocabulary complexity, sentence structure, idioms, phrasal verbs, speech speed indicators, and topic sophistication.
-
-Return ONLY valid JSON:
-{
-  "level": "B1",
-  "explanation": "2-3 short sentences in Ukrainian explaining why this level was chosen. Mention specific features from the transcript."
-}
-
-Rules:
-- level must be exactly one of: A1, A2, B1, B2, C1, C2
-- explanation must be in Ukrainian, concise (max 3 sentences)
-- Base the assessment only on the transcript provided`;
 
 function sanitizeText(text: string): string {
   return text
@@ -48,7 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, interfaceLanguage } = await request.json();
+    const language = resolveInterfaceLanguage(interfaceLanguage);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -73,7 +61,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: DIFFICULTY_PROMPT },
+          { role: 'system', content: buildDifficultyPrompt(language) },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

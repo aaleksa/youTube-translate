@@ -4,6 +4,7 @@ import {
   TRANSLATION_LANGUAGES,
   type TranslationLanguage,
 } from '../lib/translationLanguages';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranslationLanguageSelectProps {
   selectedLanguage: string;
@@ -28,6 +29,8 @@ export default function TranslationLanguageSelect({
   onToggleTranslation,
   onRetranslate,
 }: TranslationLanguageSelectProps) {
+  const { t } = useI18n();
+
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -35,11 +38,11 @@ export default function TranslationLanguageSelect({
           htmlFor="translation-language"
           className="text-sm font-medium text-gray-700 dark:text-gray-300"
         >
-          Мова перекладу
+          {t('transcript.translationLanguage')}
         </label>
         {translationEnabled && !isLoading && (
           <span className="text-xs font-medium text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 px-2 py-0.5 rounded-full">
-            Двомовний режим
+            {t('transcript.bilingualMode')}
           </span>
         )}
       </div>
@@ -73,8 +76,8 @@ export default function TranslationLanguageSelect({
             {isLoading
               ? `${translateProgress.done}/${translateProgress.total}`
               : translationEnabled
-                ? `${translationShortCode} ON`
-                : 'Увімкнути'}
+                ? t('transcript.translationOn', { code: translationShortCode })
+                : t('transcript.enableTranslation')}
           </button>
         )}
 
@@ -82,8 +85,8 @@ export default function TranslationLanguageSelect({
           <button
             type="button"
             onClick={onRetranslate}
-            title="Перекласти заново"
-            aria-label="Перекласти заново"
+            title={t('transcript.retranslate')}
+            aria-label={t('transcript.retranslate')}
             className="shrink-0 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
             🔄
@@ -105,14 +108,17 @@ export default function TranslationLanguageSelect({
             />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Переклад… {translateProgress.done} / {translateProgress.total}
+            {t('transcript.translating', {
+              done: translateProgress.done,
+              total: translateProgress.total,
+            })}
           </p>
         </div>
       )}
 
       {!isLoading && !translationEnabled && (
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Оберіть мову й натисніть «Увімкнути».
+          {t('transcript.translationHint')}
         </p>
       )}
     </div>

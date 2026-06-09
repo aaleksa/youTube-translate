@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { getInterfaceLocale } from '../lib/i18n';
 import {
   clearTranscriptHistory,
   formatHistoryDate,
@@ -10,6 +11,7 @@ import {
   type TranscriptHistoryEntry,
   type TranscriptSearchResult,
 } from '../lib/transcriptHistory';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptHistorySearchProps {
   isLoading: boolean;
@@ -22,8 +24,10 @@ export default function TranscriptHistorySearch({
   refreshKey = 0,
   onLoad,
 }: TranscriptHistorySearchProps) {
+  const { language, t } = useI18n();
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<TranscriptHistoryEntry[]>([]);
+  const locale = getInterfaceLocale(language);
 
   useEffect(() => {
     setEntries(getTranscriptHistory());
@@ -53,14 +57,14 @@ export default function TranscriptHistorySearch({
   return (
     <div className="mt-5 pt-4 border-t border-blue-400/40">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <p className="text-sm font-semibold text-blue-100">Історія транскриптів</p>
+        <p className="text-sm font-semibold text-blue-100">{t('history.title')}</p>
         {entries.length > 0 && (
           <button
             type="button"
             onClick={handleClear}
             className="text-xs text-blue-200 hover:text-white transition"
           >
-            Очистити
+            {t('common.clear')}
           </button>
         )}
       </div>
@@ -69,12 +73,12 @@ export default function TranscriptHistorySearch({
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Пошук по назві відео або тексту транскрипту..."
+        placeholder={t('history.searchPlaceholder')}
         className="w-full px-3 py-2 mb-3 rounded-lg bg-white/95 text-gray-800 placeholder-gray-400 dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-white dark:focus:ring-blue-400 focus:outline-none"
       />
 
       {query.trim() && results.length === 0 && (
-        <p className="text-sm text-blue-200 mb-2">Нічого не знайдено в локальній історії.</p>
+        <p className="text-sm text-blue-200 mb-2">{t('history.noResults')}</p>
       )}
 
       {results.length > 0 && (
@@ -100,12 +104,16 @@ export default function TranscriptHistorySearch({
                   </span>
                 )}
                 <span className="flex flex-wrap items-center gap-2 text-xs text-blue-300/80 mt-1">
-                  <span>{formatHistoryDate(entry.savedAt)}</span>
+                  <span>{formatHistoryDate(entry.savedAt, locale)}</span>
                   {matchedIn.includes('title') && (
-                    <span className="px-1.5 py-0.5 rounded bg-white/15">назва</span>
+                    <span className="px-1.5 py-0.5 rounded bg-white/15">
+                      {t('history.matchTitle')}
+                    </span>
                   )}
                   {matchedIn.includes('text') && (
-                    <span className="px-1.5 py-0.5 rounded bg-white/15">текст</span>
+                    <span className="px-1.5 py-0.5 rounded bg-white/15">
+                      {t('history.matchText')}
+                    </span>
                   )}
                 </span>
               </button>
@@ -113,7 +121,7 @@ export default function TranscriptHistorySearch({
                 type="button"
                 onClick={() => handleRemove(entry.videoId)}
                 className="shrink-0 px-3 py-2 text-blue-200 hover:text-white transition"
-                aria-label="Видалити з історії"
+                aria-label={t('history.remove')}
               >
                 ✕
               </button>
