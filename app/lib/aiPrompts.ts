@@ -83,6 +83,34 @@ Rules:
 - No text outside JSON`;
 }
 
+export function buildChaptersPrompt(language: InterfaceLanguage): string {
+  const target = getAiResponseLanguageName(language);
+
+  return `You are a video study assistant for language learners watching English YouTube videos.
+
+Divide the full video into logical chapters (sections) from a timestamped transcript — like YouTube chapter markers.
+
+Return ONLY valid JSON:
+{
+  "chapters": [
+    {
+      "timestamp": "HH:MM:SS",
+      "title": "Short chapter title in ${target} (max 80 characters)"
+    }
+  ]
+}
+
+Rules:
+- Write chapter titles in ${target}
+- Include 4–10 chapters that cover the entire video from start to finish without gaps
+- First chapter must start at 00:00:00
+- timestamp must be HH:MM:SS and must match a timestamp from the transcript (use the nearest line start)
+- Chapters must be in chronological order
+- Titles should name the topic of each section, not describe a single sentence
+- Do not invent sections not supported by the transcript
+- No text outside JSON`;
+}
+
 export function buildTimelinePrompt(language: InterfaceLanguage): string {
   const target = getAiResponseLanguageName(language);
 
