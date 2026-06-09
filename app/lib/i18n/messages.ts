@@ -16,7 +16,9 @@ const uk = {
   'pwa.offlineReady': 'Додаток готовий до роботи offline',
   'shadowing.title': 'Shadowing',
   'shadowing.description':
-    'Слухайте речення диктора, потім повторюйте вголос. Відео зупиняється після кожного рядка.',
+    'Слухайте речення диктора, потім повторюйте вголос. За бажанням увімкніть перевірку вимови перед переходом далі.',
+  'shadowing.requirePronunciation':
+    'Перевіряти вимову перед наступним реченням',
   'shadowing.start': 'Почати shadowing',
   'shadowing.stop': 'Зупинити',
   'shadowing.listen': 'Слухайте',
@@ -29,6 +31,8 @@ const uk = {
   'shadowing.done': 'Готово ✓',
   'shadowing.progress': 'Речення {current} з {total}',
   'shadowing.pauseDuration': 'Пауза для повторення',
+  'shadowing.checkBeforeNext':
+    'Перевірте вимову мікрофоном, щоб перейти до наступного речення',
   'shadowing.waitForPlayer': 'Зачекайте, поки відео завантажиться, і натисніть ще раз',
   'interfaceLanguage.label': 'Мова інтерфейсу',
   'actions.explainSentence': '💬 Пояснити речення',
@@ -265,7 +269,9 @@ const en: Record<keyof typeof uk, string> = {
   'pwa.offlineReady': 'App is ready to work offline',
   'shadowing.title': 'Shadowing',
   'shadowing.description':
-    'Listen to each sentence, then repeat it aloud. The video pauses after every line.',
+    'Listen to each sentence, then repeat aloud. Optionally require pronunciation checking before moving on.',
+  'shadowing.requirePronunciation':
+    'Check pronunciation before the next sentence',
   'shadowing.start': 'Start shadowing',
   'shadowing.stop': 'Stop',
   'shadowing.listen': 'Listen',
@@ -278,6 +284,8 @@ const en: Record<keyof typeof uk, string> = {
   'shadowing.done': 'Done ✓',
   'shadowing.progress': 'Sentence {current} of {total}',
   'shadowing.pauseDuration': 'Pause for repetition',
+  'shadowing.checkBeforeNext':
+    'Check your pronunciation with the mic before moving to the next sentence',
   'shadowing.waitForPlayer': 'Wait for the video to load, then tap again',
   'interfaceLanguage.label': 'Interface language',
   'actions.explainSentence': '💬 Explain Sentence',

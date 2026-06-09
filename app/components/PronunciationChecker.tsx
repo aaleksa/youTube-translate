@@ -16,6 +16,7 @@ interface PronunciationCheckerProps {
   expectedText: string;
   speechLanguage?: string;
   onReplayOriginal?: () => void;
+  onChecked?: (result: PronunciationCompareResult) => void;
   resetKey?: string | number;
   compact?: boolean;
 }
@@ -38,6 +39,7 @@ export default function PronunciationChecker({
   expectedText,
   speechLanguage,
   onReplayOriginal,
+  onChecked,
   resetKey,
   compact = false,
 }: PronunciationCheckerProps) {
@@ -87,6 +89,7 @@ export default function PronunciationChecker({
       const comparison = comparePronunciation(trimmedExpected, transcript);
       setResult(comparison);
       setState('result');
+      onChecked?.(comparison);
     };
 
     recognition.onerror = (event) => {
