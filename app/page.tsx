@@ -19,6 +19,7 @@ import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
+import BookmarksPanel from './components/BookmarksPanel';
 import {
   type FlashcardDraft,
   getVideoUrl,
@@ -230,6 +231,13 @@ export default function Home() {
                     />
                   </div>
                 </div>
+                <BookmarksPanel
+                  videoId={videoData.videoId}
+                  currentPlaybackTime={currentPlaybackTime}
+                  transcript={videoData.transcript}
+                  isPlayerReady={playerState.isReady}
+                  onSeek={handleSeek}
+                />
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
