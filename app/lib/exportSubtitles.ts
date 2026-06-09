@@ -106,7 +106,7 @@ export function transcriptToVtt(transcript: SubtitleTranscriptItem[]): string {
   return cues.length > 0 ? `WEBVTT\n\n${cues.join('\n\n')}\n` : '';
 }
 
-function downloadSubtitleFile(
+export function downloadSubtitleFile(
   content: string,
   filename: string,
   mimeType: string

@@ -323,6 +323,8 @@ export default function Home() {
                 </div>
                 <TranscriptDisplay
                   videoId={videoData.videoId}
+                  videoTitle={videoData.title}
+                  videoUrl={getVideoUrl(videoData.videoId)}
                   transcript={videoData.transcript}
                   fullText={videoData.text}
                   activeLineIndex={activeLineIndex}

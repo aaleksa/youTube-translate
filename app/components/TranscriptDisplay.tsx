@@ -17,6 +17,11 @@ import {
 } from '../lib/flashcards';
 import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
 import { downloadSrtFile, downloadVttFile } from '../lib/exportSubtitles';
+import {
+  downloadStudyReportMarkdown,
+  downloadStudyReportPdf,
+  type StudyExportLabels,
+} from '../lib/exportStudyReport';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 import SelectionAnalysis from './SelectionAnalysis';
@@ -47,6 +52,8 @@ interface TranscriptDisplayProps {
   transcript: TranscriptItem[];
   fullText: string;
   videoId: string;
+  videoTitle?: string;
+  videoUrl?: string;
   activeLineIndex?: number;
   onSeek?: (seconds: number, lineIndex: number) => void;
   onSaveToFlashcards?: (
@@ -211,13 +218,15 @@ export default function TranscriptDisplay({
   transcript,
   fullText,
   videoId,
+  videoTitle,
+  videoUrl,
   activeLineIndex = 0,
   onSeek,
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
   onPauseVideo,
 }: TranscriptDisplayProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const seekClickRef = useRef(false);
@@ -235,6 +244,8 @@ export default function TranscriptDisplay({
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
   const [translateError, setTranslateError] = useState('');
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const bilingualMode = translationEnabled;
   const translationLabel = getTranslationLanguageName(translationLanguage);
@@ -408,6 +419,65 @@ export default function TranscriptDisplay({
     downloadVttFile(transcript, `${videoId}.vtt`);
   };
 
+  const buildStudyExportInput = useCallback(() => {
+    const labels: StudyExportLabels = {
+      documentTitle: videoTitle?.trim() || videoId,
+      videoUrl: t('export.videoUrl'),
+      generatedAt: t('export.generatedAt'),
+      sectionTranscript: t('export.sectionTranscript'),
+      sectionSummary: t('export.sectionSummary'),
+      sectionGrammar: t('export.sectionGrammar'),
+      sectionNotes: t('export.sectionNotes'),
+      sectionDifficulty: t('export.sectionDifficulty'),
+      sectionTimeline: t('export.sectionTimeline'),
+      sectionQuiz: t('export.sectionQuiz'),
+      mainIdeas: t('export.mainIdeas'),
+      noAnalysis: t('export.noAnalysis'),
+      english: t('transcript.english'),
+    };
+
+    return {
+      videoId,
+      title: videoTitle,
+      url: videoUrl,
+      transcript,
+      fullText,
+      interfaceLanguage: language,
+      translations: bilingualMode ? translations : null,
+      translationLanguage: bilingualMode ? translationLanguage : undefined,
+      labels,
+    };
+  }, [
+    videoId,
+    videoTitle,
+    videoUrl,
+    transcript,
+    fullText,
+    language,
+    bilingualMode,
+    translations,
+    translationLanguage,
+    t,
+  ]);
+
+  const handleExportMarkdown = () => {
+    setExportError('');
+    downloadStudyReportMarkdown(buildStudyExportInput());
+  };
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+
+    setExportingPdf(true);
+    try {
+      await downloadStudyReportPdf(buildStudyExportInput());
+    } catch {
+      setExportError(t('export.pdfError'));
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const handleSelection = () => {
     const text = cleanTranscriptText(window.getSelection()?.toString() || '');
     setSelectedText(text);
@@ -528,6 +598,17 @@ export default function TranscriptDisplay({
                   label: '📺 Export .vtt',
                   onClick: handleExportVtt,
                 },
+                {
+                  id: 'markdown',
+                  label: t('export.markdown'),
+                  onClick: handleExportMarkdown,
+                },
+                {
+                  id: 'pdf',
+                  label: exportingPdf ? '…' : t('export.pdf'),
+                  onClick: handleExportPdf,
+                  disabled: exportingPdf,
+                },
               ]}
             />
             <button
@@ -593,9 +674,9 @@ export default function TranscriptDisplay({
           </div>
         </div>
 
-        {translateError && (
+        {(translateError || exportError) && (
           <div className="mx-4 sm:mx-5 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-red-700 dark:text-red-300 text-sm">
-            {translateError}
+            {translateError || exportError}
           </div>
         )}
 
