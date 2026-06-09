@@ -16,6 +16,12 @@ import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
 import { getIdiomsCache, setIdiomsCache } from '../lib/idiomsCache';
 import type { IdiomItem } from '../lib/idioms';
+import { getSlangCache, setSlangCache } from '../lib/slangCache';
+import {
+  getFormalityLabel,
+  getFormalityStyle,
+  type SlangItem,
+} from '../lib/slang';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
@@ -213,6 +219,11 @@ export default function TranscriptDisplay({
   const [idiomsError, setIdiomsError] = useState('');
   const [idiomsFromCache, setIdiomsFromCache] = useState(false);
   const [showIdioms, setShowIdioms] = useState(false);
+  const [slang, setSlang] = useState<SlangItem[] | null>(null);
+  const [slangLoading, setSlangLoading] = useState(false);
+  const [slangError, setSlangError] = useState('');
+  const [slangFromCache, setSlangFromCache] = useState(false);
+  const [showSlang, setShowSlang] = useState(false);
 
   const savedWords = useMemo(
     () => getFlashcardWordSet(),
@@ -227,6 +238,15 @@ export default function TranscriptDisplay({
   }, [idioms, savedWords]);
 
   const savedIdiomsCount = idioms ? idioms.length - visibleIdioms.length : 0;
+
+  const visibleSlang = useMemo(() => {
+    if (!slang) return [];
+    return slang.filter(
+      (item) => !savedWords.has(item.expression.trim().toLowerCase())
+    );
+  }, [slang, savedWords]);
+
+  const savedSlangCount = slang ? slang.length - visibleSlang.length : 0;
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-auto-scroll');
@@ -244,6 +264,10 @@ export default function TranscriptDisplay({
     setIdiomsError('');
     setIdiomsFromCache(false);
     setShowIdioms(false);
+    setSlang(null);
+    setSlangError('');
+    setSlangFromCache(false);
+    setShowSlang(false);
     lineRefs.current.clear();
   }, [videoId, transcript.length]);
 
@@ -460,6 +484,58 @@ export default function TranscriptDisplay({
     );
   };
 
+  const handleFindSlang = async () => {
+    setSlangError('');
+    setShowSlang(true);
+
+    const cached = getSlangCache(videoId, fullText.length);
+    if (cached) {
+      setSlang(cached);
+      setSlangFromCache(true);
+      return;
+    }
+
+    setSlangLoading(true);
+    setSlangFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-slang', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find slang');
+      }
+
+      const found: SlangItem[] = data.slang ?? [];
+      setSlangCache(videoId, fullText.length, found);
+      setSlang(found);
+    } catch (error) {
+      setSlangError(
+        error instanceof Error ? error.message : 'Помилка пошуку сленгу'
+      );
+      setSlang(null);
+    } finally {
+      setSlangLoading(false);
+    }
+  };
+
+  const handleSaveAllSlang = () => {
+    if (!onSaveManyToFlashcards || visibleSlang.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleSlang.map((item) => ({
+        word: item.expression,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
   return (
     <div className="w-full space-y-4">
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
@@ -546,11 +622,130 @@ export default function TranscriptDisplay({
           >
             {idiomsLoading ? '⏳...' : '💬 Find Idioms'}
           </button>
+          <button
+            onClick={handleFindSlang}
+            disabled={slangLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showSlang
+                ? 'bg-rose-500 text-white hover:bg-rose-600'
+                : 'bg-rose-100 text-rose-800 hover:bg-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:hover:bg-rose-900'
+            }`}
+          >
+            {slangLoading ? '⏳...' : '🔥 Find Slang'}
+          </button>
         </div>
 
         {translateError && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 rounded text-red-700 dark:text-red-300 text-sm">
             {translateError}
+          </div>
+        )}
+
+        {showSlang && (
+          <div className="mb-4 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-rose-800 dark:text-rose-200">
+                Slang
+                {slang && ` (${visibleSlang.length})`}
+                {savedSlangCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-rose-500 dark:text-rose-400">
+                    · в картках: {savedSlangCount}
+                  </span>
+                )}
+                {slangFromCache && (
+                  <span className="ml-2 text-xs font-normal text-rose-500 dark:text-rose-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSlang(false)}
+                className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 transition"
+                aria-label="Закрити список сленгу"
+              >
+                ✕
+              </button>
+            </div>
+
+            {slangLoading && (
+              <p className="text-sm text-rose-700 dark:text-rose-300">
+                ⏳ AI шукає сленг у транскрипті...
+              </p>
+            )}
+
+            {slangError && !slangLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">{slangError}</p>
+            )}
+
+            {slang && !slangLoading && slang.length === 0 && (
+              <p className="text-sm text-rose-700 dark:text-rose-300">
+                Сленгу не знайдено в цьому транскрипті.
+              </p>
+            )}
+
+            {slang &&
+              !slangLoading &&
+              slang.length > 0 &&
+              visibleSlang.length === 0 && (
+                <p className="text-sm text-rose-700 dark:text-rose-300">
+                  Усі знайдені вирази вже збережені в картках.
+                </p>
+              )}
+
+            {visibleSlang.length > 0 && !slangLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllSlang}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleSlang.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleSlang.map((item, index) => (
+                    <li
+                      key={`${item.expression}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-rose-100 dark:border-rose-900"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-bold text-rose-700 dark:text-rose-300">
+                          {item.expression}
+                        </p>
+                        <span
+                          className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${getFormalityStyle(item.formality)}`}
+                        >
+                          {getFormalityLabel(item.formality)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.expression,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
 
