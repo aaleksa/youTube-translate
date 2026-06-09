@@ -48,6 +48,7 @@ export default function PronunciationChecker({
   const [result, setResult] = useState<PronunciationCompareResult | null>(null);
   const [error, setError] = useState('');
   const recognitionRef = useRef<ReturnType<typeof createSpeechRecognition>>(null);
+  const gotResultRef = useRef(false);
 
   const supported = isSpeechRecognitionSupported();
   const trimmedExpected = expectedText.trim();
@@ -59,6 +60,7 @@ export default function PronunciationChecker({
   }, []);
 
   useEffect(() => {
+    gotResultRef.current = false;
     setState('idle');
     setResult(null);
     setError('');
@@ -71,6 +73,7 @@ export default function PronunciationChecker({
     if (!trimmedExpected) return;
 
     cleanupRecognition();
+    gotResultRef.current = false;
     setResult(null);
     setError('');
 
@@ -84,12 +87,22 @@ export default function PronunciationChecker({
     recognitionRef.current = recognition;
     setState('listening');
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript ?? '';
+    const applyTranscript = (transcript: string) => {
+      if (!transcript.trim()) return;
+
+      gotResultRef.current = true;
       const comparison = comparePronunciation(trimmedExpected, transcript);
       setResult(comparison);
       setState('result');
       onChecked?.(comparison);
+    };
+
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i]?.[0]?.transcript ?? '';
+      }
+      applyTranscript(transcript);
     };
 
     recognition.onerror = (event) => {
@@ -104,6 +117,7 @@ export default function PronunciationChecker({
 
     recognition.onend = () => {
       recognitionRef.current = null;
+      if (gotResultRef.current) return;
       setState((current) => (current === 'listening' ? 'idle' : current));
     };
 
@@ -116,7 +130,9 @@ export default function PronunciationChecker({
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    recognition.stop();
   };
 
   if (!trimmedExpected) return null;
@@ -186,7 +202,7 @@ export default function PronunciationChecker({
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
 
-          {result && state === 'result' && (
+          {result && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div
