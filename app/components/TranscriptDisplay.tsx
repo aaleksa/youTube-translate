@@ -16,6 +16,7 @@ import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
 import { downloadSrtFile, downloadVttFile } from '../lib/exportSubtitles';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
+import SelectionAnalysis from './SelectionAnalysis';
 import ToolbarMenu from './ToolbarMenu';
 
 interface TranscriptItem {
@@ -36,6 +37,10 @@ interface TranscriptDisplayProps {
     translation?: string
   ) => void;
   flashcardsRefreshKey?: number;
+}
+
+function countSelectionWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function lineClassName(isActive: boolean, canSeek: boolean): string {
@@ -332,6 +337,14 @@ export default function TranscriptDisplay({
     }
   };
 
+  const selectedWordCount = useMemo(
+    () => countSelectionWords(selectedText),
+    [selectedText]
+  );
+
+  const canSaveSelectionToFlashcards =
+    selectedWordCount >= 1 && selectedWordCount <= 3;
+
   const selectedAlreadySaved = useMemo(
     () => Boolean(selectedText) && hasFlashcard(selectedText),
     [selectedText, flashcardsRefreshKey]
@@ -514,23 +527,27 @@ export default function TranscriptDisplay({
                 {selectionError}
               </p>
             )}
-            {onSaveToFlashcards &&
-              (selectedAlreadySaved ? (
-                <span className="inline-flex px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg font-medium">
-                  ✓ Вже в картках
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSaveSelection}
-                  disabled={savingSelection}
-                  className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
-                >
-                  {savingSelection
-                    ? '⏳ Додаємо переклад...'
-                    : '📇 Зберегти в Flashcards'}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {onSaveToFlashcards &&
+                canSaveSelectionToFlashcards &&
+                (selectedAlreadySaved ? (
+                  <span className="inline-flex px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg font-medium">
+                    ✓ Вже в картках
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSaveSelection}
+                    disabled={savingSelection}
+                    className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
+                  >
+                    {savingSelection
+                      ? '⏳ Додаємо переклад...'
+                      : '📇 Зберегти в Flashcards'}
+                  </button>
+                ))}
+            </div>
+            <SelectionAnalysis selectedText={selectedText} />
           </div>
         )}
 
