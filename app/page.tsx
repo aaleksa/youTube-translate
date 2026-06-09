@@ -328,6 +328,7 @@ export default function Home() {
                   transcript={videoData.transcript}
                   fullText={videoData.text}
                   activeLineIndex={activeLineIndex}
+                  isPlaying={playerState.isPlaying}
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}

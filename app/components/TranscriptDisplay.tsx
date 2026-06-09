@@ -55,6 +55,7 @@ interface TranscriptDisplayProps {
   videoTitle?: string;
   videoUrl?: string;
   activeLineIndex?: number;
+  isPlaying?: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   onSaveToFlashcards?: (
     word: string,
@@ -71,7 +72,7 @@ function countSelectionWords(text: string): number {
 
 function lineClassName(isActive: boolean, canSeek: boolean): string {
   if (isActive) {
-    return 'bg-blue-50 dark:bg-blue-950/50 border-l-[3px] border-l-blue-500 dark:border-l-blue-400';
+    return 'bg-blue-50 dark:bg-blue-950/50 border-l-[3px] border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm';
   }
   if (canSeek) {
     return 'border-l-[3px] border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60';
@@ -133,7 +134,11 @@ function TranscriptLine({
         >
           {formatTimestamp(item.start)}
         </span>
-        <span className="text-[15px] flex-1">{item.text}</span>
+        <span
+          className={`text-[15px] flex-1 ${isActive ? 'font-medium text-gray-900 dark:text-gray-50' : ''}`}
+        >
+          {item.text}
+        </span>
       </div>
     </div>
   );
@@ -183,7 +188,7 @@ function BilingualLine({
       }
       className={`grid grid-cols-2 gap-3 sm:gap-5 items-stretch py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
         isActive
-          ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400'
+          ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm'
           : canSeek
             ? 'border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60'
             : 'border-l-transparent'
@@ -201,12 +206,24 @@ function BilingualLine({
         >
           {formatTimestamp(item.start)}
         </span>
-        <p className="text-sm sm:text-[15px] text-gray-800 dark:text-gray-200 leading-relaxed">
+        <p
+          className={`text-sm sm:text-[15px] leading-relaxed ${
+            isActive
+              ? 'font-medium text-gray-900 dark:text-gray-50'
+              : 'text-gray-800 dark:text-gray-200'
+          }`}
+        >
           {item.text}
         </p>
       </div>
       <div className="min-w-0 flex flex-col justify-center pl-1 sm:pl-0">
-        <p className="text-sm sm:text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed">
+        <p
+          className={`text-sm sm:text-[15px] leading-relaxed ${
+            isActive
+              ? 'text-gray-700 dark:text-gray-200'
+              : 'text-gray-600 dark:text-gray-300'
+          }`}
+        >
           {translation || '—'}
         </p>
       </div>
@@ -221,6 +238,7 @@ export default function TranscriptDisplay({
   videoTitle,
   videoUrl,
   activeLineIndex = 0,
+  isPlaying = false,
   onSeek,
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
@@ -236,7 +254,7 @@ export default function TranscriptDisplay({
   const [savingSelection, setSavingSelection] = useState(false);
   const [selectionError, setSelectionError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [autoScroll, setAutoScroll] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translationLanguage, setTranslationLanguage] =
     useState<TranslationLanguageCode>(DEFAULT_TRANSLATION_LANGUAGE);
@@ -345,7 +363,9 @@ export default function TranscriptDisplay({
   }, []);
 
   useEffect(() => {
-    if (!autoScroll && !seekClickRef.current) return;
+    const shouldScroll =
+      seekClickRef.current || (autoScroll && isPlaying);
+    if (!shouldScroll) return;
 
     const container = scrollContainerRef.current;
     const activeLine = lineRefs.current.get(activeLineIndex);
@@ -353,6 +373,13 @@ export default function TranscriptDisplay({
 
     const lineRect = activeLine.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
+    const edgePadding = 56;
+    const isFullyVisible =
+      lineRect.top >= containerRect.top + edgePadding &&
+      lineRect.bottom <= containerRect.bottom - edgePadding;
+
+    if (!seekClickRef.current && isFullyVisible) return;
+
     const relativeTop = lineRect.top - containerRect.top + container.scrollTop;
     const targetTop =
       relativeTop - container.clientHeight / 2 + lineRect.height / 2;
@@ -363,7 +390,7 @@ export default function TranscriptDisplay({
     });
 
     seekClickRef.current = false;
-  }, [activeLineIndex, autoScroll]);
+  }, [activeLineIndex, autoScroll, isPlaying]);
 
   const handleSeek = (seconds: number, lineIndex: number) => {
     seekClickRef.current = true;

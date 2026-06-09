@@ -173,7 +173,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         } catch {
           // Player not ready yet
         }
-      }, 400);
+      }, 250);
 
       return () => clearInterval(interval);
     }, [videoId]);
