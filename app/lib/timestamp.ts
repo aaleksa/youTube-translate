@@ -1,3 +1,14 @@
+export function formatSecondsToTimestamp(totalSeconds: number): string {
+  const safe = Math.max(0, totalSeconds);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = Math.floor(safe % 60);
+
+  return [hours, minutes, seconds]
+    .map((part) => part.toString().padStart(2, '0'))
+    .join(':');
+}
+
 export function formatTimestamp(timestamp?: string): string {
   if (!timestamp) return '';
 
