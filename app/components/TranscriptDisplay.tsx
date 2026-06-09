@@ -47,7 +47,7 @@ import {
   getFormalityStyle,
   type SlangItem,
 } from '../lib/slang';
-import { downloadSrtFile } from '../lib/exportSrt';
+import { downloadSrtFile, downloadVttFile } from '../lib/exportSubtitles';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 import ToolbarMenu from './ToolbarMenu';
@@ -480,6 +480,10 @@ export default function TranscriptDisplay({
 
   const handleExportSrt = () => {
     downloadSrtFile(transcript, `${videoId}.srt`);
+  };
+
+  const handleExportVtt = () => {
+    downloadVttFile(transcript, `${videoId}.vtt`);
   };
 
   const handleSelection = () => {
@@ -995,6 +999,11 @@ export default function TranscriptDisplay({
                   id: 'srt',
                   label: '🎬 Export .srt',
                   onClick: handleExportSrt,
+                },
+                {
+                  id: 'vtt',
+                  label: '📺 Export .vtt',
+                  onClick: handleExportVtt,
                 },
               ]}
             />
