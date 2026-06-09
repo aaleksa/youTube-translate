@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
 import {
   saveToTranscriptHistory,
@@ -44,6 +44,7 @@ import PlaylistPanel, {
   type PlaylistLoadProgress,
   type PlaylistSession,
 } from './components/PlaylistPanel';
+import ShadowingPanel from './components/ShadowingPanel';
 interface TranscriptItem {
   text: string;
   start?: string;
@@ -65,6 +66,7 @@ interface TranscriptResponse {
 export default function Home() {
   const { t } = useI18n();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
+  const shadowingPanelRef = useRef<HTMLDivElement>(null);
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -89,6 +91,9 @@ export default function Home() {
     useState<PlaylistSession | null>(null);
   const [playlistLoadProgress, setPlaylistLoadProgress] =
     useState<PlaylistLoadProgress | null>(null);
+  const [shadowingLineIndex, setShadowingLineIndex] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
@@ -135,6 +140,13 @@ export default function Home() {
   const handlePauseVideo = () => {
     videoPlayerRef.current?.pause();
   };
+
+  const scrollToShadowing = useCallback(() => {
+    shadowingPanelRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
 
   const handleSaveToFlashcards = (
     word: string,
@@ -528,13 +540,24 @@ export default function Home() {
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-4">
                 <div className="lg:hidden sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 mb-3 rounded-lg overflow-hidden shadow-lg">
                   <VideoControls
                     isPlaying={playerState.isPlaying}
                     isReady={playerState.isReady}
                     onPlayPause={handlePlayPause}
                     onStop={handleStop}
+                  />
+                </div>
+                <div ref={shadowingPanelRef} id="shadowing-panel">
+                  <ShadowingPanel
+                    videoId={videoData.videoId}
+                    transcript={videoData.transcript}
+                    currentPlaybackTime={currentPlaybackTime}
+                    isPlayerReady={playerState.isReady}
+                    onSeek={handleSeek}
+                    onPauseVideo={handlePauseVideo}
+                    onLineIndexChange={setShadowingLineIndex}
                   />
                 </div>
                 <TranscriptDisplay
@@ -544,11 +567,13 @@ export default function Home() {
                   transcript={videoData.transcript}
                   fullText={videoData.text}
                   activeLineIndex={activeLineIndex}
+                  shadowingLineIndex={shadowingLineIndex}
                   isPlaying={playerState.isPlaying}
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}
                   onPauseVideo={handlePauseVideo}
+                  onShadowingClick={scrollToShadowing}
                 />
               </div>
             </div>
