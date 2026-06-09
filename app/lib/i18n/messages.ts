@@ -160,8 +160,10 @@ const uk = {
   'bookmarks.added': 'Закладку додано',
   'bookmarks.goTo': 'Перейти до закладки',
   'bookmarks.remove': 'Видалити закладку',
-  'history.title': 'Історія транскриптів',
-  'history.searchPlaceholder': 'Пошук по назві відео або тексту транскрипту...',
+  'history.title': 'Нещодавні відео (до 10)',
+  'history.recentHint':
+    'Клік — миттєво відкрити збережений транскрипт. Пошук — по назві або тексту.',
+  'history.searchPlaceholder': 'Пошук по назві або тексту транскрипту...',
   'history.noResults': 'Нічого не знайдено в локальній історії.',
   'history.matchTitle': 'назва',
   'history.matchText': 'текст',
@@ -326,8 +328,10 @@ const en: Record<keyof typeof uk, string> = {
   'bookmarks.added': 'Bookmark added',
   'bookmarks.goTo': 'Go to bookmark',
   'bookmarks.remove': 'Remove bookmark',
-  'history.title': 'Transcript history',
-  'history.searchPlaceholder': 'Search by video title or transcript text...',
+  'history.title': 'Recent videos (up to 10)',
+  'history.recentHint':
+    'Click to reopen the saved transcript instantly. Search by title or transcript text.',
+  'history.searchPlaceholder': 'Search by title or transcript text...',
   'history.noResults': 'Nothing found in local history.',
   'history.matchTitle': 'title',
   'history.matchText': 'text',
@@ -380,6 +384,9 @@ const pl: Record<keyof typeof uk, string> = {
   'urlInput.supportedFormats': '✓ Obsługiwane formaty:',
   'urlInput.captionHint':
     'Działa najlepiej z filmami z napisami lub automatycznymi podpisami',
+  'history.title': 'Ostatnie filmy (do 10)',
+  'history.recentHint':
+    'Kliknij, aby natychmiast otworzyć zapisany transkrypt. Szukaj po tytule lub tekście.',
   'learning.title': 'Ustawienia nauki',
   'cefr.title': 'Poziom trudności (CEFR)',
   'cefr.analyzing': '⏳ AI analizuje transkrypcję...',
@@ -395,8 +402,7 @@ const pl: Record<keyof typeof uk, string> = {
   'bookmarks.title': 'Zakładki ({count})',
   'bookmarks.add': '🔖 Dodaj zakładkę ({time})',
   'bookmarks.empty': 'Kliknij przycisk powyżej, aby zapisać bieżący czas.',
-  'history.title': 'Historia transkrypcji',
-  'history.searchPlaceholder': 'Szukaj po tytule wideo lub tekście transkrypcji...',
+  'history.searchPlaceholder': 'Szukaj po tytule lub tekście transkrypcji...',
   'flashcards.title': 'Moje Flashcards ({count})',
   'flashcards.searchPlaceholder': 'Szukaj słowa...',
   'flashcards.empty':
@@ -437,6 +443,9 @@ const es: Record<keyof typeof uk, string> = {
   'urlInput.supportedFormats': '✓ Formatos compatibles:',
   'urlInput.captionHint':
     'Funciona mejor con vídeos que tienen subtítulos o subtítulos automáticos',
+  'history.title': 'Vídeos recientes (hasta 10)',
+  'history.recentHint':
+    'Clic para abrir al instante la transcripción guardada. Busca por título o texto.',
   'learning.title': 'Ajustes de aprendizaje',
   'cefr.title': 'Nivel de dificultad (CEFR)',
   'cefr.analyzing': '⏳ La IA analiza la transcripción...',
@@ -450,8 +459,7 @@ const es: Record<keyof typeof uk, string> = {
   'textAnalysis.prepareFlashcards': '📇 Preparar Flashcards',
   'bookmarks.title': 'Marcadores ({count})',
   'bookmarks.add': '🔖 Añadir marcador ({time})',
-  'history.title': 'Historial de transcripciones',
-  'history.searchPlaceholder': 'Buscar por título del vídeo o texto de la transcripción...',
+  'history.searchPlaceholder': 'Buscar por título o texto de la transcripción...',
   'flashcards.title': 'Mis Flashcards ({count})',
   'flashcards.searchPlaceholder': 'Buscar palabra...',
 };
@@ -490,6 +498,9 @@ const de: Record<keyof typeof uk, string> = {
   'urlInput.supportedFormats': '✓ Unterstützte Formate:',
   'urlInput.captionHint':
     'Funktioniert am besten mit Videos mit Untertiteln oder automatischen Untertiteln',
+  'history.title': 'Zuletzt geöffnet (bis 10)',
+  'history.recentHint':
+    'Klick öffnet das gespeicherte Transkript sofort. Suche nach Titel oder Text.',
   'learning.title': 'Lerneinstellungen',
   'cefr.title': 'Schwierigkeitsgrad (CEFR)',
   'cefr.analyzing': '⏳ KI analysiert das Transkript...',
@@ -503,8 +514,7 @@ const de: Record<keyof typeof uk, string> = {
   'textAnalysis.prepareFlashcards': '📇 Flashcards vorbereiten',
   'bookmarks.title': 'Lesezeichen ({count})',
   'bookmarks.add': '🔖 Lesezeichen hinzufügen ({time})',
-  'history.title': 'Transkript-Verlauf',
-  'history.searchPlaceholder': 'Nach Videotitel oder Transkripttext suchen...',
+  'history.searchPlaceholder': 'Nach Titel oder Transkripttext suchen...',
   'flashcards.title': 'Meine Flashcards ({count})',
   'flashcards.searchPlaceholder': 'Wort suchen...',
 };
@@ -543,6 +553,9 @@ const fr: Record<keyof typeof uk, string> = {
   'urlInput.supportedFormats': '✓ Formats pris en charge :',
   'urlInput.captionHint':
     'Fonctionne mieux avec des vidéos ayant des sous-titres ou des sous-titres automatiques',
+  'history.title': 'Vidéos récentes (jusqu’à 10)',
+  'history.recentHint':
+    'Cliquez pour rouvrir la transcription enregistrée. Recherche par titre ou texte.',
   'learning.title': "Paramètres d'apprentissage",
   'cefr.title': 'Niveau de difficulté (CEFR)',
   'cefr.analyzing': '⏳ L’IA analyse la transcription...',
@@ -556,8 +569,7 @@ const fr: Record<keyof typeof uk, string> = {
   'textAnalysis.prepareFlashcards': '📇 Préparer Flashcards',
   'bookmarks.title': 'Signets ({count})',
   'bookmarks.add': '🔖 Ajouter un signet ({time})',
-  'history.title': 'Historique des transcriptions',
-  'history.searchPlaceholder': 'Rechercher par titre de vidéo ou texte de transcription...',
+  'history.searchPlaceholder': 'Rechercher par titre ou texte de transcription...',
   'flashcards.title': 'Mes Flashcards ({count})',
   'flashcards.searchPlaceholder': 'Rechercher un mot...',
 };

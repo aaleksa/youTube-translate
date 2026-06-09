@@ -56,7 +56,7 @@ export default function TranscriptHistorySearch({
 
   return (
     <div className="mt-5 pt-4 border-t border-blue-400/40">
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <p className="text-sm font-semibold text-blue-100">{t('history.title')}</p>
         {entries.length > 0 && (
           <button
@@ -68,6 +68,9 @@ export default function TranscriptHistorySearch({
           </button>
         )}
       </div>
+      {!query.trim() && (
+        <p className="text-xs text-blue-200/90 mb-3">{t('history.recentHint')}</p>
+      )}
 
       <input
         type="search"
@@ -93,11 +96,16 @@ export default function TranscriptHistorySearch({
                 onClick={() => onLoad(entry)}
                 disabled={isLoading}
                 className="flex-1 text-left px-3 py-2 min-w-0 disabled:opacity-50"
-                title={entry.title}
+                title={entry.url}
               >
                 <span className="block text-sm font-medium line-clamp-2">
                   {entry.title}
                 </span>
+                {!query.trim() && (
+                  <span className="block text-xs text-blue-200/80 mt-0.5 truncate">
+                    {entry.url}
+                  </span>
+                )}
                 {snippet && (
                   <span className="block text-xs text-blue-100/90 mt-1 line-clamp-2">
                     {snippet}
