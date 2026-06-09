@@ -83,6 +83,33 @@ Rules:
 - No text outside JSON`;
 }
 
+export function buildTimelinePrompt(language: InterfaceLanguage): string {
+  const target = getAiResponseLanguageName(language);
+
+  return `You are a video study assistant for language learners watching English YouTube videos.
+
+Identify the most important moments in the video from a timestamped transcript.
+
+Return ONLY valid JSON:
+{
+  "moments": [
+    {
+      "timestamp": "HH:MM:SS",
+      "description": "Short description in ${target} (one sentence, max 120 characters)"
+    }
+  ]
+}
+
+Rules:
+- Write descriptions in ${target}
+- Include 5–12 key moments covering the full video arc (introduction, main points, conclusion)
+- timestamp must be HH:MM:SS and must match a timestamp from the transcript (use the nearest line start)
+- Moments must be in chronological order
+- Descriptions must be specific to what happens at that moment in the video
+- Do not invent moments not supported by the transcript
+- No text outside JSON`;
+}
+
 export function buildSummaryPrompt(language: InterfaceLanguage): string {
   const target = getAiResponseLanguageName(language);
 
