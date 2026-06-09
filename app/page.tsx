@@ -45,6 +45,8 @@ import PlaylistPanel, {
   type PlaylistSession,
 } from './components/PlaylistPanel';
 import ShadowingPanel from './components/ShadowingPanel';
+import PronunciationChecker from './components/PronunciationChecker';
+import { getCueStartSeconds } from './lib/transcriptCue';
 interface TranscriptItem {
   text: string;
   start?: string;
@@ -67,6 +69,7 @@ export default function Home() {
   const { t } = useI18n();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const shadowingPanelRef = useRef<HTMLDivElement>(null);
+  const pronunciationPanelRef = useRef<HTMLDivElement>(null);
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -143,6 +146,13 @@ export default function Home() {
 
   const scrollToShadowing = useCallback(() => {
     shadowingPanelRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
+
+  const scrollToPronunciation = useCallback(() => {
+    pronunciationPanelRef.current?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
@@ -555,11 +565,30 @@ export default function Home() {
                     transcript={videoData.transcript}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
+                    speechLanguage={videoData.selectedLanguage}
                     onSeek={handleSeek}
                     onPauseVideo={handlePauseVideo}
                     onLineIndexChange={setShadowingLineIndex}
                   />
                 </div>
+                {(() => {
+                  const lineIndex = shadowingLineIndex ?? activeLineIndex;
+                  const cue = videoData.transcript[lineIndex];
+                  if (!cue?.text?.trim()) return null;
+
+                  return (
+                    <div ref={pronunciationPanelRef} id="pronunciation-panel">
+                      <PronunciationChecker
+                        expectedText={cue.text}
+                        speechLanguage={videoData.selectedLanguage}
+                        resetKey={`${videoData.videoId}-${lineIndex}`}
+                        onReplayOriginal={() =>
+                          handleSeek(getCueStartSeconds(cue), lineIndex)
+                        }
+                      />
+                    </div>
+                  );
+                })()}
                 <TranscriptDisplay
                   videoId={videoData.videoId}
                   videoTitle={videoData.title}
@@ -574,6 +603,7 @@ export default function Home() {
                   flashcardsRefreshKey={flashcardsRefreshKey}
                   onPauseVideo={handlePauseVideo}
                   onShadowingClick={scrollToShadowing}
+                  onPronunciationClick={scrollToPronunciation}
                 />
               </div>
             </div>

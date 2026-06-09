@@ -66,6 +66,7 @@ interface TranscriptDisplayProps {
   flashcardsRefreshKey?: number;
   onPauseVideo?: () => void;
   onShadowingClick?: () => void;
+  onPronunciationClick?: () => void;
 }
 
 function countSelectionWords(text: string): number {
@@ -264,6 +265,7 @@ export default function TranscriptDisplay({
   flashcardsRefreshKey = 0,
   onPauseVideo,
   onShadowingClick,
+  onPronunciationClick,
 }: TranscriptDisplayProps) {
   const { t, language } = useI18n();
   const highlightLineIndex = shadowingLineIndex ?? activeLineIndex;
@@ -631,6 +633,15 @@ export default function TranscriptDisplay({
                 className="px-3 py-1.5 text-sm rounded-lg transition bg-violet-100 text-violet-900 hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900 font-semibold"
               >
                 {t('actions.shadowing')}
+              </button>
+            )}
+            {onPronunciationClick && (
+              <button
+                type="button"
+                onClick={onPronunciationClick}
+                className="px-3 py-1.5 text-sm rounded-lg transition bg-rose-100 text-rose-900 hover:bg-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:hover:bg-rose-900 font-semibold"
+              >
+                {t('actions.pronunciation')}
               </button>
             )}
             <ToolbarMenu

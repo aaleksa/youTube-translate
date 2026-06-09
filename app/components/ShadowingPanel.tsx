@@ -8,6 +8,7 @@ import {
 } from '../lib/transcriptCue';
 import { formatTimestamp } from '../lib/timestamp';
 import { useI18n } from './InterfaceLanguageProvider';
+import PronunciationChecker from './PronunciationChecker';
 
 const REPEAT_PAUSE_OPTIONS = [2, 3, 5, 8] as const;
 
@@ -18,6 +19,7 @@ interface ShadowingPanelProps {
   transcript: TranscriptCue[];
   currentPlaybackTime: number;
   isPlayerReady: boolean;
+  speechLanguage?: string;
   onSeek: (seconds: number, lineIndex: number) => void;
   onPauseVideo: () => void;
   onLineIndexChange?: (lineIndex: number | null) => void;
@@ -28,6 +30,7 @@ export default function ShadowingPanel({
   transcript,
   currentPlaybackTime,
   isPlayerReady,
+  speechLanguage,
   onSeek,
   onPauseVideo,
   onLineIndexChange,
@@ -211,6 +214,16 @@ export default function ShadowingPanel({
                 {currentCue.text}
               </p>
             </div>
+          )}
+
+          {phase === 'repeat' && currentCue && (
+            <PronunciationChecker
+              expectedText={currentCue.text}
+              speechLanguage={speechLanguage}
+              resetKey={`shadowing-${lineIndex}`}
+              onReplayOriginal={() => playLine(lineIndex)}
+              compact
+            />
           )}
 
           <div className="flex flex-wrap gap-2">
