@@ -2,6 +2,7 @@ const CHUNK_SIZE = 40;
 
 export async function translateAllLines(
   lines: string[],
+  targetLanguage: string,
   onProgress?: (completed: number, total: number) => void
 ): Promise<string[]> {
   const translations: string[] = [];
@@ -11,7 +12,7 @@ export async function translateAllLines(
     const response = await fetch('/api/translate-lines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lines: chunk }),
+      body: JSON.stringify({ lines: chunk, targetLanguage }),
     });
 
     const data = await response.json();

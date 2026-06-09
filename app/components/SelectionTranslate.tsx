@@ -5,11 +5,13 @@ import { shouldAutoPause } from '../lib/learningSettings';
 
 interface SelectionTranslateProps {
   selectedText: string;
+  targetLanguage?: string;
   onPauseVideo?: () => void;
 }
 
 export default function SelectionTranslate({
   selectedText,
+  targetLanguage = 'uk',
   onPauseVideo,
 }: SelectionTranslateProps) {
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,7 @@ export default function SelectionTranslate({
   useEffect(() => {
     setTranslation(null);
     setError('');
-  }, [selectedText]);
+  }, [selectedText, targetLanguage]);
 
   const handleTranslate = async () => {
     if (!selectedText.trim()) return;
@@ -36,7 +38,10 @@ export default function SelectionTranslate({
       const response = await fetch('/api/translate-lines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lines: [selectedText] }),
+        body: JSON.stringify({
+          lines: [selectedText],
+          targetLanguage,
+        }),
       });
 
       const data = await response.json();

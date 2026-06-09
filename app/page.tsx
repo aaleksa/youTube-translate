@@ -27,7 +27,6 @@ import {
 } from './lib/flashcards';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
-
 interface TranscriptItem {
   text: string;
   start?: string;
@@ -61,6 +60,7 @@ export default function Home() {
     ParsedFlashcardItem[] | null
   >(null);
   const [quickInfoOpen, setQuickInfoOpen] = useState(true);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
@@ -140,6 +140,7 @@ export default function Home() {
     setError('');
 
     if (url) {
+      setCurrentVideoUrl(url);
       addToUrlHistory(url, data.videoId);
     }
 

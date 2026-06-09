@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearBilingualCache,
   getBilingualCache,
@@ -19,7 +19,15 @@ import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 import SelectionAnalysis from './SelectionAnalysis';
 import SelectionTranslate from './SelectionTranslate';
 import SentenceExplanation from './SentenceExplanation';
+import TranslationLanguageSelect from './TranslationLanguageSelect';
 import ToolbarMenu from './ToolbarMenu';
+import {
+  DEFAULT_TRANSLATION_LANGUAGE,
+  getSavedTranslationLanguage,
+  getTranslationLanguageName,
+  getTranslationLanguageShortCode,
+  saveTranslationLanguage,
+} from '../lib/translationLanguages';
 
 interface TranscriptItem {
   text: string;
@@ -48,12 +56,12 @@ function countSelectionWords(text: string): number {
 
 function lineClassName(isActive: boolean, canSeek: boolean): string {
   if (isActive) {
-    return 'bg-blue-200/90 dark:bg-blue-900/70 ring-2 ring-blue-500 dark:ring-blue-400 shadow-sm';
+    return 'bg-blue-50 dark:bg-blue-950/50 border-l-[3px] border-l-blue-500 dark:border-l-blue-400';
   }
   if (canSeek) {
-    return 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:ring-1 hover:ring-blue-200 dark:hover:ring-blue-800';
+    return 'border-l-[3px] border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60';
   }
-  return 'hover:bg-gray-200 dark:hover:bg-gray-800';
+  return 'border-l-[3px] border-l-transparent hover:bg-gray-100/60 dark:hover:bg-gray-800/40';
 }
 
 function TranscriptLine({
@@ -94,21 +102,21 @@ function TranscriptLine({
             }
           : undefined
       }
-      className={`text-gray-700 dark:text-gray-300 leading-relaxed p-2 rounded transition ${lineClassName(isActive, canSeek)}`}
+      className={`text-gray-800 dark:text-gray-200 leading-relaxed py-2.5 px-3 rounded-r-md transition ${lineClassName(isActive, canSeek)}`}
       title={canSeek ? 'Jump to this moment in the video' : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
       <div className="flex items-start gap-2">
         <span
-          className={`text-xs font-bold whitespace-nowrap px-2 py-1 rounded shrink-0 ${
+          className={`text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded shrink-0 ${
             isActive
-              ? 'text-white bg-blue-600 dark:bg-blue-500'
-              : 'text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-950'
+              ? 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
+              : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           {formatTimestamp(item.start)}
         </span>
-        <span className="text-gray-700 dark:text-gray-300 flex-1">{item.text}</span>
+        <span className="text-[15px] flex-1">{item.text}</span>
       </div>
     </div>
   );
@@ -117,6 +125,7 @@ function TranscriptLine({
 function BilingualLine({
   item,
   translation,
+  translationLabel,
   lineIndex,
   isActive,
   onSeek,
@@ -124,6 +133,7 @@ function BilingualLine({
 }: {
   item: TranscriptItem;
   translation: string;
+  translationLabel: string;
   lineIndex: number;
   isActive: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
@@ -154,35 +164,35 @@ function BilingualLine({
             }
           : undefined
       }
-      className={`grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 p-2 rounded transition border ${
+      className={`grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
         isActive
-          ? 'bg-blue-200/90 dark:bg-blue-900/70 border-blue-500 dark:border-blue-400 ring-2 ring-blue-500 dark:ring-blue-400'
+          ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400'
           : canSeek
-            ? 'border-transparent cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-200 dark:hover:border-blue-800'
-            : 'border-transparent'
+            ? 'border-l-transparent cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-800/60'
+            : 'border-l-transparent'
       }`}
       title={canSeek ? 'Jump to this moment in the video' : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
       <div className="min-w-0">
         <span
-          className={`inline-block text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded mb-1 ${
+          className={`inline-block text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded mb-1 ${
             isActive
-              ? 'text-white bg-blue-600 dark:bg-blue-500'
-              : 'text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-950'
+              ? 'text-blue-700 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/60'
+              : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           {formatTimestamp(item.start)}
         </span>
-        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+        <p className="text-[15px] text-gray-800 dark:text-gray-200 leading-relaxed">
           {item.text}
         </p>
       </div>
-      <div className="min-w-0 md:border-l md:dark:border-gray-700 md:pl-4">
-        <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 md:hidden">
-          Українською
+      <div className="min-w-0 md:border-l md:border-gray-200 md:dark:border-gray-700 md:pl-5">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-teal-600 dark:text-teal-400 mb-1 md:hidden">
+          {translationLabel}
         </p>
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+        <p className="text-[15px] text-gray-600 dark:text-gray-300 leading-relaxed">
           {translation || '—'}
         </p>
       </div>
@@ -209,21 +219,65 @@ export default function TranscriptDisplay({
   const [selectionError, setSelectionError] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(false);
-  const [bilingualMode, setBilingualMode] = useState(false);
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [translationLanguage, setTranslationLanguage] = useState(
+    DEFAULT_TRANSLATION_LANGUAGE
+  );
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
   const [translateError, setTranslateError] = useState('');
+
+  const bilingualMode = translationEnabled;
+  const translationLabel = getTranslationLanguageName(translationLanguage);
+  const translationShortCode = getTranslationLanguageShortCode(translationLanguage);
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-auto-scroll');
     if (saved !== null) {
       setAutoScroll(saved === 'true');
     }
+    setTranslationLanguage(getSavedTranslationLanguage());
   }, []);
 
+  const loadTranslations = useCallback(
+    async (targetLanguage: string) => {
+      const lines = transcript.map((item) => item.text);
+      const cached = getBilingualCache(videoId, lines.length, targetLanguage);
+      if (cached) {
+        setTranslations(cached);
+        return;
+      }
+
+      setTranslating(true);
+      setTranslateError('');
+      setTranslateProgress({ done: 0, total: lines.length });
+
+      try {
+        const result = await translateAllLines(
+          lines,
+          targetLanguage,
+          (done, total) => {
+            setTranslateProgress({ done, total });
+          }
+        );
+        setTranslations(result);
+        setBilingualCache(videoId, lines.length, targetLanguage, result);
+      } catch (error) {
+        setTranslateError(
+          error instanceof Error ? error.message : 'Failed to translate transcript'
+        );
+        setTranslations(null);
+        setTranslationEnabled(false);
+      } finally {
+        setTranslating(false);
+      }
+    },
+    [transcript, videoId]
+  );
+
   useEffect(() => {
-    setBilingualMode(false);
+    setTranslationEnabled(false);
     setTranslations(null);
     setTranslateError('');
     setTranslateProgress({ done: 0, total: 0 });
@@ -356,86 +410,48 @@ export default function TranscriptDisplay({
     [selectedText, flashcardsRefreshKey]
   );
 
-  const loadTranslations = async () => {
-    const lines = transcript.map((item) => item.text);
-    const cached = getBilingualCache(videoId, lines.length);
-    if (cached) {
-      setTranslations(cached);
-      return;
-    }
-
-    setTranslating(true);
-    setTranslateError('');
-    setTranslateProgress({ done: 0, total: lines.length });
-
-    try {
-      const result = await translateAllLines(lines, (done, total) => {
-        setTranslateProgress({ done, total });
-      });
-      setTranslations(result);
-      setBilingualCache(videoId, lines.length, result);
-    } catch (error) {
-      setTranslateError(
-        error instanceof Error ? error.message : 'Failed to translate transcript'
-      );
-      setBilingualMode(false);
-    } finally {
-      setTranslating(false);
+  const handleTranslationLanguageChange = (languageCode: string) => {
+    saveTranslationLanguage(languageCode);
+    setTranslationLanguage(languageCode);
+    if (translationEnabled) {
+      setTranslationEnabled(false);
+      setTranslations(null);
+      setTranslateError('');
     }
   };
 
-  const handleToggleBilingual = async () => {
-    if (bilingualMode) {
-      setBilingualMode(false);
+  const handleToggleTranslation = async () => {
+    if (translationEnabled) {
+      setTranslationEnabled(false);
       return;
     }
 
-    setBilingualMode(true);
-    if (!translations) {
-      await loadTranslations();
-    }
+    setTranslationEnabled(true);
+    setTranslations(null);
+    await loadTranslations(translationLanguage);
   };
 
   const handleRetranslate = async () => {
-    clearBilingualCache(videoId);
+    if (!translationEnabled) return;
+    clearBilingualCache(videoId, translationLanguage);
     setTranslations(null);
-    setBilingualMode(true);
-    await loadTranslations();
+    await loadTranslations(translationLanguage);
   };
 
   return (
-    <div className="w-full space-y-4">
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">
-          Transcript
-        </h2>
-
-        {onSeek && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Клік по рядку перемотує відео. Увімкніть автоскрол, якщо хочете
-            слідкувати за текстом під час відтворення.
-          </p>
-        )}
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Пошук у транскрипті
-          </label>
-          <input
-            type="search"
-            placeholder="Слово або фраза — покаже лише відповідні рядки"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          {searchTerm && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Показано {filteredIndices.length} з {transcript.length} рядків
+    <div className="w-full">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-800/60">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Транскрипт
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {transcript.length} рядків
+              {onSeek && ' · клік по рядку — перемотка'}
             </p>
-          )}
-        </div>
+          </div>
 
-        <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <ToolbarMenu
               label={copied ? '✓ Export' : '📥 Export ▾'}
@@ -463,59 +479,77 @@ export default function TranscriptDisplay({
                 },
               ]}
             />
-            <span
-              className="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-600"
-              aria-hidden
-            />
             <button
               type="button"
               onClick={toggleAutoScroll}
+              title={
+                autoScroll
+                  ? 'Автоскрол увімкнено — транскрипт слідує за поточним рядком під час відтворення'
+                  : 'Автоматично прокручувати транскрипт до активного рядка, поки грає відео'
+              }
+              aria-label={
+                autoScroll
+                  ? 'Вимкнути автоскрол транскрипту'
+                  : 'Увімкнути автоскрол транскрипту'
+              }
               className={`px-3 py-1.5 text-sm rounded-lg transition ${
                 autoScroll
                   ? 'bg-indigo-500 text-white hover:bg-indigo-600'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               {autoScroll ? '📜 Scroll ON' : '📜 Scroll'}
             </button>
-            <button
-              type="button"
-              onClick={handleToggleBilingual}
-              disabled={translating}
-              className={`px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 ${
-                bilingualMode
-                  ? 'bg-amber-500 text-white hover:bg-amber-600'
-                  : 'bg-teal-600 text-white hover:bg-teal-700'
-              }`}
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-5 py-4 space-y-3 border-b border-gray-100 dark:border-gray-700/80">
+          <TranslationLanguageSelect
+            selectedLanguage={translationLanguage}
+            isLoading={translating}
+            translationEnabled={translationEnabled}
+            translationShortCode={translationShortCode}
+            translateProgress={translateProgress}
+            hasTranslations={Boolean(translations)}
+            onChange={handleTranslationLanguageChange}
+            onToggleTranslation={handleToggleTranslation}
+            onRetranslate={handleRetranslate}
+          />
+
+          <div className="relative">
+            <input
+              type="search"
+              placeholder="Пошук слова або фрази…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-white dark:focus:bg-gray-900"
+            />
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              aria-hidden
             >
-              {translating
-                ? `🌍 ${translateProgress.done}/${translateProgress.total}`
-                : bilingualMode
-                  ? '🌍 UA ON'
-                  : '🌍 +UA'}
-            </button>
-            {bilingualMode && translations && !translating && (
-              <button
-                type="button"
-                onClick={handleRetranslate}
-                className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition"
-              >
-                🔄
-              </button>
+              🔍
+            </span>
+            {searchTerm && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                Показано {filteredIndices.length} з {transcript.length} рядків
+              </p>
             )}
           </div>
         </div>
 
         {translateError && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 rounded text-red-700 dark:text-red-300 text-sm">
+          <div className="mx-4 sm:mx-5 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg text-red-700 dark:text-red-300 text-sm">
             {translateError}
           </div>
         )}
 
         {selectedText && (
-          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-500 rounded relative">
+          <div className="mx-4 sm:mx-5 mt-4 p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg relative">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Selected:</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Виділено:
+              </p>
               <button
                 type="button"
                 onClick={clearSelection}
@@ -560,6 +594,7 @@ export default function TranscriptDisplay({
               )}
               <SelectionTranslate
                 selectedText={selectedText}
+                targetLanguage={translationLanguage}
                 onPauseVideo={onPauseVideo}
               />
             </div>
@@ -567,33 +602,34 @@ export default function TranscriptDisplay({
           </div>
         )}
 
-        {bilingualMode && translations && (
-          <div className="hidden md:grid md:grid-cols-2 gap-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            <span>English</span>
-            <span>Українська</span>
-          </div>
-        )}
-
         <div
           ref={scrollContainerRef}
           onMouseUp={handleSelection}
-          className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg"
+          className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-white dark:bg-gray-900"
         >
+          {bilingualMode && translations && !translating && (
+            <div className="hidden md:grid md:grid-cols-2 gap-5 sticky top-0 z-10 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
+              <span>English</span>
+              <span className="text-teal-600 dark:text-teal-400">{translationLabel}</span>
+            </div>
+          )}
+
           {translating ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <p className="text-lg mb-2">Переклад транскрипту...</p>
-              <p>
+            <div className="text-center py-16 text-gray-500 dark:text-gray-400 px-4">
+              <p className="text-base font-medium mb-1">Переклад транскрипту…</p>
+              <p className="text-sm">
                 {translateProgress.done} / {translateProgress.total} рядків
               </p>
             </div>
           ) : filteredIndices.length > 0 ? (
-            <div className="space-y-2">
+            <div className="py-2">
               {filteredIndices.map(({ item, index }) =>
                 bilingualMode && translations ? (
                   <BilingualLine
                     key={`${item.start ?? 'line'}-${index}`}
                     item={item}
                     translation={translations[index] ?? ''}
+                    translationLabel={translationLabel}
                     lineIndex={index}
                     isActive={index === activeLineIndex}
                     onSeek={handleSeek}
@@ -612,8 +648,8 @@ export default function TranscriptDisplay({
               )}
             </div>
           ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No results found
+            <p className="text-gray-500 dark:text-gray-400 text-center py-12 text-sm">
+              Нічого не знайдено
             </p>
           )}
         </div>
