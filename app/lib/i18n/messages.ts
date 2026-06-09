@@ -10,6 +10,8 @@ export const INTERFACE_LANGUAGES = [
 export type InterfaceLanguage = (typeof INTERFACE_LANGUAGES)[number]['code'];
 
 const uk = {
+  'settings.title': 'Налаштування',
+  'settings.ariaLabel': 'Відкрити налаштування',
   'interfaceLanguage.label': 'Мова інтерфейсу',
   'actions.explainSentence': '💬 Пояснити речення',
   'actions.translateSelection': '🌐 Перекласти',
@@ -75,6 +77,9 @@ const uk = {
   'quickInfo.loadAnother': 'Завантажити інше відео',
   'page.enterUrl': 'Введіть URL YouTube вище, щоб почати',
   'page.errorTitle': 'Помилка',
+  'video.play': '▶️ Грати',
+  'video.pause': '⏸ Пауза',
+  'video.stop': '⏹ Стоп',
   'urlInput.title': 'YouTube Translator',
   'urlInput.subtitle': 'Вставте URL YouTube, щоб отримати транскрипт і працювати з ним',
   'urlInput.placeholder': 'Вставте URL YouTube (https://youtube.com/watch?v=...)',
@@ -154,6 +159,8 @@ const uk = {
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
+  'settings.title': 'Settings',
+  'settings.ariaLabel': 'Open settings',
   'interfaceLanguage.label': 'Interface language',
   'actions.explainSentence': '💬 Explain Sentence',
   'actions.translateSelection': '🌐 Translate',
@@ -219,6 +226,9 @@ const en: Record<keyof typeof uk, string> = {
   'quickInfo.loadAnother': 'Load Another Video',
   'page.enterUrl': 'Enter a YouTube URL above to get started',
   'page.errorTitle': 'Error',
+  'video.play': '▶️ Play',
+  'video.pause': '⏸ Pause',
+  'video.stop': '⏹ Stop',
   'urlInput.title': 'YouTube Translator',
   'urlInput.subtitle': 'Paste a YouTube URL to extract and work with its transcript',
   'urlInput.placeholder': 'Paste YouTube URL here (https://youtube.com/watch?v=...)',
@@ -300,6 +310,8 @@ const en: Record<keyof typeof uk, string> = {
 
 const pl: Record<keyof typeof uk, string> = {
   ...en,
+  'settings.title': 'Ustawienia',
+  'settings.ariaLabel': 'Otwórz ustawienia',
   'interfaceLanguage.label': 'Język interfejsu',
   'actions.explainSentence': '✨ Wyjaśnij zdanie',
   'actions.translateSelection': '🌐 Przetłumacz',
@@ -319,6 +331,9 @@ const pl: Record<keyof typeof uk, string> = {
   'transcript.selected': 'Zaznaczono:',
   'transcript.saveFlashcard': '📇 Zapisz w Flashcards',
   'quickInfo.title': 'Szybkie info',
+  'video.play': '▶️ Odtwórz',
+  'video.pause': '⏸ Pauza',
+  'video.stop': '⏹ Stop',
   'page.enterUrl': 'Wpisz URL YouTube powyżej, aby zacząć',
   'urlInput.subtitle': 'Wklej URL YouTube, aby pobrać transkrypcję i pracować z nią',
   'urlInput.placeholder': 'Wklej URL YouTube (https://youtube.com/watch?v=...)',
@@ -352,6 +367,8 @@ const pl: Record<keyof typeof uk, string> = {
 
 const es: Record<keyof typeof uk, string> = {
   ...en,
+  'settings.title': 'Ajustes',
+  'settings.ariaLabel': 'Abrir ajustes',
   'interfaceLanguage.label': 'Idioma de la interfaz',
   'actions.explainSentence': '✨ Explicar oración',
   'actions.translateSelection': '🌐 Traducir',
@@ -365,6 +382,9 @@ const es: Record<keyof typeof uk, string> = {
   'transcript.translationLanguage': 'Idioma de traducción',
   'transcript.enableTranslation': 'Activar',
   'quickInfo.title': 'Info rápida',
+  'video.play': '▶️ Reproducir',
+  'video.pause': '⏸ Pausa',
+  'video.stop': '⏹ Detener',
   'page.enterUrl': 'Introduce una URL de YouTube arriba para empezar',
   'urlInput.subtitle': 'Pega una URL de YouTube para extraer y trabajar con la transcripción',
   'urlInput.placeholder': 'Pega la URL de YouTube (https://youtube.com/watch?v=...)',
@@ -394,6 +414,8 @@ const es: Record<keyof typeof uk, string> = {
 
 const de: Record<keyof typeof uk, string> = {
   ...en,
+  'settings.title': 'Einstellungen',
+  'settings.ariaLabel': 'Einstellungen öffnen',
   'interfaceLanguage.label': 'Oberflächensprache',
   'actions.explainSentence': '✨ Satz erklären',
   'actions.translateSelection': '🌐 Übersetzen',
@@ -407,6 +429,9 @@ const de: Record<keyof typeof uk, string> = {
   'transcript.translationLanguage': 'Übersetzungssprache',
   'transcript.enableTranslation': 'Aktivieren',
   'quickInfo.title': 'Kurzinfo',
+  'video.play': '▶️ Abspielen',
+  'video.pause': '⏸ Pause',
+  'video.stop': '⏹ Stopp',
   'page.enterUrl': 'Gib oben eine YouTube-URL ein, um zu starten',
   'urlInput.subtitle': 'YouTube-URL einfügen, um das Transkript zu extrahieren und damit zu arbeiten',
   'urlInput.placeholder': 'YouTube-URL einfügen (https://youtube.com/watch?v=...)',
@@ -436,6 +461,8 @@ const de: Record<keyof typeof uk, string> = {
 
 const fr: Record<keyof typeof uk, string> = {
   ...en,
+  'settings.title': 'Paramètres',
+  'settings.ariaLabel': 'Ouvrir les paramètres',
   'interfaceLanguage.label': "Langue de l'interface",
   'actions.explainSentence': '✨ Expliquer la phrase',
   'actions.translateSelection': '🌐 Traduire',
@@ -449,6 +476,9 @@ const fr: Record<keyof typeof uk, string> = {
   'transcript.translationLanguage': 'Langue de traduction',
   'transcript.enableTranslation': 'Activer',
   'quickInfo.title': 'Infos rapides',
+  'video.play': '▶️ Lecture',
+  'video.pause': '⏸ Pause',
+  'video.stop': '⏹ Arrêt',
   'page.enterUrl': 'Entrez une URL YouTube ci-dessus pour commencer',
   'urlInput.subtitle': 'Collez une URL YouTube pour extraire et travailler avec la transcription',
   'urlInput.placeholder': 'Collez l’URL YouTube (https://youtube.com/watch?v=...)',

@@ -20,9 +20,7 @@ import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
-import InterfaceLanguageSelect from './components/InterfaceLanguageSelect';
 import { useI18n } from './components/InterfaceLanguageProvider';
-import LearningSettings from './components/LearningSettings';
 import { saveTranscriptLanguage } from './lib/languageSettings';
 import {
   type FlashcardDraft,
@@ -252,8 +250,6 @@ export default function Home() {
                   isPlayerReady={playerState.isReady}
                   onSeek={handleSeek}
                 />
-                <InterfaceLanguageSelect />
-                <LearningSettings />
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">

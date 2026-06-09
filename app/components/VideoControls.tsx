@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from './InterfaceLanguageProvider';
+
 interface VideoControlsProps {
   isPlaying: boolean;
   isReady: boolean;
@@ -15,6 +17,8 @@ export default function VideoControls({
   onStop,
   className = '',
 }: VideoControlsProps) {
+  const { t } = useI18n();
+
   return (
     <div className={`flex gap-2 p-3 bg-gray-900 ${className}`}>
       <button
@@ -23,7 +27,7 @@ export default function VideoControls({
         disabled={!isReady}
         className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
       >
-        {isPlaying ? '⏸ Пауза' : '▶️ Грати'}
+        {isPlaying ? t('video.pause') : t('video.play')}
       </button>
       <button
         type="button"
@@ -31,7 +35,7 @@ export default function VideoControls({
         disabled={!isReady}
         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
       >
-        ⏹ Стоп
+        {t('video.stop')}
       </button>
     </div>
   );

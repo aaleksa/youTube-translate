@@ -9,7 +9,11 @@ import {
 } from '../lib/learningSettings';
 import { useI18n } from './InterfaceLanguageProvider';
 
-export default function LearningSettings() {
+interface LearningSettingsProps {
+  embedded?: boolean;
+}
+
+export default function LearningSettings({ embedded = false }: LearningSettingsProps) {
   const { t } = useI18n();
   const [settings, setSettings] = useState<LearningSettings | null>(null);
   const [open, setOpen] = useState(false);
@@ -36,6 +40,49 @@ export default function LearningSettings() {
   if (!settings) return null;
 
   const anyEnabled = Object.values(settings.autoPause).some(Boolean);
+  const isOpen = embedded || open;
+
+  const content = (
+    <>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+        {t('learning.hint')}
+      </p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+        {t('learning.autoPauseWhen')}
+      </p>
+      <ul className="space-y-2">
+        {autoPauseOptions.map(({ feature, label }) => (
+          <li key={feature}>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.autoPause[feature]}
+                onChange={(e) => handleToggle(feature, e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+              />
+              {label}
+            </label>
+          </li>
+        ))}
+      </ul>
+      {!anyEnabled && (
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          {t('learning.continuousMode')}
+        </p>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">
+          {t('learning.title')}
+        </h3>
+        {content}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
@@ -53,34 +100,9 @@ export default function LearningSettings() {
         </span>
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            {t('learning.hint')}
-          </p>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-            {t('learning.autoPauseWhen')}
-          </p>
-          <ul className="space-y-2">
-            {autoPauseOptions.map(({ feature, label }) => (
-              <li key={feature}>
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.autoPause[feature]}
-                    onChange={(e) => handleToggle(feature, e.target.checked)}
-                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
-                  />
-                  {label}
-                </label>
-              </li>
-            ))}
-          </ul>
-          {!anyEnabled && (
-            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              {t('learning.continuousMode')}
-            </p>
-          )}
+          {content}
         </div>
       )}
     </div>
