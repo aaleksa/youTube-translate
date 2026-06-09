@@ -23,11 +23,16 @@ import TranslationLanguageSelect from './TranslationLanguageSelect';
 import ToolbarMenu from './ToolbarMenu';
 import {
   DEFAULT_TRANSLATION_LANGUAGE,
+} from '../lib/translationLanguages';
+import {
   getSavedTranslationLanguage,
+  saveTranslationLanguage,
+} from '../lib/languageSettings';
+import {
   getTranslationLanguageName,
   getTranslationLanguageShortCode,
-  saveTranslationLanguage,
 } from '../lib/translationLanguages';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
   text: string;
@@ -210,6 +215,7 @@ export default function TranscriptDisplay({
   flashcardsRefreshKey = 0,
   onPauseVideo,
 }: TranscriptDisplayProps) {
+  const { t } = useI18n();
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const seekClickRef = useRef(false);
@@ -444,17 +450,17 @@ export default function TranscriptDisplay({
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-800/60">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Транскрипт
+              {t('transcript.title')}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {transcript.length} рядків
-              {onSeek && ' · клік по рядку — перемотка'}
+              {transcript.length} {t('transcript.lines')}
+              {onSeek && ` · ${t('transcript.seekHint')}`}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <ToolbarMenu
-              label={copied ? '✓ Export' : '📥 Export ▾'}
+              label={copied ? '✓ Export' : t('actions.export')}
               active={copied}
               items={[
                 {
@@ -484,13 +490,13 @@ export default function TranscriptDisplay({
               onClick={toggleAutoScroll}
               title={
                 autoScroll
-                  ? 'Автоскрол увімкнено — транскрипт слідує за поточним рядком під час відтворення'
-                  : 'Автоматично прокручувати транскрипт до активного рядка, поки грає відео'
+                  ? t('transcript.scrollTooltipOn')
+                  : t('transcript.scrollTooltipOff')
               }
               aria-label={
                 autoScroll
-                  ? 'Вимкнути автоскрол транскрипту'
-                  : 'Увімкнути автоскрол транскрипту'
+                  ? t('transcript.scrollAriaOn')
+                  : t('transcript.scrollAriaOff')
               }
               className={`px-3 py-1.5 text-sm rounded-lg transition ${
                 autoScroll
@@ -498,7 +504,7 @@ export default function TranscriptDisplay({
                   : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
-              {autoScroll ? '📜 Scroll ON' : '📜 Scroll'}
+              {autoScroll ? t('actions.scrollOn') : t('actions.scroll')}
             </button>
           </div>
         </div>
@@ -519,7 +525,7 @@ export default function TranscriptDisplay({
           <div className="relative">
             <input
               type="search"
-              placeholder="Пошук слова або фрази…"
+              placeholder={t('transcript.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:bg-white dark:focus:bg-gray-900"
@@ -532,7 +538,10 @@ export default function TranscriptDisplay({
             </span>
             {searchTerm && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                Показано {filteredIndices.length} з {transcript.length} рядків
+                {t('transcript.searchResults', {
+                  shown: filteredIndices.length,
+                  total: transcript.length,
+                })}
               </p>
             )}
           </div>
@@ -548,7 +557,7 @@ export default function TranscriptDisplay({
           <div className="mx-4 sm:mx-5 mt-4 p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg relative">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Виділено:
+                {t('transcript.selected')}
               </p>
               <button
                 type="button"
@@ -572,7 +581,7 @@ export default function TranscriptDisplay({
                 canSaveSelectionToFlashcards &&
                 (selectedAlreadySaved ? (
                   <span className="inline-flex px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg font-medium">
-                    ✓ Вже в картках
+                    {t('transcript.alreadyInCards')}
                   </span>
                 ) : (
                   <button
@@ -582,8 +591,8 @@ export default function TranscriptDisplay({
                     className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
                   >
                     {savingSelection
-                      ? '⏳ Додаємо переклад...'
-                      : '📇 Зберегти в Flashcards'}
+                      ? t('transcript.savingFlashcard')
+                      : t('transcript.saveFlashcard')}
                   </button>
                 ))}
               {canExplainSentence && (
@@ -609,14 +618,19 @@ export default function TranscriptDisplay({
         >
           {bilingualMode && translations && !translating && (
             <div className="hidden md:grid md:grid-cols-2 gap-5 sticky top-0 z-10 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
-              <span>English</span>
+              <span>{t('transcript.english')}</span>
               <span className="text-teal-600 dark:text-teal-400">{translationLabel}</span>
             </div>
           )}
 
           {translating ? (
             <div className="text-center py-16 text-gray-500 dark:text-gray-400 px-4">
-              <p className="text-base font-medium mb-1">Переклад транскрипту…</p>
+              <p className="text-base font-medium mb-1">
+                {t('transcript.translating', {
+                  done: translateProgress.done,
+                  total: translateProgress.total,
+                })}
+              </p>
               <p className="text-sm">
                 {translateProgress.done} / {translateProgress.total} рядків
               </p>
@@ -649,7 +663,7 @@ export default function TranscriptDisplay({
             </div>
           ) : (
             <p className="text-gray-500 dark:text-gray-400 text-center py-12 text-sm">
-              Нічого не знайдено
+              {t('transcript.noResults')}
             </p>
           )}
         </div>

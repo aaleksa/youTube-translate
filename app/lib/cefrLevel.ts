@@ -1,3 +1,5 @@
+import type { TranslationKey } from './i18n/messages';
+
 export const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 
 export type CefrLevel = (typeof CEFR_LEVELS)[number];
@@ -57,19 +59,11 @@ export function getCefrLevelStyle(level: CefrLevel): string {
   }
 }
 
-export function getCefrLevelLabel(level: CefrLevel): string {
-  switch (level) {
-    case 'A1':
-      return 'Початковий';
-    case 'A2':
-      return 'Базовий';
-    case 'B1':
-      return 'Середній';
-    case 'B2':
-      return 'Вище середнього';
-    case 'C1':
-      return 'Просунутий';
-    case 'C2':
-      return 'Вільне володіння';
-  }
-}
+export const CEFR_LEVEL_LABEL_KEYS: Record<CefrLevel, TranslationKey> = {
+  A1: 'cefr.A1',
+  A2: 'cefr.A2',
+  B1: 'cefr.B1',
+  B2: 'cefr.B2',
+  C1: 'cefr.C1',
+  C2: 'cefr.C2',
+};

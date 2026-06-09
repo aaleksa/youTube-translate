@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  getCefrLevelLabel,
+  CEFR_LEVEL_LABEL_KEYS,
   getCefrLevelStyle,
   type VideoDifficultyResult,
 } from '../lib/cefrLevel';
@@ -10,6 +10,7 @@ import {
   getDifficultyCache,
   setDifficultyCache,
 } from '../lib/difficultyCache';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface VideoDifficultyPanelProps {
   videoId: string;
@@ -20,6 +21,7 @@ export default function VideoDifficultyPanel({
   videoId,
   transcriptText,
 }: VideoDifficultyPanelProps) {
+  const { language, t } = useI18n();
   const [result, setResult] = useState<VideoDifficultyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +35,11 @@ export default function VideoDifficultyPanel({
       setResult(null);
       setFromCache(false);
 
-      const cached = getDifficultyCache(videoId, transcriptText.length);
+      const cached = getDifficultyCache(
+        videoId,
+        transcriptText.length,
+        language
+      );
       if (cached) {
         setResult(cached);
         setFromCache(true);
@@ -46,7 +52,10 @@ export default function VideoDifficultyPanel({
         const response = await fetch('/api/video-difficulty', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: transcriptText }),
+          body: JSON.stringify({
+            text: transcriptText,
+            interfaceLanguage: language,
+          }),
         });
 
         const data = await response.json();
@@ -62,12 +71,17 @@ export default function VideoDifficultyPanel({
           explanation: data.explanation,
         };
 
-        setDifficultyCache(videoId, transcriptText.length, assessment);
+        setDifficultyCache(
+          videoId,
+          transcriptText.length,
+          language,
+          assessment
+        );
         setResult(assessment);
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : 'Помилка аналізу складності'
+            err instanceof Error ? err.message : t('cefr.error')
           );
         }
       } finally {
@@ -80,17 +94,17 @@ export default function VideoDifficultyPanel({
     return () => {
       cancelled = true;
     };
-  }, [videoId, transcriptText]);
+  }, [videoId, transcriptText, language]);
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Рівень складності (CEFR)
+        {t('cefr.title')}
       </p>
 
       {loading && (
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          ⏳ AI аналізує транскрипт...
+          {t('cefr.analyzing')}
         </p>
       )}
 
@@ -107,11 +121,11 @@ export default function VideoDifficultyPanel({
               {result.level}
             </span>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {getCefrLevelLabel(result.level)}
+              {t(CEFR_LEVEL_LABEL_KEYS[result.level])}
             </span>
             {fromCache && (
               <span className="text-xs text-gray-400 dark:text-gray-500">
-                (кеш)
+                ({t('common.cache')})
               </span>
             )}
           </div>

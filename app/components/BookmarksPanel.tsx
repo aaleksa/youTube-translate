@@ -13,6 +13,7 @@ import {
   formatSecondsToTimestamp,
   parseTimestampToSeconds,
 } from '../lib/timestamp';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
   text: string;
@@ -51,6 +52,7 @@ export default function BookmarksPanel({
   isPlayerReady,
   onSeek,
 }: BookmarksPanelProps) {
+  const { t } = useI18n();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [feedback, setFeedback] = useState('');
 
@@ -72,12 +74,12 @@ export default function BookmarksPanel({
     const created = addBookmark({ videoId, seconds, label });
 
     if (!created) {
-      setFeedback('Закладка вже є на цьому моменті');
+      setFeedback(t('bookmarks.alreadyExists'));
       return;
     }
 
     setBookmarks(getBookmarksForVideo(videoId));
-    setFeedback('Закладку додано');
+    setFeedback(t('bookmarks.added'));
   };
 
   const handleSeek = (bookmark: Bookmark) => {
@@ -99,7 +101,7 @@ export default function BookmarksPanel({
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-          Закладки ({bookmarks.length})
+          {t('bookmarks.title', { count: bookmarks.length })}
         </h3>
         {bookmarks.length > 0 && (
           <button
@@ -107,7 +109,7 @@ export default function BookmarksPanel({
             onClick={handleClear}
             className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition"
           >
-            Очистити
+            {t('common.clear')}
           </button>
         )}
       </div>
@@ -118,7 +120,9 @@ export default function BookmarksPanel({
         disabled={!isPlayerReady}
         className="w-full mb-3 px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition text-sm font-medium"
       >
-        🔖 Додати закладку ({formatSecondsToTimestamp(currentPlaybackTime)})
+        {t('bookmarks.add', {
+          time: formatSecondsToTimestamp(currentPlaybackTime),
+        })}
       </button>
 
       {feedback && (
@@ -127,7 +131,7 @@ export default function BookmarksPanel({
 
       {bookmarks.length === 0 ? (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-          Натисніть кнопку вище, щоб зберегти поточний таймкод.
+          {t('bookmarks.empty')}
         </p>
       ) : (
         <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -140,7 +144,7 @@ export default function BookmarksPanel({
                 type="button"
                 onClick={() => handleSeek(bookmark)}
                 className="flex-1 text-left px-3 py-2 min-w-0"
-                title="Перейти до закладки"
+                title={t('bookmarks.goTo')}
               >
                 <span className="block text-xs font-bold text-amber-700 dark:text-amber-300">
                   {formatSecondsToTimestamp(bookmark.seconds)}
@@ -153,7 +157,7 @@ export default function BookmarksPanel({
                 type="button"
                 onClick={() => handleRemove(bookmark.id)}
                 className="shrink-0 px-3 py-2 text-gray-400 hover:text-red-500 transition"
-                aria-label="Видалити закладку"
+                aria-label={t('bookmarks.remove')}
               >
                 ✕
               </button>

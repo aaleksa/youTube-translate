@@ -129,8 +129,11 @@ export function searchTranscriptHistory(query: string): TranscriptSearchResult[]
   return results;
 }
 
-export function formatHistoryDate(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, {
+export function formatHistoryDate(
+  timestamp: number,
+  locale?: string
+): string {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',

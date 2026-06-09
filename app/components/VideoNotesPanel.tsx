@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getNotesCache, setNotesCache } from '../lib/notesCache';
 import type { VideoNotesResult } from '../lib/videoNotes';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface VideoNotesPanelProps {
   videoId: string;
@@ -19,6 +20,7 @@ export default function VideoNotesPanel({
   onShowPanelChange,
   hideButton = false,
 }: VideoNotesPanelProps) {
+  const { language, t } = useI18n();
   const [notes, setNotes] = useState<VideoNotesResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,7 +66,10 @@ export default function VideoNotesPanel({
       const response = await fetch('/api/generate-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: transcriptText }),
+        body: JSON.stringify({
+          text: transcriptText,
+          interfaceLanguage: language,
+        }),
       });
 
       const data = await response.json();
@@ -89,7 +94,7 @@ export default function VideoNotesPanel({
     } finally {
       setLoading(false);
     }
-  }, [setShowPanel, transcriptText, videoId]);
+  }, [language, setShowPanel, transcriptText, videoId]);
 
   useEffect(() => {
     if (!showPanel || notes || loading) return;
@@ -109,7 +114,7 @@ export default function VideoNotesPanel({
               : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:hover:bg-emerald-900'
           }`}
         >
-          {loading ? '⏳...' : '📓 Нотатки'}
+          {loading ? t('common.loading') : t('actions.notes')}
         </button>
       )}
 
@@ -117,10 +122,10 @@ export default function VideoNotesPanel({
         <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-              Конспект
+              {t('notes.title')}
               {fromCache && (
                 <span className="ml-2 text-xs font-normal text-emerald-500 dark:text-emerald-400">
-                  кеш
+                  {t('common.cache')}
                 </span>
               )}
             </p>
@@ -128,7 +133,7 @@ export default function VideoNotesPanel({
               type="button"
               onClick={() => setShowPanel(false)}
               className="text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-200 transition"
-              aria-label="Закрити нотатки"
+              aria-label={t('notes.close')}
             >
               ✕
             </button>
@@ -136,7 +141,7 @@ export default function VideoNotesPanel({
 
           {loading && (
             <p className="text-sm text-emerald-700 dark:text-emerald-300">
-              ⏳ AI готує структурований конспект...
+              {t('notes.generating')}
             </p>
           )}
 
@@ -153,7 +158,7 @@ export default function VideoNotesPanel({
               {notes.mainIdeas.length > 0 && (
                 <section>
                   <h4 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-2">
-                    Основні ідеї
+                    {t('notes.mainIdeas')}
                   </h4>
                   <ul className="list-disc list-inside space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
                     {notes.mainIdeas.map((idea, index) => (

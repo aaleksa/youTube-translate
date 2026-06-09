@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
 import ThemeToggle from "./components/ThemeToggle";
 import "./globals.css";
@@ -39,8 +40,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <ThemeToggle />
-          {children}
+          <InterfaceLanguageProvider>
+            <ThemeToggle />
+            {children}
+          </InterfaceLanguageProvider>
         </ThemeProvider>
       </body>
     </html>

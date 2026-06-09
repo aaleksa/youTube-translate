@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { shouldAutoPause } from '../lib/learningSettings';
 import type { SentenceExplanationResult } from '../lib/sentenceExplanation';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface SentenceExplanationProps {
   sentence: string;
@@ -13,6 +14,7 @@ export default function SentenceExplanation({
   sentence,
   onPauseVideo,
 }: SentenceExplanationProps) {
+  const { language, t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SentenceExplanationResult | null>(null);
   const [error, setError] = useState('');
@@ -37,7 +39,7 @@ export default function SentenceExplanation({
       const response = await fetch('/api/explain-sentence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence }),
+        body: JSON.stringify({ sentence, interfaceLanguage: language }),
       });
 
       const data = await response.json();
@@ -66,7 +68,7 @@ export default function SentenceExplanation({
         disabled={loading || !sentence.trim()}
         className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
       >
-        {loading ? '⏳ Explaining...' : '💬 Explain Sentence'}
+        {loading ? t('sentence.explaining') : t('actions.explainSentence')}
       </button>
 
       {(result || error) && (
@@ -78,7 +80,7 @@ export default function SentenceExplanation({
               setError('');
             }}
             className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-lg leading-none"
-            aria-label="Закрити пояснення"
+            aria-label={t('sentence.close')}
           >
             ✕
           </button>
@@ -90,7 +92,7 @@ export default function SentenceExplanation({
           {result && (
             <div className="pr-6">
               <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">
-                Зміст
+                {t('sentence.meaning')}
               </p>
               <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed mb-3">
                 {result.meaning}
@@ -99,7 +101,7 @@ export default function SentenceExplanation({
               {result.difficultWords.length > 0 && (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-2">
-                    Складні слова
+                    {t('sentence.difficultWords')}
                   </p>
                   <ul className="space-y-2">
                     {result.difficultWords.map((item) => (

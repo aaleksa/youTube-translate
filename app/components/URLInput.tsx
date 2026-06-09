@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import type { TranscriptHistoryEntry } from '../lib/transcriptHistory';
+import { useI18n } from './InterfaceLanguageProvider';
 import TranscriptHistorySearch from './TranscriptHistorySearch';
 
 interface URLInputProps {
@@ -17,6 +18,7 @@ export default function URLInput({
   historyRefreshKey = 0,
   onLoadFromHistory,
 }: URLInputProps) {
+  const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
 
@@ -25,7 +27,7 @@ export default function URLInput({
     setError('');
 
     if (!url.trim()) {
-      setError('Please enter a YouTube URL');
+      setError(t('urlInput.enterUrl'));
       return;
     }
 
@@ -33,22 +35,20 @@ export default function URLInput({
       await onSubmit(url);
       setUrl('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('urlInput.errorGeneric'));
     }
   };
 
   return (
     <div className="w-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-900 border border-blue-400 dark:border-blue-800 rounded-lg shadow-lg p-6 text-white">
-      <h1 className="text-3xl font-bold mb-2">YouTube Translator</h1>
-      <p className="text-blue-100 mb-6">
-        Paste a YouTube URL to extract and work with its transcript
-      </p>
+      <h1 className="text-3xl font-bold mb-2">{t('urlInput.title')}</h1>
+      <p className="text-blue-100 mb-6">{t('urlInput.subtitle')}</p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <input
             type="text"
-            placeholder="Paste YouTube URL here (https://youtube.com/watch?v=...)"
+            placeholder={t('urlInput.placeholder')}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading}
@@ -58,16 +58,16 @@ export default function URLInput({
 
         {error && (
           <div className="text-sm text-white bg-red-500 bg-opacity-40 p-3 rounded border border-red-300">
-            <p className="font-semibold mb-2">⚠️ Note:</p>
+            <p className="font-semibold mb-2">{t('urlInput.note')}</p>
             <p>{error}</p>
             {error.includes('captions') && (
               <div className="mt-2 text-xs space-y-1">
-                <p className="font-semibold">💡 Try these tips:</p>
+                <p className="font-semibold">{t('urlInput.captionTipsTitle')}</p>
                 <ul className="list-disc list-inside">
-                  <li>Use videos with captions enabled (CC button visible)</li>
-                  <li>Try music videos or educational content - they usually have captions</li>
-                  <li>Some videos have auto-generated captions</li>
-                  <li>Check if the video language is set correctly</li>
+                  <li>{t('urlInput.captionTip1')}</li>
+                  <li>{t('urlInput.captionTip2')}</li>
+                  <li>{t('urlInput.captionTip3')}</li>
+                  <li>{t('urlInput.captionTip4')}</li>
                 </ul>
               </div>
             )}
@@ -79,7 +79,7 @@ export default function URLInput({
           disabled={isLoading}
           className="w-full px-4 py-3 bg-white text-blue-600 dark:bg-blue-500 dark:text-white font-bold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Loading...' : 'Get Transcript'}
+          {isLoading ? t('urlInput.loading') : t('urlInput.getTranscript')}
         </button>
       </form>
 
@@ -92,15 +92,13 @@ export default function URLInput({
       )}
 
       <div className="mt-4 text-sm text-blue-100">
-        <p className="font-semibold mb-2">✓ Supported formats:</p>
+        <p className="font-semibold mb-2">{t('urlInput.supportedFormats')}</p>
         <ul className="list-disc list-inside">
           <li>https://youtube.com/watch?v=VIDEO_ID</li>
           <li>https://youtu.be/VIDEO_ID</li>
           <li>https://youtube.com/embed/VIDEO_ID</li>
         </ul>
-        <p className="text-xs mt-3 text-blue-200">
-          Works best with videos that have captions or auto-generated subtitles enabled
-        </p>
+        <p className="text-xs mt-3 text-blue-200">{t('urlInput.captionHint')}</p>
       </div>
     </div>
   );

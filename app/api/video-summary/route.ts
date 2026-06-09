@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildSummaryPrompt } from '../../lib/aiPrompts';
+import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseSummaryResponse } from '../../lib/videoSummary';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,22 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1024;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const SUMMARY_PROMPT = `You are a concise summarizer for Ukrainian learners watching English YouTube videos.
-
-Create a short summary of what the video is about — readable in about 30 seconds.
-
-Return ONLY valid JSON:
-{
-  "summary": "2-4 речення українською: про що відео, головна ідея, ключові моменти."
-}
-
-Rules:
-- Write summary in Ukrainian
-- Be clear and structured; no bullet points inside the string
-- Preserve tone and main message of the transcript
-- Do not invent facts not present in the transcript
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -49,7 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, interfaceLanguage } = await request.json();
+    const language = resolveInterfaceLanguage(interfaceLanguage);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -74,7 +61,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: SUMMARY_PROMPT },
+          { role: 'system', content: buildSummaryPrompt(language) },
           { role: 'user', content: input },
         ],
         temperature: 0.4,

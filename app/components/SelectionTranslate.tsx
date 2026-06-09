@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { shouldAutoPause } from '../lib/learningSettings';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface SelectionTranslateProps {
   selectedText: string;
@@ -14,6 +15,7 @@ export default function SelectionTranslate({
   targetLanguage = 'uk',
   onPauseVideo,
 }: SelectionTranslateProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [translation, setTranslation] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -73,7 +75,7 @@ export default function SelectionTranslate({
         disabled={loading || !selectedText.trim()}
         className="px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
       >
-        {loading ? '⏳ Translating...' : '🌍 Translate Selection'}
+        {loading ? t('common.loading') : t('actions.translateSelection')}
       </button>
 
       {(translation || error) && (

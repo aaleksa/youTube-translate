@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { getFlashcards, removeFlashcard, type Flashcard } from '../lib/flashcards';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface FlashcardsPanelProps {
   refreshKey: number;
 }
 
 export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
+  const { t } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [search, setSearch] = useState('');
 
@@ -33,14 +35,14 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-          My Flashcards ({cards.length})
+          {t('flashcards.title', { count: cards.length })}
         </h2>
         {cards.length > 0 && (
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Пошук слова..."
+            placeholder={t('flashcards.searchPlaceholder')}
             className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         )}
@@ -48,11 +50,11 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
 
       {cards.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-          Поки немає карток. Виділіть слово в транскрипті або збережіть з AI-аналізу.
+          {t('flashcards.empty')}
         </p>
       ) : filteredCards.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-          Нічого не знайдено за запитом «{search}».
+          {t('flashcards.noResults', { query: search })}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[32rem] overflow-y-auto pr-1">
@@ -69,7 +71,7 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
                   type="button"
                   onClick={() => handleDelete(card.id)}
                   className="text-gray-400 hover:text-red-500 transition text-sm shrink-0"
-                  aria-label="Delete flashcard"
+                  aria-label={t('flashcards.delete')}
                 >
                   ✕
                 </button>

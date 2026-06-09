@@ -20,7 +20,10 @@ import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
+import InterfaceLanguageSelect from './components/InterfaceLanguageSelect';
+import { useI18n } from './components/InterfaceLanguageProvider';
 import LearningSettings from './components/LearningSettings';
+import { saveTranscriptLanguage } from './lib/languageSettings';
 import {
   type FlashcardDraft,
   getVideoUrl,
@@ -38,9 +41,11 @@ interface TranscriptResponse {
   title?: string;
   transcript: TranscriptItem[];
   text: string;
+  selectedLanguage?: string;
 }
 
 export default function Home() {
+  const { t } = useI18n();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -151,6 +156,9 @@ export default function Home() {
       text: data.text,
       transcript: data.transcript,
     });
+    if (data.selectedLanguage) {
+      saveTranscriptLanguage(data.selectedLanguage);
+    }
     setHistoryRefreshKey((key) => key + 1);
   };
 
@@ -211,7 +219,7 @@ export default function Home() {
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300 dark:border dark:border-red-800 rounded-lg shadow">
-            <p className="font-semibold">Error</p>
+            <p className="font-semibold">{t('page.errorTitle')}</p>
             <p>{error}</p>
           </div>
         )}
@@ -244,11 +252,12 @@ export default function Home() {
                   isPlayerReady={playerState.isReady}
                   onSeek={handleSeek}
                 />
+                <InterfaceLanguageSelect />
                 <LearningSettings />
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-                      Quick Info
+                      {t('quickInfo.title')}
                     </h3>
                     <button
                       type="button"
@@ -256,26 +265,32 @@ export default function Home() {
                       aria-expanded={quickInfoOpen}
                       className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
-                      {quickInfoOpen ? '▲ Згорнути' : '▼ Розгорнути'}
+                      {quickInfoOpen ? t('quickInfo.collapse') : t('quickInfo.expand')}
                     </button>
                   </div>
                   {quickInfoOpen && (
                     <>
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Words</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {t('quickInfo.words')}
+                          </p>
                           <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                             {videoData.text.split(/\s+/).length}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Chars</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {t('quickInfo.chars')}
+                          </p>
                           <p className="text-lg font-bold text-green-600 dark:text-green-400">
                             {videoData.text.length}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">Lines</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {t('quickInfo.lines')}
+                          </p>
                           <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                             {videoData.transcript.length}
                           </p>
@@ -294,7 +309,7 @@ export default function Home() {
                         onClick={() => setVideoData(null)}
                         className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
                       >
-                        Load Another Video
+                        {t('quickInfo.loadAnother')}
                       </button>
                     </>
                   )}
@@ -334,7 +349,7 @@ export default function Home() {
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500 dark:text-gray-400 text-lg">
-              Enter a YouTube URL above to get started
+              {t('page.enterUrl')}
             </p>
           </div>
         )}

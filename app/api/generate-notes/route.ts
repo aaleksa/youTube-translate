@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildNotesPrompt } from '../../lib/aiPrompts';
+import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseNotesResponse } from '../../lib/videoNotes';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,38 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const NOTES_PROMPT = `You are a study-notes assistant for Ukrainian learners watching English YouTube videos.
-
-Create structured study notes from the transcript in Ukrainian.
-
-Return ONLY valid JSON:
-{
-  "title": "Коротка назва теми відео",
-  "mainIdeas": [
-    "Головна ідея 1 — одне речення",
-    "Головна ідея 2 — одне речення"
-  ],
-  "sections": [
-    {
-      "heading": "Заголовок розділу",
-      "bullets": [
-        "Пункт списку 1",
-        "Пункт списку 2"
-      ]
-    }
-  ]
-}
-
-Rules:
-- Write all content in Ukrainian
-- mainIdeas: 3–5 ключових ідей відео (короткі речення)
-- sections: 2–5 розділів з логічними заголовками
-- Each section must have 2–6 bullet points
-- Use clear headings that reflect video structure
-- Focus on facts and ideas from the transcript only
-- Do not invent content not present in the transcript
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -65,7 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, interfaceLanguage } = await request.json();
+    const language = resolveInterfaceLanguage(interfaceLanguage);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -90,7 +61,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: NOTES_PROMPT },
+          { role: 'system', content: buildNotesPrompt(language) },
           { role: 'user', content: input },
         ],
         temperature: 0.4,
