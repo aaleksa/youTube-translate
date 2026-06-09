@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
+import AppSettingsPanel from "./components/AppSettingsPanel";
 import ThemeToggle from "./components/ThemeToggle";
 import "./globals.css";
 
@@ -41,7 +42,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <InterfaceLanguageProvider>
-            <ThemeToggle />
+            <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+              <AppSettingsPanel />
+              <ThemeToggle />
+            </div>
             {children}
           </InterfaceLanguageProvider>
         </ThemeProvider>
