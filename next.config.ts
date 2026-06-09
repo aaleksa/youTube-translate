@@ -1,7 +1,20 @@
-import type { NextConfig } from "next";
+import { spawnSync } from 'node:child_process';
+import type { NextConfig } from 'next';
+import withSerwistInit from '@serwist/next';
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+const revision =
+  spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf-8' }).stdout?.trim() ||
+  crypto.randomUUID();
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  additionalPrecacheEntries: [{ url: '/~offline', revision }],
+  disable: process.env.NODE_ENV === 'development',
+  cacheOnNavigation: true,
+  reloadOnOnline: true,
+});
+
+const nextConfig: NextConfig = {};
+
+export default withSerwist(nextConfig);

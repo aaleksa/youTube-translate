@@ -12,6 +12,8 @@ export type InterfaceLanguage = (typeof INTERFACE_LANGUAGES)[number]['code'];
 const uk = {
   'settings.title': 'Налаштування',
   'settings.ariaLabel': 'Відкрити налаштування',
+  'pwa.install': '📲 Встановити додаток',
+  'pwa.offlineReady': 'Додаток готовий до роботи offline',
   'interfaceLanguage.label': 'Мова інтерфейсу',
   'actions.explainSentence': '💬 Пояснити речення',
   'actions.translateSelection': '🌐 Перекласти',
@@ -224,6 +226,8 @@ const uk = {
 const en: Record<keyof typeof uk, string> = {
   'settings.title': 'Settings',
   'settings.ariaLabel': 'Open settings',
+  'pwa.install': '📲 Install App',
+  'pwa.offlineReady': 'App is ready to work offline',
   'interfaceLanguage.label': 'Interface language',
   'actions.explainSentence': '💬 Explain Sentence',
   'actions.translateSelection': '🌐 Translate',
