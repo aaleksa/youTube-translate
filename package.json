@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:changes": "bash scripts/check-changes.sh"
+    "check:changes": "bash scripts/check-changes.sh",
+    "test:responsive": "playwright test",
+    "test:responsive:ui": "playwright test --ui"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
@@ -23,6 +25,7 @@
     "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

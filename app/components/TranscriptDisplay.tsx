@@ -186,7 +186,7 @@ function BilingualLine({
             }
           : undefined
       }
-      className={`grid grid-cols-2 gap-3 sm:gap-5 items-stretch py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
+      className={`grid grid-cols-1 min-[480px]:grid-cols-2 gap-2 min-[480px]:gap-3 sm:gap-5 items-stretch py-2.5 px-3 rounded-r-md transition border-l-[3px] ${
         isActive
           ? 'bg-blue-50 dark:bg-blue-950/50 border-l-blue-500 dark:border-l-blue-400 ring-1 ring-inset ring-blue-200/80 dark:ring-blue-700/60 shadow-sm'
           : canSeek
@@ -196,7 +196,7 @@ function BilingualLine({
       title={canSeek ? seekTitle : undefined}
       aria-current={isActive ? 'true' : undefined}
     >
-      <div className="min-w-0 flex flex-col justify-center border-r border-gray-200 dark:border-gray-700 pr-3 sm:pr-5">
+      <div className="min-w-0 flex flex-col justify-center min-[480px]:border-r border-gray-200 dark:border-gray-700 min-[480px]:pr-3 sm:pr-5">
         <span
           className={`inline-block w-fit text-[10px] sm:text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap px-1.5 py-0.5 rounded mb-1 ${
             isActive
@@ -768,11 +768,11 @@ export default function TranscriptDisplay({
         <div
           ref={scrollContainerRef}
           onMouseUp={handleSelection}
-          className="h-[min(32rem,calc(100vh-14rem))] xl:h-[calc(100vh-12rem)] overflow-y-auto bg-white dark:bg-gray-900"
+          className="h-[min(32rem,calc(100dvh-14rem))] lg:h-[min(32rem,calc(100dvh-12rem))] overflow-y-auto overscroll-y-contain bg-white dark:bg-gray-900"
         >
           {bilingualMode && translations && !translating && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 sticky top-0 z-10 px-3 sm:px-5 py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
-              <span className="border-r border-gray-200 dark:border-gray-700 pr-3 sm:pr-5">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-2 min-[480px]:gap-3 sm:gap-5 sticky top-0 z-10 px-3 sm:px-5 py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+              <span className="min-[480px]:border-r border-gray-200 dark:border-gray-700 min-[480px]:pr-3 sm:pr-5">
                 {t('transcript.english')}
               </span>
               <span className="text-teal-600 dark:text-teal-400 pl-1 sm:pl-0">
