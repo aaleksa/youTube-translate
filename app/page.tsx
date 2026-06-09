@@ -17,6 +17,7 @@ import BulkSaveFlashcardModal from './components/BulkSaveFlashcardModal';
 import FlashcardsPanel from './components/FlashcardsPanel';
 import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
+import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import {
   type FlashcardDraft,
   getVideoUrl,
@@ -234,6 +235,10 @@ export default function Home() {
                           </p>
                         </div>
                       </div>
+                      <VideoDifficultyPanel
+                        videoId={videoData.videoId}
+                        transcriptText={videoData.text}
+                      />
                       <button
                         onClick={() => setVideoData(null)}
                         className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
