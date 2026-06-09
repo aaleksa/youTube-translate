@@ -11,3 +11,24 @@ export function extractVideoId(url: string): string | null {
 
   return null;
 }
+
+export function extractPlaylistId(url: string): string | null {
+  const trimmed = url.trim();
+  const listMatch = trimmed.match(/[?&]list=([^&\n?#]+)/);
+  if (listMatch) return listMatch[1];
+
+  const playlistMatch = trimmed.match(
+    /youtube\.com\/playlist\?list=([^&\n?#]+)/
+  );
+  if (playlistMatch) return playlistMatch[1];
+
+  return null;
+}
+
+export function isPlaylistUrl(url: string): boolean {
+  return extractPlaylistId(url) !== null;
+}
+
+export function buildVideoWatchUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}

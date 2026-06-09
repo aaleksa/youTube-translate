@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { buildNotesPrompt } from '../../lib/aiPrompts';
+import { buildNotesPrompt, buildPlaylistNotesPrompt } from '../../lib/aiPrompts';
 import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseNotesResponse } from '../../lib/videoNotes';
 
@@ -35,7 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, interfaceLanguage } = await request.json();
+    const { text, interfaceLanguage, mode, playlistTitle } =
+      await request.json();
     const language = resolveInterfaceLanguage(interfaceLanguage);
 
     if (!text) {
@@ -48,6 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     const input = `Transcript:\n${truncateText(cleanText, getMaxInputChars())}`;
+    const systemPrompt =
+      mode === 'playlist' && typeof playlistTitle === 'string' && playlistTitle.trim()
+        ? buildPlaylistNotesPrompt(language, playlistTitle.trim())
+        : buildNotesPrompt(language);
 
     if (AI_PROVIDER === 'openai') {
       if (!process.env.OPENAI_API_KEY) {
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: buildNotesPrompt(language) },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.4,
