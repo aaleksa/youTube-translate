@@ -295,7 +295,9 @@ export default function Home() {
                       <QuickInfoAnalysis
                         videoId={videoData.videoId}
                         transcriptText={videoData.text}
+                        transcript={videoData.transcript}
                         onPauseVideo={handlePauseVideo}
+                        onSeek={handleSeek}
                       />
                       <VideoDifficultyPanel
                         videoId={videoData.videoId}

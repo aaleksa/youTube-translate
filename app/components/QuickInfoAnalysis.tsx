@@ -9,17 +9,27 @@ import { shouldAutoPause } from '../lib/learningSettings';
 import { useI18n } from './InterfaceLanguageProvider';
 import VideoNotesPanel from './VideoNotesPanel';
 import VideoQuizPanel from './VideoQuizPanel';
+import VideoTimelinePanel from './VideoTimelinePanel';
+
+interface TranscriptItem {
+  text: string;
+  start?: string;
+}
 
 interface QuickInfoAnalysisProps {
   videoId: string;
   transcriptText: string;
+  transcript: TranscriptItem[];
   onPauseVideo?: () => void;
+  onSeek: (seconds: number, lineIndex: number) => void;
 }
 
 export default function QuickInfoAnalysis({
   videoId,
   transcriptText,
+  transcript,
   onPauseVideo,
+  onSeek,
 }: QuickInfoAnalysisProps) {
   const { language, t } = useI18n();
   const [summary, setSummary] = useState<VideoSummaryResult | null>(null);
@@ -35,6 +45,7 @@ export default function QuickInfoAnalysis({
   const [showGrammar, setShowGrammar] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   useEffect(() => {
     setSummary(null);
@@ -49,6 +60,7 @@ export default function QuickInfoAnalysis({
     setShowGrammar(false);
     setShowQuiz(false);
     setShowNotes(false);
+    setShowTimeline(false);
   }, [videoId, transcriptText.length]);
 
   const handleSummary = async () => {
@@ -177,6 +189,17 @@ export default function QuickInfoAnalysis({
           }`}
         >
           {t('actions.notes')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowTimeline((prev) => !prev)}
+          className={`px-3 py-1.5 text-sm rounded-lg transition ${
+            showTimeline
+              ? 'bg-orange-500 text-white hover:bg-orange-600'
+              : 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:hover:bg-orange-900'
+          }`}
+        >
+          {t('actions.timeline')}
         </button>
         <button
           type="button"
@@ -312,6 +335,16 @@ export default function QuickInfoAnalysis({
         showPanel={showQuiz}
         onShowPanelChange={setShowQuiz}
         hideButton
+      />
+
+      <VideoTimelinePanel
+        videoId={videoId}
+        transcript={transcript}
+        transcriptTextLength={transcriptText.length}
+        showPanel={showTimeline}
+        onShowPanelChange={setShowTimeline}
+        hideButton
+        onSeek={onSeek}
       />
     </div>
   );
