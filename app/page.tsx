@@ -35,6 +35,15 @@ import {
   setCachedTranscript,
   type TranscriptCacheData,
 } from './lib/transcriptCache';
+import {
+  buildVideoWatchUrl,
+  isPlaylistUrl,
+} from './lib/youtubeUrl';
+import type { PlaylistVideoWithTranscript } from './lib/playlistTranscript';
+import PlaylistPanel, {
+  type PlaylistLoadProgress,
+  type PlaylistSession,
+} from './components/PlaylistPanel';
 interface TranscriptItem {
   text: string;
   start?: string;
@@ -76,6 +85,10 @@ export default function Home() {
   const [quickInfoOpen, setQuickInfoOpen] = useState(true);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
   const [cacheNotice, setCacheNotice] = useState('');
+  const [playlistSession, setPlaylistSession] =
+    useState<PlaylistSession | null>(null);
+  const [playlistLoadProgress, setPlaylistLoadProgress] =
+    useState<PlaylistLoadProgress | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
@@ -150,7 +163,7 @@ export default function Home() {
   const loadVideoData = (
     data: TranscriptResponse,
     url?: string,
-    options?: { fromCache?: boolean }
+    options?: { fromCache?: boolean; keepPlaylist?: boolean }
   ) => {
     setVideoData(data);
     setCurrentPlaybackTime(0);
@@ -174,6 +187,139 @@ export default function Home() {
       saveTranscriptLanguage(data.selectedLanguage);
     }
     setHistoryRefreshKey((key) => key + 1);
+
+    if (!options?.keepPlaylist) {
+      setPlaylistSession(null);
+      setPlaylistLoadProgress(null);
+    }
+  };
+
+  const fetchTranscriptForUrl = async (
+    videoUrl: string
+  ): Promise<TranscriptCacheData> => {
+    const cached = await getCachedTranscriptByUrl(videoUrl);
+    if (cached) {
+      return cached.data;
+    }
+
+    const response = await fetch('/api/transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: videoUrl }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch transcript');
+    }
+
+    const data = (await response.json()) as TranscriptCacheData;
+    await setCachedTranscript(videoUrl, data);
+    return data;
+  };
+
+  const loadPlaylist = async (playlistUrl: string) => {
+    setPlaylistSession(null);
+    setPlaylistLoadProgress(null);
+    setVideoData(null);
+    setCacheNotice('');
+
+    const playlistResponse = await fetch('/api/playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: playlistUrl }),
+    });
+
+    if (!playlistResponse.ok) {
+      const errorData = await playlistResponse.json();
+      throw new Error(errorData.error || 'Failed to fetch playlist');
+    }
+
+    const playlistData = (await playlistResponse.json()) as {
+      playlistId: string;
+      title: string;
+      videos: Array<{ videoId: string; title: string; index: number }>;
+    };
+
+    const loadedVideos: PlaylistVideoWithTranscript[] = [];
+    const failedVideoIds: string[] = [];
+
+    setPlaylistLoadProgress({
+      done: 0,
+      total: playlistData.videos.length,
+      currentTitle: playlistData.videos[0]?.title ?? '',
+    });
+
+    for (let i = 0; i < playlistData.videos.length; i++) {
+      const video = playlistData.videos[i];
+      const videoUrl = buildVideoWatchUrl(video.videoId);
+
+      setPlaylistLoadProgress({
+        done: i,
+        total: playlistData.videos.length,
+        currentTitle: video.title,
+      });
+
+      try {
+        const transcript = await fetchTranscriptForUrl(videoUrl);
+        loadedVideos.push({
+          videoId: video.videoId,
+          title: video.title,
+          index: video.index,
+          transcript,
+        });
+      } catch (videoError) {
+        console.error(`Failed to load video ${video.videoId}:`, videoError);
+        failedVideoIds.push(video.videoId);
+      }
+
+      setPlaylistLoadProgress({
+        done: i + 1,
+        total: playlistData.videos.length,
+        currentTitle: video.title,
+      });
+    }
+
+    if (loadedVideos.length === 0) {
+      throw new Error(t('playlist.allVideosFailed'));
+    }
+
+    const firstVideo = loadedVideos[0];
+    const session: PlaylistSession = {
+      playlistId: playlistData.playlistId,
+      title: playlistData.title,
+      playlistUrl,
+      videos: loadedVideos,
+      activeVideoId: firstVideo.videoId,
+      failedVideoIds,
+    };
+
+    setPlaylistSession(session);
+    setPlaylistLoadProgress(null);
+    loadVideoData(
+      firstVideo.transcript as TranscriptResponse,
+      buildVideoWatchUrl(firstVideo.videoId),
+      { keepPlaylist: true }
+    );
+  };
+
+  const handleSelectPlaylistVideo = (videoId: string) => {
+    if (!playlistSession) return;
+
+    const video = playlistSession.videos.find(
+      (item) => item.videoId === videoId
+    );
+    if (!video) return;
+
+    setPlaylistSession({
+      ...playlistSession,
+      activeVideoId: videoId,
+    });
+    loadVideoData(
+      video.transcript as TranscriptResponse,
+      buildVideoWatchUrl(videoId),
+      { keepPlaylist: true }
+    );
   };
 
   const handleLoadFromHistory = async (entry: TranscriptHistoryEntry) => {
@@ -200,10 +346,17 @@ export default function Home() {
     setIsLoading(true);
     setError('');
     setCacheNotice('');
+    setPlaylistSession(null);
+    setPlaylistLoadProgress(null);
 
     const trimmedUrl = url.trim();
 
     try {
+      if (isPlaylistUrl(trimmedUrl)) {
+        await loadPlaylist(trimmedUrl);
+        return;
+      }
+
       const cached = await getCachedTranscriptByUrl(trimmedUrl);
       if (cached) {
         loadVideoData(cached.data, cached.url || trimmedUrl, { fromCache: true });
@@ -261,6 +414,12 @@ export default function Home() {
             <p>{error}</p>
           </div>
         )}
+
+        <PlaylistPanel
+          session={playlistSession}
+          loadProgress={playlistLoadProgress}
+          onSelectVideo={handleSelectPlaylistVideo}
+        />
 
         {/* Main Content */}
         {videoData ? (
@@ -355,7 +514,11 @@ export default function Home() {
                         transcriptText={videoData.text}
                       />
                       <button
-                        onClick={() => setVideoData(null)}
+                        onClick={() => {
+                          setVideoData(null);
+                          setPlaylistSession(null);
+                          setPlaylistLoadProgress(null);
+                        }}
                         className="w-full mt-4 px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 transition text-sm"
                       >
                         {t('quickInfo.loadAnother')}

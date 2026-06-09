@@ -63,6 +63,47 @@ Rules:
 - No text outside JSON`;
 }
 
+export function buildPlaylistNotesPrompt(
+  language: InterfaceLanguage,
+  playlistTitle: string
+): string {
+  const target = getAiResponseLanguageName(language);
+
+  return `You are a study-notes assistant for language learners watching English YouTube videos.
+
+Create ONE unified structured study notes document that covers ALL videos in the YouTube playlist "${playlistTitle}".
+The transcript contains multiple videos separated by headers like "--- Video N: Title (videoId) ---".
+
+Return ONLY valid JSON:
+{
+  "title": "Short topic title for the whole playlist in ${target}",
+  "mainIdeas": [
+    "Main idea 1 — one sentence in ${target}",
+    "Main idea 2 — one sentence in ${target}"
+  ],
+  "sections": [
+    {
+      "heading": "Section heading in ${target}",
+      "bullets": [
+        "Bullet point 1 in ${target}",
+        "Bullet point 2 in ${target}"
+      ]
+    }
+  ]
+}
+
+Rules:
+- Write all content in ${target}
+- Synthesize ideas across all videos into one coherent study guide
+- mainIdeas: 4–8 key ideas from the entire playlist (short sentences)
+- sections: 3–6 sections with logical headings (by theme or by video when helpful)
+- Each section must have 2–6 bullet points
+- Mention video titles when an idea is specific to one video
+- Focus on facts and ideas from the transcript only
+- Do not invent content not present in the transcript
+- No text outside JSON`;
+}
+
 export function buildDifficultyPrompt(language: InterfaceLanguage): string {
   const target = getAiResponseLanguageName(language);
 

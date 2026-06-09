@@ -97,6 +97,8 @@ export default function URLInput({
           <li>https://youtube.com/watch?v=VIDEO_ID</li>
           <li>https://youtu.be/VIDEO_ID</li>
           <li>https://youtube.com/embed/VIDEO_ID</li>
+          <li>https://youtube.com/playlist?list=PLAYLIST_ID</li>
+          <li>https://youtube.com/watch?v=VIDEO_ID&amp;list=PLAYLIST_ID</li>
         </ul>
         <p className="text-xs mt-3 text-blue-200">{t('urlInput.captionHint')}</p>
       </div>
