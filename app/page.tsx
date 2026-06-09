@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
-import { addToUrlHistory } from './lib/urlHistory';
 import {
   saveToTranscriptHistory,
   type TranscriptHistoryEntry,
@@ -144,7 +143,6 @@ export default function Home() {
 
     if (url) {
       setCurrentVideoUrl(url);
-      addToUrlHistory(url, data.videoId);
     }
 
     saveToTranscriptHistory({

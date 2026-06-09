@@ -20,7 +20,7 @@ export interface TranscriptSearchResult {
 }
 
 const STORAGE_KEY = 'yoytube-transcript-history';
-const MAX_ITEMS = 20;
+const MAX_ITEMS = 10;
 const SNIPPET_RADIUS = 60;
 
 export function getTranscriptHistory(): TranscriptHistoryEntry[] {
