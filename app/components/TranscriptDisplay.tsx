@@ -7,8 +7,15 @@ import {
   setBilingualCache,
 } from '../lib/bilingualCache';
 import { translateAllLines } from '../lib/translateLines';
-import { findExampleLine, hasFlashcard } from '../lib/flashcards';
+import {
+  findExampleLine,
+  getFlashcardWordSet,
+  hasFlashcard,
+} from '../lib/flashcards';
+import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import { prepareFlashcardForWord } from '../lib/prepareFlashcards';
+import { getIdiomsCache, setIdiomsCache } from '../lib/idiomsCache';
+import type { IdiomItem } from '../lib/idioms';
 import { cleanTranscriptText } from '../lib/transcriptText';
 import { formatTimestamp, parseTimestampToSeconds } from '../lib/timestamp';
 
@@ -29,6 +36,7 @@ interface TranscriptDisplayProps {
     example: string,
     translation?: string
   ) => void;
+  onSaveManyToFlashcards?: (items: ParsedFlashcardItem[]) => void;
   flashcardsRefreshKey?: number;
 }
 
@@ -183,6 +191,7 @@ export default function TranscriptDisplay({
   activeLineIndex = 0,
   onSeek,
   onSaveToFlashcards,
+  onSaveManyToFlashcards,
   flashcardsRefreshKey = 0,
 }: TranscriptDisplayProps) {
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -199,6 +208,25 @@ export default function TranscriptDisplay({
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
   const [translateError, setTranslateError] = useState('');
+  const [idioms, setIdioms] = useState<IdiomItem[] | null>(null);
+  const [idiomsLoading, setIdiomsLoading] = useState(false);
+  const [idiomsError, setIdiomsError] = useState('');
+  const [idiomsFromCache, setIdiomsFromCache] = useState(false);
+  const [showIdioms, setShowIdioms] = useState(false);
+
+  const savedWords = useMemo(
+    () => getFlashcardWordSet(),
+    [flashcardsRefreshKey]
+  );
+
+  const visibleIdioms = useMemo(() => {
+    if (!idioms) return [];
+    return idioms.filter(
+      (item) => !savedWords.has(item.idiom.trim().toLowerCase())
+    );
+  }, [idioms, savedWords]);
+
+  const savedIdiomsCount = idioms ? idioms.length - visibleIdioms.length : 0;
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-auto-scroll');
@@ -212,6 +240,10 @@ export default function TranscriptDisplay({
     setTranslations(null);
     setTranslateError('');
     setTranslateProgress({ done: 0, total: 0 });
+    setIdioms(null);
+    setIdiomsError('');
+    setIdiomsFromCache(false);
+    setShowIdioms(false);
     lineRefs.current.clear();
   }, [videoId, transcript.length]);
 
@@ -376,6 +408,58 @@ export default function TranscriptDisplay({
     await loadTranslations();
   };
 
+  const handleFindIdioms = async () => {
+    setIdiomsError('');
+    setShowIdioms(true);
+
+    const cached = getIdiomsCache(videoId, fullText.length);
+    if (cached) {
+      setIdioms(cached);
+      setIdiomsFromCache(true);
+      return;
+    }
+
+    setIdiomsLoading(true);
+    setIdiomsFromCache(false);
+
+    try {
+      const response = await fetch('/api/find-idioms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fullText }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find idioms');
+      }
+
+      const found: IdiomItem[] = data.idioms ?? [];
+      setIdiomsCache(videoId, fullText.length, found);
+      setIdioms(found);
+    } catch (error) {
+      setIdiomsError(
+        error instanceof Error ? error.message : 'Помилка пошуку ідіом'
+      );
+      setIdioms(null);
+    } finally {
+      setIdiomsLoading(false);
+    }
+  };
+
+  const handleSaveAllIdioms = () => {
+    if (!onSaveManyToFlashcards || visibleIdioms.length === 0) return;
+
+    onSaveManyToFlashcards(
+      visibleIdioms.map((item) => ({
+        word: item.idiom,
+        translation: item.meaning,
+        example: item.example,
+      }))
+    );
+  };
+
   return (
     <div className="w-full space-y-4">
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
@@ -451,11 +535,123 @@ export default function TranscriptDisplay({
               🔄 Retranslate
             </button>
           )}
+          <button
+            onClick={handleFindIdioms}
+            disabled={idiomsLoading}
+            className={`px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              showIdioms
+                ? 'bg-violet-500 text-white hover:bg-violet-600'
+                : 'bg-violet-100 text-violet-800 hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900'
+            }`}
+          >
+            {idiomsLoading ? '⏳...' : '💬 Find Idioms'}
+          </button>
         </div>
 
         {translateError && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 rounded text-red-700 dark:text-red-300 text-sm">
             {translateError}
+          </div>
+        )}
+
+        {showIdioms && (
+          <div className="mb-4 p-4 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-violet-800 dark:text-violet-200">
+                Idioms
+                {idioms && ` (${visibleIdioms.length})`}
+                {savedIdiomsCount > 0 && (
+                  <span className="ml-1 text-xs font-normal text-violet-500 dark:text-violet-400">
+                    · в картках: {savedIdiomsCount}
+                  </span>
+                )}
+                {idiomsFromCache && (
+                  <span className="ml-2 text-xs font-normal text-violet-500 dark:text-violet-400">
+                    кеш
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowIdioms(false)}
+                className="text-violet-400 hover:text-violet-600 dark:hover:text-violet-200 transition"
+                aria-label="Закрити список ідіом"
+              >
+                ✕
+              </button>
+            </div>
+
+            {idiomsLoading && (
+              <p className="text-sm text-violet-700 dark:text-violet-300">
+                ⏳ AI шукає ідіоми в транскрипті...
+              </p>
+            )}
+
+            {idiomsError && !idiomsLoading && (
+              <p className="text-sm text-red-600 dark:text-red-400">{idiomsError}</p>
+            )}
+
+            {idioms && !idiomsLoading && idioms.length === 0 && (
+              <p className="text-sm text-violet-700 dark:text-violet-300">
+                Ідіом не знайдено в цьому транскрипті.
+              </p>
+            )}
+
+            {idioms &&
+              !idiomsLoading &&
+              idioms.length > 0 &&
+              visibleIdioms.length === 0 && (
+                <p className="text-sm text-violet-700 dark:text-violet-300">
+                  Усі знайдені ідіоми вже збережені в картках.
+                </p>
+              )}
+
+            {visibleIdioms.length > 0 && !idiomsLoading && (
+              <>
+                {onSaveManyToFlashcards && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAllIdioms}
+                    className="mb-3 w-full px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition font-medium"
+                  >
+                    📇 Зберегти всі ({visibleIdioms.length})
+                  </button>
+                )}
+                <ul className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {visibleIdioms.map((item, index) => (
+                    <li
+                      key={`${item.idiom}-${index}`}
+                      className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-violet-100 dark:border-violet-900"
+                    >
+                      <p className="font-bold text-violet-700 dark:text-violet-300">
+                        {item.idiom}
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        {item.meaning}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-1">
+                        &quot;{item.example}&quot;
+                      </p>
+                      {onSaveToFlashcards && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSaveToFlashcards(
+                              item.idiom,
+                              item.example,
+                              item.meaning
+                            )
+                          }
+                          className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                          📇 Зберегти
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
 
