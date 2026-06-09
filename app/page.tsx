@@ -18,6 +18,7 @@ import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
 import ReadingStatsPanel from './components/ReadingStatsPanel';
+import VideoMetadataPanel from './components/VideoMetadataPanel';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
 import { useI18n } from './components/InterfaceLanguageProvider';
@@ -37,9 +38,13 @@ interface TranscriptItem {
 interface TranscriptResponse {
   videoId: string;
   title?: string;
+  channelName?: string;
+  durationSeconds?: number;
   transcript: TranscriptItem[];
   text: string;
   selectedLanguage?: string;
+  subtitleLanguageName?: string;
+  subtitleLanguageKind?: 'manual' | 'auto';
 }
 
 export default function Home() {
@@ -265,6 +270,13 @@ export default function Home() {
                   </div>
                   {quickInfoOpen && (
                     <>
+                      <VideoMetadataPanel
+                        title={videoData.title}
+                        channelName={videoData.channelName}
+                        durationSeconds={videoData.durationSeconds}
+                        subtitleLanguageName={videoData.subtitleLanguageName}
+                        subtitleLanguageKind={videoData.subtitleLanguageKind}
+                      />
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
