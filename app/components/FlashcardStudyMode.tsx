@@ -17,7 +17,8 @@ interface FlashcardStudyModeProps {
 }
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
-  const filled = total > 0 ? Math.round((current / total) * 10) : 0;
+  const filled = total > 0 ? Math.min(current, total) : 0;
+  const empty = Math.max(total - filled, 0);
 
   return (
     <div
@@ -25,7 +26,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
       aria-hidden
     >
       {'■'.repeat(filled)}
-      {'□'.repeat(10 - filled)}
+      {'□'.repeat(empty)}
     </div>
   );
 }
