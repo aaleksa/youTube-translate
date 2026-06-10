@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { processTranscript } from '../../lib/normalizeCaptions';
 import { cleanTranscriptText } from '../../lib/transcriptText';
 import { ensureTranscriptTimestamps } from '../../lib/timestamp';
 import {
@@ -297,7 +298,10 @@ function formatSuccessResponse(
       .filter((item) => item.text)
   );
 
-  const fullText = normalizedTranscript.map((item) => item.text).join(' ');
+  const processed = processTranscript(normalizedTranscript);
+  const fullText =
+    processed.sentenceText ||
+    normalizedTranscript.map((item) => item.text).join(' ');
   const selectedSubtitle = availableLanguages.find(
     (language) => language.code === selectedLanguage
   );
@@ -310,6 +314,9 @@ function formatSuccessResponse(
       ? { durationSeconds }
       : {}),
     transcript: normalizedTranscript,
+    rawCaptions: processed.rawCaptions,
+    sentences: processed.sentences,
+    phrases: processed.phrases,
     text: fullText,
     availableLanguages,
     ...(selectedLanguage ? { selectedLanguage } : {}),

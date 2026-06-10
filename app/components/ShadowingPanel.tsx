@@ -10,29 +10,37 @@ import { formatTimestamp } from '../lib/timestamp';
 import { useI18n } from './InterfaceLanguageProvider';
 import PronunciationChecker from './PronunciationChecker';
 import { isSpeechRecognitionSupported } from '../lib/speechRecognition';
+import type { PhraseChunk, Sentence } from '../lib/transcriptTypes';
+import { timedUnitsToCues } from '../lib/transcriptTypes';
 
 type ShadowingPhase = 'idle' | 'listen' | 'repeat';
 
 interface ShadowingPanelProps {
   videoId: string;
   transcript: TranscriptCue[];
+  phrases?: PhraseChunk[];
+  sentences?: Sentence[];
   currentPlaybackTime: number;
   isPlayerReady: boolean;
   speechLanguage?: string;
   onSeek: (seconds: number, lineIndex: number) => void;
   onPauseVideo: () => void;
   onLineIndexChange?: (lineIndex: number | null) => void;
+  onCaptionIndexesChange?: (captionIndexes: number[]) => void;
 }
 
 export default function ShadowingPanel({
   videoId,
   transcript,
+  phrases,
+  sentences,
   currentPlaybackTime,
   isPlayerReady,
   speechLanguage,
   onSeek,
   onPauseVideo,
   onLineIndexChange,
+  onCaptionIndexesChange,
 }: ShadowingPanelProps) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
@@ -44,6 +52,32 @@ export default function ShadowingPanel({
   const listenStartedRef = useRef(false);
   const speechSupported = isSpeechRecognitionSupported();
   const pronunciationRequired = requirePronunciation && speechSupported;
+  const shadowingLines =
+    phrases && phrases.length > 0 ? timedUnitsToCues(phrases) : transcript;
+
+  const notifyLineChange = useCallback(
+    (index: number | null) => {
+      onLineIndexChange?.(index);
+      if (index === null) {
+        onCaptionIndexesChange?.([]);
+        return;
+      }
+
+      if (sentences?.length && phrases?.length) {
+        const sentenceId = phrases[index]?.sentenceId;
+        const sentenceIndex = sentences.findIndex(
+          (sentence) => sentence.id === sentenceId
+        );
+        onCaptionIndexesChange?.(
+          sentenceIndex >= 0 ? [sentenceIndex] : [index]
+        );
+        return;
+      }
+
+      onCaptionIndexesChange?.(phrases?.[index]?.captionIndexes ?? [index]);
+    },
+    [onCaptionIndexesChange, onLineIndexChange, phrases, sentences]
+  );
 
   const stopShadowing = useCallback(() => {
     setActive(false);
@@ -51,23 +85,23 @@ export default function ShadowingPanel({
     setFinished(false);
     setPronunciationChecked(false);
     listenStartedRef.current = false;
-    onLineIndexChange?.(null);
+    notifyLineChange(null);
     onPauseVideo();
-  }, [onLineIndexChange, onPauseVideo]);
+  }, [notifyLineChange, onPauseVideo]);
 
   const playLine = useCallback(
     (index: number) => {
-      if (!transcript[index]) return;
+      if (!shadowingLines[index]) return;
       listenStartedRef.current = false;
       setLineIndex(index);
       setFinished(false);
       setPronunciationChecked(false);
-      onLineIndexChange?.(index);
-      const start = getCueStartSeconds(transcript[index]);
+      notifyLineChange(index);
+      const start = getCueStartSeconds(shadowingLines[index]);
       onSeek(start, index);
       setPhase('listen');
     },
-    [onLineIndexChange, onSeek, transcript]
+    [notifyLineChange, onSeek, shadowingLines]
   );
 
   const goToNextLine = useCallback(() => {
@@ -75,7 +109,7 @@ export default function ShadowingPanel({
       return;
     }
 
-    if (lineIndex >= transcript.length - 1) {
+    if (lineIndex >= shadowingLines.length - 1) {
       setPhase('idle');
       setFinished(true);
       setPronunciationChecked(false);
@@ -90,11 +124,11 @@ export default function ShadowingPanel({
     playLine,
     pronunciationChecked,
     pronunciationRequired,
-    transcript.length,
+    shadowingLines.length,
   ]);
 
   const startShadowing = () => {
-    if (transcript.length === 0) return;
+    if (shadowingLines.length === 0) return;
     if (!isPlayerReady) return;
     setActive(true);
     setFinished(false);
@@ -102,15 +136,15 @@ export default function ShadowingPanel({
   };
 
   useEffect(() => {
-    if (!active || phase !== 'listen' || transcript.length === 0) return;
+    if (!active || phase !== 'listen' || shadowingLines.length === 0) return;
 
-    const start = getCueStartSeconds(transcript[lineIndex]);
+    const start = getCueStartSeconds(shadowingLines[lineIndex]);
     if (currentPlaybackTime < start + 0.05) return;
 
     listenStartedRef.current = true;
 
-    const end = getCueEndSeconds(lineIndex, transcript);
-    if (!listenStartedRef.current || currentPlaybackTime < end - 0.08) return;
+    const end = getCueEndSeconds(lineIndex, shadowingLines);
+    if (!listenStartedRef.current || currentPlaybackTime < end - 0.15) return;
 
     onPauseVideo();
     setPronunciationChecked(false);
@@ -121,7 +155,7 @@ export default function ShadowingPanel({
     lineIndex,
     onPauseVideo,
     phase,
-    transcript,
+    shadowingLines,
   ]);
 
   useEffect(() => {
@@ -131,10 +165,10 @@ export default function ShadowingPanel({
     setFinished(false);
     setPronunciationChecked(false);
     listenStartedRef.current = false;
-    onLineIndexChange?.(null);
-  }, [videoId, onLineIndexChange]);
+    notifyLineChange(null);
+  }, [videoId, notifyLineChange]);
 
-  const currentCue = transcript[lineIndex];
+  const currentCue = shadowingLines[lineIndex];
   const phaseLabel =
     phase === 'listen'
       ? t('shadowing.listen')
@@ -178,12 +212,12 @@ export default function ShadowingPanel({
           <button
             type="button"
             onClick={startShadowing}
-            disabled={transcript.length === 0}
+            disabled={shadowingLines.length === 0}
             className="w-full min-h-11 px-4 py-2.5 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('shadowing.start')}
           </button>
-          {!isPlayerReady && transcript.length > 0 && (
+          {!isPlayerReady && shadowingLines.length > 0 && (
             <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
               {t('shadowing.waitForPlayer')}
             </p>
@@ -194,7 +228,7 @@ export default function ShadowingPanel({
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             {t('shadowing.progress')
               .replace('{current}', String(lineIndex + 1))
-              .replace('{total}', String(transcript.length))}
+              .replace('{total}', String(shadowingLines.length))}
           </p>
 
           {currentCue && (
@@ -211,6 +245,9 @@ export default function ShadowingPanel({
           {phase === 'repeat' && requirePronunciation && currentCue && (
             <PronunciationChecker
               expectedText={currentCue.text}
+              videoId={videoId}
+              sentenceId={phrases?.[lineIndex]?.sentenceId}
+              phraseId={phrases?.[lineIndex]?.id}
               speechLanguage={speechLanguage}
               resetKey={`shadowing-${lineIndex}`}
               onReplayOriginal={() => playLine(lineIndex)}

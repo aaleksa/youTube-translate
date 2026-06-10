@@ -16,7 +16,7 @@ const uk = {
   'pwa.offlineReady': 'Додаток готовий до роботи offline',
   'shadowing.title': 'Shadowing',
   'shadowing.description':
-    'Слухайте речення диктора, потім повторюйте вголос. За бажанням увімкніть перевірку вимови перед переходом далі.',
+    'Короткі фрази з нормалізованих субтитрів: слухайте, повторюйте вголос. За бажанням увімкніть перевірку вимови перед переходом далі.',
   'shadowing.requirePronunciation':
     'Перевіряти вимову перед наступним реченням',
   'shadowing.start': 'Почати shadowing',
@@ -52,6 +52,10 @@ const uk = {
   'pronunciation.hint':
     'Прослухайте оригінал, потім натисніть мікрофон і повторіть речення. Ми порівняємо з текстом субтитрів.',
   'pronunciation.startListening': '🎤 Перевірити вимову',
+  'pronunciation.record': '🎤 Записати',
+  'pronunciation.tryAgain': 'Спробувати ще',
+  'pronunciation.bestScore': 'Найкращий результат: {score}%',
+  'pronunciation.missedWords': 'Пропущені слова',
   'pronunciation.stopListening': '⏹ Зупинити запис',
   'pronunciation.listening': 'Слухаю… повторіть речення вголос',
   'pronunciation.replayOriginal': '🔊 Оригінал',
@@ -269,7 +273,7 @@ const en: Record<keyof typeof uk, string> = {
   'pwa.offlineReady': 'App is ready to work offline',
   'shadowing.title': 'Shadowing',
   'shadowing.description':
-    'Listen to each sentence, then repeat aloud. Optionally require pronunciation checking before moving on.',
+    'Short phrases from normalized subtitles: listen, then repeat aloud. Optionally require pronunciation checking before moving on.',
   'shadowing.requirePronunciation':
     'Check pronunciation before the next sentence',
   'shadowing.start': 'Start shadowing',
@@ -305,6 +309,10 @@ const en: Record<keyof typeof uk, string> = {
   'pronunciation.hint':
     'Listen to the original, then tap the mic and repeat the sentence. We compare it with the subtitle text.',
   'pronunciation.startListening': '🎤 Check pronunciation',
+  'pronunciation.record': '🎤 Record',
+  'pronunciation.tryAgain': 'Try again',
+  'pronunciation.bestScore': 'Best score: {score}%',
+  'pronunciation.missedWords': 'Missed words',
   'pronunciation.stopListening': '⏹ Stop recording',
   'pronunciation.listening': 'Listening… repeat the sentence aloud',
   'pronunciation.replayOriginal': '🔊 Original',
