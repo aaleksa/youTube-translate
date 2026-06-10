@@ -1,7 +1,7 @@
 const OPEN_KEY = 'yoytube-learning-hub-open';
 const TAB_KEY = 'yoytube-learning-hub-tab';
 
-export type LearningHubTab = 'flashcards' | 'analytics';
+export type LearningHubTab = 'coach' | 'flashcards' | 'analytics';
 
 export function getLearningHubOpen(): boolean {
   if (typeof window === 'undefined') return false;
@@ -24,7 +24,9 @@ export function getLearningHubTab(): LearningHubTab {
 
   try {
     const raw = localStorage.getItem(TAB_KEY);
-    return raw === 'analytics' ? 'analytics' : 'flashcards';
+    if (raw === 'analytics') return 'analytics';
+    if (raw === 'coach') return 'coach';
+    return 'flashcards';
   } catch {
     return 'flashcards';
   }
