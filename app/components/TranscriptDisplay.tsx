@@ -263,7 +263,8 @@ export default function TranscriptDisplay({
   flashcardsRefreshKey = 0,
   onPauseVideo,
 }: TranscriptDisplayProps) {
-  const { t, language, translationLanguage, setTranslationLanguage } = useI18n();
+  const { t, language, translationLanguage, taskLanguage, setTranslationLanguage } =
+    useI18n();
   const isShadowingMode =
     shadowingCaptionIndexes.length > 0 || shadowingLineIndex !== null;
   const highlightLineIndex =
@@ -497,6 +498,7 @@ export default function TranscriptDisplay({
       transcript,
       fullText,
       interfaceLanguage: language,
+      taskLanguage,
       translations: bilingualMode ? translations : null,
       translationLanguage: bilingualMode ? translationLanguage : undefined,
       labels,
@@ -508,6 +510,7 @@ export default function TranscriptDisplay({
     transcript,
     fullText,
     language,
+    taskLanguage,
     bilingualMode,
     translations,
     translationLanguage,

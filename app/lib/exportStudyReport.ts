@@ -3,6 +3,7 @@ import { downloadSubtitleFile } from './exportSubtitles';
 import { getGrammarCache } from './grammarCache';
 import { getNotesCache } from './notesCache';
 import type { InterfaceLanguage } from './i18n';
+import type { TranslationLanguageCode } from './translationLanguages';
 import { getQuizCache } from './quizCache';
 import { getSummaryCache } from './summaryCache';
 import { getTimelineCache } from './timelineCache';
@@ -37,6 +38,7 @@ export interface StudyExportInput {
   transcript: StudyExportTranscriptLine[];
   fullText: string;
   interfaceLanguage: InterfaceLanguage;
+  taskLanguage: TranslationLanguageCode;
   translations?: string[] | null;
   translationLanguage?: string;
   labels: StudyExportLabels;
@@ -54,20 +56,20 @@ interface StudyAnalysis {
 function gatherAnalysis(input: StudyExportInput): StudyAnalysis {
   const textLength = input.fullText.length;
   return {
-    summary: getSummaryCache(input.videoId, textLength),
-    grammar: getGrammarCache(input.videoId, textLength),
-    notes: getNotesCache(input.videoId, textLength),
+    summary: getSummaryCache(input.videoId, textLength, input.taskLanguage),
+    grammar: getGrammarCache(input.videoId, textLength, input.taskLanguage),
+    notes: getNotesCache(input.videoId, textLength, input.taskLanguage),
     difficulty: getDifficultyCache(
       input.videoId,
       textLength,
-      input.interfaceLanguage
+      input.taskLanguage
     ),
     timeline: getTimelineCache(
       input.videoId,
       textLength,
-      input.interfaceLanguage
+      input.taskLanguage
     ),
-    quiz: getQuizCache(input.videoId, textLength),
+    quiz: getQuizCache(input.videoId, textLength, input.taskLanguage),
   };
 }
 

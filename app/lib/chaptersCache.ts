@@ -5,29 +5,35 @@ const STORAGE_PREFIX = 'yoytube-chapters-';
 export interface ChaptersCacheEntry extends VideoChaptersResult {
   videoId: string;
   textLength: number;
-  interfaceLanguage: string;
+  taskLanguage: string;
+  /** @deprecated legacy field */
+  interfaceLanguage?: string;
   savedAt: number;
 }
 
-function cacheKey(videoId: string, interfaceLanguage: string): string {
-  return `${STORAGE_PREFIX}${videoId}-${interfaceLanguage}`;
+function cacheKey(videoId: string, taskLanguage: string): string {
+  return `${STORAGE_PREFIX}${videoId}-${taskLanguage}`;
+}
+
+function entryTaskLanguage(entry: ChaptersCacheEntry): string {
+  return entry.taskLanguage ?? entry.interfaceLanguage ?? '';
 }
 
 export function getChaptersCache(
   videoId: string,
   textLength: number,
-  interfaceLanguage: string
+  taskLanguage: string
 ): VideoChaptersResult | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(videoId, interfaceLanguage));
+    const raw = localStorage.getItem(cacheKey(videoId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as ChaptersCacheEntry;
     if (
       entry.textLength !== textLength ||
-      entry.interfaceLanguage !== interfaceLanguage ||
+      entryTaskLanguage(entry) !== taskLanguage ||
       !Array.isArray(entry.chapters) ||
       entry.chapters.length === 0
     ) {
@@ -43,19 +49,16 @@ export function getChaptersCache(
 export function setChaptersCache(
   videoId: string,
   textLength: number,
-  interfaceLanguage: string,
+  taskLanguage: string,
   result: VideoChaptersResult
 ): void {
   const entry: ChaptersCacheEntry = {
     videoId,
     textLength,
-    interfaceLanguage,
+    taskLanguage,
     chapters: result.chapters,
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(
-    cacheKey(videoId, interfaceLanguage),
-    JSON.stringify(entry)
-  );
+  localStorage.setItem(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
 }
