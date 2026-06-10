@@ -4,7 +4,10 @@ import {
   type Flashcard,
   type FlashcardView,
 } from './flashcards';
-import { getFlashcardTranslation } from './flashcardTranslations';
+import {
+  getFlashcardTranslation,
+  isTranslationSuitableForReverseQuiz,
+} from './flashcardTranslations';
 import type { TranslationLanguageCode } from './translationLanguages';
 
 export type QuizQuestionType =
@@ -190,6 +193,19 @@ function buildMultipleChoiceQuestion(
   const prompt = type === 'en-to-ua-mc' ? card.word : translation;
   const correctAnswer = type === 'en-to-ua-mc' ? translation : card.word;
 
+  if (!prompt.trim() || !correctAnswer.trim()) return null;
+
+  if (
+    type === 'ua-to-en-mc' &&
+    !isTranslationSuitableForReverseQuiz(
+      translation,
+      card.word,
+      translationLanguage
+    )
+  ) {
+    return null;
+  }
+
   const distractors = pickDistractors(
     pool,
     card,
@@ -199,7 +215,10 @@ function buildMultipleChoiceQuestion(
   );
   if (distractors.length < MC_OPTION_COUNT - 1) return null;
 
-  const options = shuffleArray([correctAnswer.trim(), ...distractors]);
+  const options = shuffleArray(
+    [correctAnswer.trim(), ...distractors].filter((value) => value.trim())
+  );
+  if (options.length < MC_OPTION_COUNT) return null;
 
   return {
     id: `quiz-${card.id}-${type}-${index}`,
@@ -232,23 +251,73 @@ function buildTypingQuestion(
   };
 }
 
-function pickQuestionType(
+function candidateQuestionTypes(
   format: QuizFormat,
+  index: number,
   canUseMultipleChoice: boolean,
-  index: number
-): QuizQuestionType {
-  if (format === 'typing' || !canUseMultipleChoice) {
-    return index % 2 === 0 ? 'typing-en' : 'typing-ua';
-  }
+  card: Flashcard,
+  translationLanguage: TranslationLanguageCode
+): QuizQuestionType[] {
+  const translation = getFlashcardTranslation(card, translationLanguage);
+  const reverseOk = isTranslationSuitableForReverseQuiz(
+    translation,
+    card.word,
+    translationLanguage
+  );
 
   if (format === 'multiple-choice') {
-    return index % 2 === 0 ? 'en-to-ua-mc' : 'ua-to-en-mc';
+    return canUseMultipleChoice ? ['en-to-ua-mc', 'typing-ua'] : ['typing-ua'];
   }
 
-  const types: QuizQuestionType[] = canUseMultipleChoice
-    ? ['en-to-ua-mc', 'ua-to-en-mc', 'typing-en', 'typing-ua']
-    : ['typing-en', 'typing-ua'];
-  return types[index % types.length];
+  if (format === 'typing') {
+    const forward = index % 2 === 0 ? 'typing-ua' : 'typing-en';
+    const backward = index % 2 === 0 ? 'typing-en' : 'typing-ua';
+    return reverseOk ? [forward, backward] : ['typing-ua'];
+  }
+
+  const cycle: QuizQuestionType[] = ['en-to-ua-mc'];
+  if (reverseOk) cycle.push('ua-to-en-mc');
+  cycle.push('typing-ua');
+  if (reverseOk) cycle.push('typing-en');
+
+  const start = index % cycle.length;
+  return [...cycle.slice(start), ...cycle.slice(0, start)];
+}
+
+function tryBuildQuestion(
+  card: Flashcard,
+  pool: Flashcard[],
+  type: QuizQuestionType,
+  index: number,
+  translationLanguage: TranslationLanguageCode
+): QuizQuestion | null {
+  if (type === 'en-to-ua-mc' || type === 'ua-to-en-mc') {
+    return buildMultipleChoiceQuestion(
+      card,
+      pool,
+      type,
+      index,
+      translationLanguage
+    );
+  }
+
+  const translation = getFlashcardTranslation(card, translationLanguage);
+  if (type === 'typing-en') {
+    if (
+      !isTranslationSuitableForReverseQuiz(
+        translation,
+        card.word,
+        translationLanguage
+      )
+    ) {
+      return null;
+    }
+  }
+  if (type === 'typing-ua' && (!card.word.trim() || !translation.trim())) {
+    return null;
+  }
+
+  return buildTypingQuestion(card, type, index, translationLanguage);
 }
 
 export function buildQuizQuestions(
@@ -270,30 +339,29 @@ export function buildQuizQuestions(
   const questions: QuizQuestion[] = [];
 
   for (const [index, card] of selectedCards.entries()) {
-    const type = pickQuestionType(format, canUseMultipleChoice, index);
+    const types = candidateQuestionTypes(
+      format,
+      index,
+      canUseMultipleChoice,
+      card,
+      translationLanguage
+    );
 
-    if (type === 'en-to-ua-mc' || type === 'ua-to-en-mc') {
-      const question = buildMultipleChoiceQuestion(
+    let question: QuizQuestion | null = null;
+    for (const type of types) {
+      question = tryBuildQuestion(
         card,
         pool,
         type,
         index,
         translationLanguage
       );
-      if (question) {
-        questions.push(question);
-        continue;
-      }
+      if (question) break;
     }
 
-    questions.push(
-      buildTypingQuestion(
-        card,
-        type === 'typing-ua' ? 'typing-ua' : 'typing-en',
-        index,
-        translationLanguage
-      )
-    );
+    if (question) {
+      questions.push(question);
+    }
   }
 
   return questions;

@@ -15,7 +15,10 @@ import FlashcardExampleActions, {
   type FlashcardSentenceHandlers,
 } from './FlashcardExampleActions';
 import type { TranslationKey } from '../lib/i18n';
-import { getTranslationLanguageShortCode } from '../lib/translationLanguages';
+import {
+  getTranslationLanguageName,
+  getTranslationLanguageShortCode,
+} from '../lib/translationLanguages';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface FlashcardQuizModeProps extends FlashcardSentenceHandlers {
@@ -26,20 +29,20 @@ interface FlashcardQuizModeProps extends FlashcardSentenceHandlers {
   onComplete: () => void;
 }
 
-function questionTypeLabel(
+function questionInstruction(
   type: QuizQuestion['type'],
   t: (key: TranslationKey, params?: Record<string, string | number>) => string,
-  targetCode: string
+  targetName: string
 ): string {
   switch (type) {
     case 'en-to-ua-mc':
-      return t('quiz.typeSourceToTarget', { target: targetCode });
+      return t('quiz.mcChooseTranslation', { language: targetName });
     case 'ua-to-en-mc':
-      return t('quiz.typeTargetToSource', { target: targetCode });
+      return t('quiz.mcChooseEnglish');
     case 'typing-en':
       return t('quiz.typeTypingEn');
     case 'typing-ua':
-      return t('quiz.typeTypingUa');
+      return t('quiz.typeTypingUa', { language: targetName });
   }
 }
 
@@ -56,6 +59,7 @@ export default function FlashcardQuizMode({
 }: FlashcardQuizModeProps) {
   const { t, translationLanguage } = useI18n();
   const targetCode = getTranslationLanguageShortCode(translationLanguage);
+  const targetName = getTranslationLanguageName(translationLanguage);
   const questions = useMemo(
     () => buildQuizQuestions(cards, { format, translationLanguage }),
     [cards, format, translationLanguage]
@@ -209,15 +213,33 @@ export default function FlashcardQuizMode({
         </button>
       </div>
 
-      <p className="text-xs uppercase tracking-wide text-violet-700 dark:text-violet-300 mb-3 text-center">
-        {questionTypeLabel(currentQuestion.type, t, targetCode)}
+      <p className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 text-center leading-snug">
+        {questionInstruction(currentQuestion.type, t, targetName)}
       </p>
 
-      <div className="rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 p-8 mb-4 text-center">
+      <div className="rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 p-6 sm:p-8 mb-4 text-center">
+        <span
+          className={`inline-block text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full mb-3 ${
+            currentQuestion.type === 'en-to-ua-mc' ||
+            currentQuestion.type === 'typing-en'
+              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200'
+              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+          }`}
+        >
+          {currentQuestion.type === 'en-to-ua-mc' ||
+          currentQuestion.type === 'typing-en'
+            ? 'EN'
+            : targetCode}
+        </span>
         <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50">
           {currentQuestion.prompt}
         </p>
-        <p className="text-3xl text-gray-400 dark:text-gray-500 mt-4">?</p>
+        {currentQuestion.type === 'en-to-ua-mc' &&
+          currentQuestion.card.example && (
+            <p className="text-sm italic text-gray-600 dark:text-gray-400 mt-4 leading-relaxed">
+              &quot;{currentQuestion.card.example}&quot;
+            </p>
+          )}
       </div>
 
       {!answered && isTyping && (
@@ -225,7 +247,7 @@ export default function FlashcardQuizMode({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {currentQuestion.type === 'typing-en'
               ? t('quiz.typeEnglishWord')
-              : t('quiz.typeTranslation')}
+              : t('quiz.typeTypingUa', { language: targetName })}
           </label>
           <input
             type="text"
@@ -245,20 +267,33 @@ export default function FlashcardQuizMode({
       )}
 
       {!answered && !isTyping && currentQuestion.options && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-          {currentQuestion.options.map((option, index) => (
-            <button
-              key={`${currentQuestion.id}-${index}`}
-              type="button"
-              onClick={() => handleMultipleChoice(option)}
-              className="min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-left text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-400 transition"
-            >
-              <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">
-                {index + 1}.
-              </span>
-              {option}
-            </button>
-          ))}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center">
+            {t('quiz.mcTapAnswer')}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {currentQuestion.options
+              .filter((option) => option.trim())
+              .map((option, index) => (
+                <button
+                  key={`${currentQuestion.id}-${index}`}
+                  type="button"
+                  onClick={() => handleMultipleChoice(option)}
+                  className="min-h-12 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-left text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-400 transition"
+                >
+                  <span
+                    className={`inline-block text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded mr-2 align-middle ${
+                      currentQuestion.type === 'en-to-ua-mc'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200'
+                    }`}
+                  >
+                    {currentQuestion.type === 'en-to-ua-mc' ? targetCode : 'EN'}
+                  </span>
+                  <span className="align-middle">{option}</span>
+                </button>
+              ))}
+          </div>
         </div>
       )}
 

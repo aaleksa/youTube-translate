@@ -8,9 +8,58 @@ import {
 import type { TranslationLanguageCode } from './translationLanguages';
 
 const BATCH_SIZE = 12;
+const GLOSS_SPLIT = /\s+[—–-]\s+/;
 
 function hasCyrillic(text: string): boolean {
   return /[\u0400-\u04FF]/.test(text);
+}
+
+function hasLatinLetters(text: string): boolean {
+  return /[a-zA-Z]{2,}/.test(text);
+}
+
+/** e.g. "good, acceptable — класно, добре" */
+function isMixedLanguageGloss(text: string): boolean {
+  const trimmed = text.trim();
+  if (!GLOSS_SPLIT.test(trimmed) || !hasLatinLetters(trimmed)) return false;
+
+  const parts = trimmed
+    .split(GLOSS_SPLIT)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return false;
+
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  return hasLatinLetters(first) && last !== first;
+}
+
+/** Keep only the learner-language part of a stored translation. */
+export function normalizeTranslationText(
+  text: string,
+  language: TranslationLanguageCode
+): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  if (isMixedLanguageGloss(trimmed)) {
+    const parts = trimmed
+      .split(GLOSS_SPLIT)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const localized = parts[parts.length - 1];
+    if (localized) return localized;
+  }
+
+  if (language === 'uk' && hasLatinLetters(trimmed) && hasCyrillic(trimmed)) {
+    const cyrillicParts = trimmed
+      .split(/[,;]/)
+      .map((part) => part.trim())
+      .filter((part) => hasCyrillic(part) && !hasLatinLetters(part));
+    if (cyrillicParts.length > 0) return cyrillicParts.join(', ');
+  }
+
+  return trimmed;
 }
 
 /** Stored translation is unusable for the selected language (e.g. Ukrainian text under PL). */
@@ -19,8 +68,9 @@ function isStaleTranslation(
   language: TranslationLanguageCode
 ): boolean {
   if (!text.trim()) return true;
-  if (language === 'uk') return false;
-  return hasCyrillic(text);
+  if (isMixedLanguageGloss(text)) return true;
+  if (language !== 'uk' && hasCyrillic(text)) return true;
+  return false;
 }
 
 function needsTranslation(
@@ -37,18 +87,41 @@ function needsTranslation(
   return true;
 }
 
+/** Translation is clean enough to show as a reverse-quiz prompt (L1 → guess EN). */
+export function isTranslationSuitableForReverseQuiz(
+  translation: string,
+  word: string,
+  translationLanguage: TranslationLanguageCode
+): boolean {
+  const text = translation.trim();
+  if (!text || text.length > 100) return false;
+
+  if (translationLanguage === 'en') return true;
+
+  const latinSegments = text.match(/[a-zA-Z][a-zA-Z0-9' -]*/g) ?? [];
+  const wordNorm = word.trim().toLowerCase();
+  if (!wordNorm) return false;
+
+  for (const segment of latinSegments) {
+    const seg = segment.trim().toLowerCase();
+    if (seg.length < 3) continue;
+    if (wordNorm.includes(seg) || seg.includes(wordNorm)) continue;
+    return false;
+  }
+
+  return true;
+}
+
 export function getFlashcardTranslation(
   card: Flashcard,
   language: TranslationLanguageCode
 ): string {
-  const direct = card.translations?.[language]?.trim();
-  if (direct) return direct;
+  const raw =
+    card.translations?.[language]?.trim() ??
+    (card.translationLanguage === language ? card.translation.trim() : '');
 
-  if (card.translationLanguage === language) {
-    return card.translation.trim();
-  }
-
-  return '';
+  if (!raw) return '';
+  return normalizeTranslationText(raw, language);
 }
 
 export async function ensureFlashcardTranslations(
@@ -72,7 +145,10 @@ export async function ensureFlashcardTranslations(
       translations: needsMapEntry
         ? {
             ...card.translations,
-            [sourceLang]: card.translation.trim(),
+            [sourceLang]: normalizeTranslationText(
+              card.translation.trim(),
+              sourceLang
+            ),
           }
         : card.translations,
     };
@@ -111,7 +187,10 @@ export async function ensureFlashcardTranslations(
 
     for (const item of enriched) {
       const key = normalizeFlashcardWord(item.word);
-      const translation = item.translation.trim();
+      const translation = normalizeTranslationText(
+        item.translation.trim(),
+        language
+      );
       if (!key || !translation || isStaleTranslation(translation, language)) {
         continue;
       }
