@@ -1,6 +1,11 @@
 import { processTranscript } from './normalizeCaptions';
 import type { TranscriptCue } from './transcriptCue';
-import type { PhraseChunk, RawCaption, Sentence } from './transcriptTypes';
+import type {
+  PhraseChunk,
+  RawCaption,
+  Sentence,
+  ShadowingUnits,
+} from './transcriptTypes';
 import { timedUnitsToCues } from './transcriptTypes';
 
 export interface ProcessedTranscriptFields {
@@ -9,6 +14,7 @@ export interface ProcessedTranscriptFields {
   displayTranscript: TranscriptCue[];
   sentences: Sentence[];
   phrases: PhraseChunk[];
+  shadowingUnits: ShadowingUnits;
   text: string;
   normalizedText: string;
 }
@@ -56,6 +62,7 @@ export function enrichTranscriptData<
     displayTranscript: timedUnitsToCues(processed.displayLines),
     sentences: processed.sentences,
     phrases: processed.phrases,
+    shadowingUnits: processed.shadowingUnits,
     text: rawText,
     normalizedText: processed.sentenceText,
   };

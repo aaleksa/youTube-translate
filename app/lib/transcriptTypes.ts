@@ -25,11 +25,18 @@ export interface PhraseChunk {
   captionIndexes: number[];
 }
 
+export interface ShadowingUnits {
+  chunks: PhraseChunk[];
+  sentences: PhraseChunk[];
+  paragraphs: PhraseChunk[];
+}
+
 export interface TranscriptPipelineResult {
   rawCaptions: RawCaption[];
   displayLines: RawCaption[];
   sentences: Sentence[];
   phrases: PhraseChunk[];
+  shadowingUnits: ShadowingUnits;
   sentenceText: string;
 }
 
