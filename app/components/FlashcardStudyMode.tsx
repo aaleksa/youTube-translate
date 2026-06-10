@@ -3,22 +3,20 @@
 import { useMemo, useState } from 'react';
 import {
   countDueOnDay,
-  getFlashcardVideoUrl,
   getFlashcards,
   recordFlashcardReview,
-  resolveFlashcardTimestamp,
   shuffleFlashcards,
   type Flashcard,
   type StudySessionSummary,
 } from '../lib/flashcards';
-import type { TranscriptCue } from '../lib/transcriptCue';
+import FlashcardExampleActions, {
+  type FlashcardSentenceHandlers,
+} from './FlashcardExampleActions';
 import { useI18n } from './InterfaceLanguageProvider';
 
-interface FlashcardStudyModeProps {
+interface FlashcardStudyModeProps extends FlashcardSentenceHandlers {
   cards: Flashcard[];
   activeVideoId?: string;
-  transcript?: TranscriptCue[];
-  onReplayInVideo?: (videoId: string, seconds: number) => void;
   onClose: () => void;
   onComplete: () => void;
 }
@@ -41,8 +39,10 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 export default function FlashcardStudyMode({
   cards,
   activeVideoId,
-  transcript,
-  onReplayInVideo,
+  onListenSentence,
+  onWatchExample,
+  onRepeatSentence,
+  onShadowSentence,
   onClose,
   onComplete,
 }: FlashcardStudyModeProps) {
@@ -193,41 +193,14 @@ export default function FlashcardStudyMode({
                 &quot;{currentCard.example}&quot;
               </p>
             )}
-            {(() => {
-              const timestamp = resolveFlashcardTimestamp(
-                currentCard,
-                transcript
-              );
-              const videoId = currentCard.videoId;
-              const canReplayInApp =
-                Boolean(timestamp) &&
-                Boolean(videoId) &&
-                activeVideoId === videoId &&
-                Boolean(onReplayInVideo);
-
-              if (canReplayInApp && timestamp !== undefined && videoId) {
-                return (
-                  <button
-                    type="button"
-                    onClick={() => onReplayInVideo?.(videoId, timestamp)}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {t('flashcards.repeatSentence')}
-                  </button>
-                );
-              }
-
-              return (
-                <a
-                  href={getFlashcardVideoUrl(currentCard, transcript)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {t('flashcards.repeatSentence')}
-                </a>
-              );
-            })()}
+            <FlashcardExampleActions
+              card={currentCard}
+              activeVideoId={activeVideoId}
+              onListenSentence={onListenSentence}
+              onWatchExample={onWatchExample}
+              onRepeatSentence={onRepeatSentence}
+              onShadowSentence={onShadowSentence}
+            />
           </div>
         )}
       </div>

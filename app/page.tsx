@@ -28,6 +28,8 @@ import {
   findTimestampForExample,
   getVideoUrl,
 } from './lib/flashcards';
+import type { StoredSentence } from './lib/sentenceStore';
+import { getTranscriptHistory } from './lib/transcriptHistory';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
 import {
@@ -111,6 +113,10 @@ export default function Home() {
   const [shadowingCaptionIndexes, setShadowingCaptionIndexes] = useState<
     number[]
   >([]);
+  const [shadowingJumpRequest, setShadowingJumpRequest] = useState<{
+    text: string;
+    key: number;
+  } | null>(null);
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
@@ -154,11 +160,11 @@ export default function Home() {
     [videoData?.displayLines]
   );
 
-  const handleSeek = (seconds: number, lineIndex: number) => {
+  const handleSeek = useCallback((seconds: number, lineIndex: number) => {
     videoPlayerRef.current?.seekTo(seconds);
     setActiveLineIndex(lineIndex);
     setCurrentPlaybackTime(seconds);
-  };
+  }, []);
 
   const handleTimeUpdate = (seconds: number) => {
     setCurrentPlaybackTime(seconds);
@@ -178,9 +184,9 @@ export default function Home() {
     setActiveLineIndex(0);
   };
 
-  const handlePauseVideo = () => {
+  const handlePauseVideo = useCallback(() => {
     videoPlayerRef.current?.pause();
-  };
+  }, []);
 
   const handleSaveToFlashcards = (
     word: string,
@@ -203,20 +209,12 @@ export default function Home() {
     });
   };
 
-  const handleReplayFlashcard = useCallback(
-    (videoId: string, seconds: number) => {
-      if (videoData?.videoId !== videoId) return;
-      videoSectionRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-      videoPlayerRef.current?.seekTo(seconds);
-      videoPlayerRef.current?.play();
-      setCurrentPlaybackTime(seconds);
-      setActiveLineIndex(findActiveLineIndex(visibleTranscript, seconds));
-    },
-    [videoData?.videoId, visibleTranscript]
-  );
+  const scrollToVideo = useCallback(() => {
+    videoSectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, []);
 
   const handleSaveManyToFlashcards = (items: ParsedFlashcardItem[]) => {
     if (!videoData || items.length === 0) return;
@@ -285,6 +283,118 @@ export default function Home() {
     await setCachedTranscript(videoUrl, data);
     return data;
   };
+
+  const ensureVideoLoaded = useCallback(
+    async (videoId: string): Promise<boolean> => {
+      if (videoData?.videoId === videoId) return true;
+
+      const cached = await getCachedTranscript(videoId);
+      if (cached) {
+        loadVideoData(cached.data, cached.url || buildVideoWatchUrl(videoId), {
+          fromCache: true,
+        });
+        return true;
+      }
+
+      const historyEntry = getTranscriptHistory().find(
+        (entry) => entry.videoId === videoId
+      );
+      if (historyEntry) {
+        const historyCached = await getCachedTranscript(videoId);
+        if (historyCached) {
+          loadVideoData(
+            historyCached.data,
+            historyCached.url || historyEntry.url,
+            { fromCache: true }
+          );
+        } else {
+          loadVideoData(
+            {
+              videoId: historyEntry.videoId,
+              title: historyEntry.title,
+              transcript: historyEntry.transcript,
+              text: historyEntry.text,
+            },
+            historyEntry.url
+          );
+        }
+        return true;
+      }
+
+      try {
+        const data = await fetchTranscriptForUrl(buildVideoWatchUrl(videoId));
+        loadVideoData(data, buildVideoWatchUrl(videoId));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [videoData?.videoId]
+  );
+
+  const playSentenceInVideo = useCallback(
+    async (sentence: StoredSentence, repeats = 1) => {
+      const wasCurrentVideo = videoData?.videoId === sentence.videoId;
+      const loaded = await ensureVideoLoaded(sentence.videoId);
+      if (!loaded) {
+        window.open(
+          `${buildVideoWatchUrl(sentence.videoId)}&t=${Math.floor(sentence.startTime)}`,
+          '_blank',
+          'noopener,noreferrer'
+        );
+        return;
+      }
+
+      scrollToVideo();
+
+      const delay = wasCurrentVideo ? 0 : 900;
+      window.setTimeout(() => {
+        videoPlayerRef.current?.playSegment(
+          sentence.startTime,
+          sentence.endTime,
+          { repeats }
+        );
+        setCurrentPlaybackTime(sentence.startTime);
+      }, delay);
+    },
+    [ensureVideoLoaded, scrollToVideo, videoData?.videoId]
+  );
+
+  const handleListenSentence = useCallback(
+    (sentence: StoredSentence) => {
+      void playSentenceInVideo(sentence, 1);
+    },
+    [playSentenceInVideo]
+  );
+
+  const handleWatchExample = useCallback(
+    (sentence: StoredSentence) => {
+      void playSentenceInVideo(sentence, 1);
+    },
+    [playSentenceInVideo]
+  );
+
+  const handleRepeatSentence = useCallback(
+    (sentence: StoredSentence) => {
+      void playSentenceInVideo(sentence, 3);
+    },
+    [playSentenceInVideo]
+  );
+
+  const handleShadowSentence = useCallback(
+    async (sentence: StoredSentence) => {
+      const loaded = await ensureVideoLoaded(sentence.videoId);
+      if (!loaded) return;
+
+      scrollToVideo();
+      shadowingPanelRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      setShadowingJumpRequest({ text: sentence.text, key: Date.now() });
+    },
+    [ensureVideoLoaded, scrollToVideo]
+  );
 
   const loadPlaylist = async (playlistUrl: string) => {
     setPlaylistSession(null);
@@ -614,6 +724,7 @@ export default function Home() {
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
                     speechLanguage={videoData.selectedLanguage}
+                    jumpToText={shadowingJumpRequest}
                     onSeek={handleSeek}
                     onPauseVideo={handlePauseVideo}
                     onLineIndexChange={setShadowingLineIndex}
@@ -660,13 +771,18 @@ export default function Home() {
             refreshKey={flashcardsRefreshKey}
             activeVideoId={videoData?.videoId}
             activeVideoTitle={videoData?.title}
-            transcript={visibleTranscript}
-            onReplayInVideo={handleReplayFlashcard}
+            onListenSentence={handleListenSentence}
+            onWatchExample={handleWatchExample}
+            onRepeatSentence={handleRepeatSentence}
+            onShadowSentence={handleShadowSentence}
           />
         </div>
 
         <SaveFlashcardModal
           draft={flashcardDraft}
+          sentenceContext={{
+            transcriptSentences: videoData?.sentences,
+          }}
           onClose={() => setFlashcardDraft(null)}
           onSaved={handleFlashcardSaved}
         />
@@ -678,6 +794,7 @@ export default function Home() {
             videoUrl={getVideoUrl(videoData.videoId)}
             videoTitle={videoData.title}
             transcript={visibleTranscript}
+            transcriptSentences={videoData.sentences}
             onClose={() => setBulkFlashcardItems(null)}
             onSaved={() => handleFlashcardSaved()}
           />

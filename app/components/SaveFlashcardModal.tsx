@@ -5,16 +5,19 @@ import {
   addFlashcard,
   hasFlashcard,
   type FlashcardDraft,
+  type FlashcardSentenceContext,
 } from '../lib/flashcards';
 
 interface SaveFlashcardModalProps {
   draft: FlashcardDraft | null;
+  sentenceContext?: FlashcardSentenceContext;
   onClose: () => void;
   onSaved: () => void;
 }
 
 export default function SaveFlashcardModal({
   draft,
+  sentenceContext,
   onClose,
   onSaved,
 }: SaveFlashcardModalProps) {
@@ -51,13 +54,18 @@ export default function SaveFlashcardModal({
       return;
     }
 
-    const saved = addFlashcard({
-      word: trimmedWord,
-      translation: trimmedTranslation || trimmedExample || trimmedWord,
-      example: trimmedExample || trimmedTranslation || trimmedWord,
-      videoId: draft.videoId,
-      videoUrl: draft.videoUrl,
-    });
+    const saved = addFlashcard(
+      {
+        word: trimmedWord,
+        translation: trimmedTranslation || trimmedExample || trimmedWord,
+        example: trimmedExample || trimmedTranslation || trimmedWord,
+        videoId: draft.videoId,
+        videoUrl: draft.videoUrl,
+        videoTitle: draft.videoTitle,
+        timestamp: draft.timestamp,
+      },
+      sentenceContext
+    );
 
     if (!saved) {
       setError('Це слово вже є у ваших картках');

@@ -20,18 +20,18 @@ import {
 } from '../lib/flashcards';
 import { startOfDay } from '../lib/flashcardSrs';
 import { getTranscriptHistory } from '../lib/transcriptHistory';
-import type { TranscriptCue } from '../lib/transcriptCue';
 import EditFlashcardModal from './EditFlashcardModal';
+import FlashcardExampleActions, {
+  type FlashcardSentenceHandlers,
+} from './FlashcardExampleActions';
 import FlashcardStudyMode from './FlashcardStudyMode';
 import type { TranslationKey } from '../lib/i18n';
 import { useI18n } from './InterfaceLanguageProvider';
 
-interface FlashcardsPanelProps {
+interface FlashcardsPanelProps extends FlashcardSentenceHandlers {
   refreshKey: number;
   activeVideoId?: string;
   activeVideoTitle?: string;
-  transcript?: TranscriptCue[];
-  onReplayInVideo?: (videoId: string, seconds: number) => void;
 }
 
 const VIEWS: FlashcardView[] = ['all', 'due', 'video', 'deck'];
@@ -86,8 +86,10 @@ export default function FlashcardsPanel({
   refreshKey,
   activeVideoId,
   activeVideoTitle,
-  transcript,
-  onReplayInVideo,
+  onListenSentence,
+  onWatchExample,
+  onRepeatSentence,
+  onShadowSentence,
 }: FlashcardsPanelProps) {
   const { t } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -212,8 +214,10 @@ export default function FlashcardsPanel({
       <FlashcardStudyMode
         cards={studyQueue}
         activeVideoId={activeVideoId}
-        transcript={transcript}
-        onReplayInVideo={onReplayInVideo}
+        onListenSentence={onListenSentence}
+        onWatchExample={onWatchExample}
+        onRepeatSentence={onRepeatSentence}
+        onShadowSentence={onShadowSentence}
         onClose={() => setStudying(false)}
         onComplete={() => {
           setCards(getFlashcards());
@@ -482,10 +486,19 @@ export default function FlashcardsPanel({
                     </p>
                   )}
                   {card.videoId && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
                       🎥 {card.videoTitle || titleByVideoId[card.videoId] || card.videoId}
                     </p>
                   )}
+                  <FlashcardExampleActions
+                    card={card}
+                    activeVideoId={activeVideoId}
+                    compact
+                    onListenSentence={onListenSentence}
+                    onWatchExample={onWatchExample}
+                    onRepeatSentence={onRepeatSentence}
+                    onShadowSentence={onShadowSentence}
+                  />
                 </div>
               );
             })}

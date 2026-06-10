@@ -9,6 +9,7 @@ import {
 } from '../lib/flashcards';
 import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import type { TranscriptCue } from '../lib/transcriptCue';
+import type { Sentence } from '../lib/transcriptTypes';
 
 interface BulkSaveFlashcardModalProps {
   items: ParsedFlashcardItem[] | null;
@@ -16,6 +17,7 @@ interface BulkSaveFlashcardModalProps {
   videoUrl: string;
   videoTitle?: string;
   transcript?: TranscriptCue[];
+  transcriptSentences?: Sentence[];
   onClose: () => void;
   onSaved: (count: number) => void;
 }
@@ -31,6 +33,7 @@ export default function BulkSaveFlashcardModal({
   videoUrl,
   videoTitle,
   transcript = [],
+  transcriptSentences,
   onClose,
   onSaved,
 }: BulkSaveFlashcardModalProps) {
@@ -121,7 +124,9 @@ export default function BulkSaveFlashcardModal({
       return;
     }
 
-    const { added, skipped } = addFlashcards(drafts);
+    const { added, skipped } = addFlashcards(drafts, {
+      transcriptSentences,
+    });
     if (added.length === 0) {
       setError('Усі обрані слова вже є в картках');
       return;
