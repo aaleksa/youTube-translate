@@ -292,6 +292,21 @@ const uk = {
   'flashcards.backToList': 'До списку карток',
   'flashcards.closeStudy': 'Закрити',
   'flashcards.stats': '✅ {known} · ❌ {unknown}',
+  'flashcards.dueToday': '{count} карток на сьогодні',
+  'flashcards.dueTodayBadge': '🔥 {count} карток на повторення',
+  'flashcards.studyDue': '📖 Повторити ({count})',
+  'flashcards.studyNoneDue': 'Немає карток на сьогодні',
+  'flashcards.nextReviewIn': 'Наступне повторення: через {days} дн.',
+  'flashcards.nextReviewTomorrow': 'Наступне повторення: завтра',
+  'flashcards.dueTomorrow': 'Завтра на повторення: {count} карток',
+  'flashcards.dueNow': 'Сьогодні',
+  'flashcards.dueInOneDay': 'Завтра',
+  'flashcards.dueInDays': 'Через {days} дн.',
+  'flashcards.repetitions': 'Повторень: {count}',
+  'flashcards.stateNew': 'Нова',
+  'flashcards.stateLearning': 'Вивчення',
+  'flashcards.stateReview': 'Повторення',
+  'flashcards.stateMastered': 'Освоєна',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -578,6 +593,21 @@ const en: Record<keyof typeof uk, string> = {
   'flashcards.backToList': 'Back to flashcards',
   'flashcards.closeStudy': 'Close',
   'flashcards.stats': '✅ {known} · ❌ {unknown}',
+  'flashcards.dueToday': '{count} cards due today',
+  'flashcards.dueTodayBadge': '🔥 {count} cards due',
+  'flashcards.studyDue': '📖 Review ({count})',
+  'flashcards.studyNoneDue': 'Nothing due today',
+  'flashcards.nextReviewIn': 'Next review: in {days} days',
+  'flashcards.nextReviewTomorrow': 'Next review: tomorrow',
+  'flashcards.dueTomorrow': 'Due tomorrow: {count} cards',
+  'flashcards.dueNow': 'Due today',
+  'flashcards.dueInOneDay': 'Tomorrow',
+  'flashcards.dueInDays': 'In {days} days',
+  'flashcards.repetitions': 'Repetitions: {count}',
+  'flashcards.stateNew': 'New',
+  'flashcards.stateLearning': 'Learning',
+  'flashcards.stateReview': 'Review',
+  'flashcards.stateMastered': 'Mastered',
 };
 
 const pl: Record<keyof typeof uk, string> = {

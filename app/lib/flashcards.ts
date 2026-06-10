@@ -1,8 +1,23 @@
+import {
+  applyKnownReview,
+  applyUnknownReview,
+  getDefaultNextReview,
+  type FlashcardReviewResult,
+} from './flashcardSrs';
 import { parseTimestampToSeconds } from './timestamp';
 
 const STORAGE_KEY = 'yoytube-flashcards';
 
 const DEFAULT_EASE = 2.5;
+
+export type { CardState, FlashcardReviewResult } from './flashcardSrs';
+export {
+  countDueOnDay,
+  getCardState,
+  getDueFlashcards,
+  getVocabularyProgress,
+  SRS_INTERVALS_DAYS,
+} from './flashcardSrs';
 
 export interface Flashcard {
   id: string;
@@ -27,6 +42,7 @@ export interface StudySessionSummary {
   total: number;
   known: number;
   unknown: number;
+  dueTomorrow: number;
 }
 
 export interface FlashcardDraft {
@@ -82,7 +98,7 @@ function migrateFlashcard(card: Partial<Flashcard>): Flashcard | null {
     repetitions: card.repetitions ?? 0,
     ease: card.ease ?? DEFAULT_EASE,
     interval: card.interval ?? 0,
-    nextReview: card.nextReview,
+    nextReview: card.nextReview ?? getDefaultNextReview(),
   };
 }
 
@@ -121,28 +137,25 @@ function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
     repetitions: 0,
     ease: DEFAULT_EASE,
     interval: 0,
+    nextReview: getDefaultNextReview(),
   };
 }
 
 export function recordFlashcardReview(
   id: string,
   known: boolean
-): Flashcard | null {
+): FlashcardReviewResult | null {
   const cards = getFlashcards();
   const index = cards.findIndex((card) => card.id === id);
   if (index < 0) return null;
 
-  const card = cards[index];
-  const updated: Flashcard = {
-    ...card,
-    knownCount: card.knownCount + (known ? 1 : 0),
-    unknownCount: card.unknownCount + (known ? 1 : 0),
-    lastReviewedAt: Date.now(),
-  };
+  const result = known
+    ? applyKnownReview(cards[index])
+    : applyUnknownReview(cards[index]);
 
-  cards[index] = updated;
+  cards[index] = result.card;
   saveFlashcards(cards);
-  return updated;
+  return result;
 }
 
 export function shuffleFlashcards(cards: Flashcard[]): Flashcard[] {
