@@ -28,7 +28,6 @@ export function isCardMastered(card: Flashcard): boolean {
 
 export interface LearningOverview {
   wordsSaved: number;
-  phrasalVerbsSaved: number;
   cardsStudied: number;
   masteredWords: number;
   quizCorrect: number;
@@ -53,14 +52,12 @@ export function getQuizAccuracyPercent(cards: Flashcard[]): number | null {
 
 export function getLearningOverview(cards: Flashcard[]): LearningOverview {
   const progress = getVocabularyProgress(cards);
-  let phrasalVerbsSaved = 0;
   let cardsStudied = 0;
   let masteredWords = 0;
   let quizCorrect = 0;
   let quizWrong = 0;
 
   for (const card of cards) {
-    if (isPhrasalVerbCard(card)) phrasalVerbsSaved += 1;
     if (isCardStudied(card)) cardsStudied += 1;
     if (isCardMastered(card)) masteredWords += 1;
     quizCorrect += card.quizCorrectCount;
@@ -69,7 +66,6 @@ export function getLearningOverview(cards: Flashcard[]): LearningOverview {
 
   return {
     wordsSaved: cards.length,
-    phrasalVerbsSaved,
     cardsStudied,
     masteredWords,
     quizCorrect,
