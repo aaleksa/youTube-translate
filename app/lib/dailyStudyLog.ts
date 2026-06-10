@@ -98,3 +98,7 @@ export function getStudyStreak(): number {
 export function getDailyStudyLog(): DailyStudyEntry[] {
   return readLog();
 }
+
+export function restoreDailyStudyLog(entries: DailyStudyEntry[]): void {
+  writeLog(entries);
+}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from './InterfaceLanguageProvider';
 import GlobalTranslationLanguageSelect from './GlobalTranslationLanguageSelect';
 import InterfaceLanguageSelect from './InterfaceLanguageSelect';
+import ImportExportSettings from './ImportExportSettings';
 import LearningSettings from './LearningSettings';
 import TaskLanguageSelect from './TaskLanguageSelect';
 
@@ -53,7 +54,7 @@ export default function AppSettingsPanel() {
         <div
           role="dialog"
           aria-label={t('settings.title')}
-          className="absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg p-4"
+          className="absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] max-h-[min(85dvh,32rem)] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg p-4"
         >
           <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
             {t('settings.title')}
@@ -64,6 +65,9 @@ export default function AppSettingsPanel() {
             <TaskLanguageSelect />
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <LearningSettings embedded />
+            </div>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <ImportExportSettings />
             </div>
           </div>
         </div>

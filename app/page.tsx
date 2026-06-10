@@ -48,6 +48,7 @@ import PlaylistPanel, {
   type PlaylistSession,
 } from './components/PlaylistPanel';
 import ShadowingPanel from './components/ShadowingPanel';
+import { FLASHCARDS_CHANGED_EVENT } from './lib/dataRefresh';
 import {
   enrichTranscriptData,
   mapRawCaptionIndexesToDisplayIndexes,
@@ -120,6 +121,20 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
+  }, []);
+
+  useEffect(() => {
+    const handleFlashcardsChanged = () => {
+      setFlashcardsRefreshKey((key) => key + 1);
+    };
+
+    window.addEventListener(FLASHCARDS_CHANGED_EVENT, handleFlashcardsChanged);
+    return () => {
+      window.removeEventListener(
+        FLASHCARDS_CHANGED_EVENT,
+        handleFlashcardsChanged
+      );
+    };
   }, []);
 
   const visibleTranscript = useMemo(() => {
