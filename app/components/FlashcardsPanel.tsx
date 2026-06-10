@@ -44,6 +44,7 @@ interface FlashcardsPanelProps extends FlashcardSentenceHandlers {
   refreshKey: number;
   activeVideoId?: string;
   activeVideoTitle?: string;
+  embedded?: boolean;
 }
 
 const VIEWS: FlashcardView[] = ['all', 'due', 'video', 'deck'];
@@ -102,6 +103,7 @@ export default function FlashcardsPanel({
   onWatchExample,
   onRepeatSentence,
   onShadowSentence,
+  embedded = false,
 }: FlashcardsPanelProps) {
   const { t, translationLanguage, taskLanguage } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -326,8 +328,10 @@ export default function FlashcardsPanel({
     );
   }
 
+  const shellClass = embedded ? '' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6';
+
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
+    <div className={shellClass}>
       {showUpdatedToast && (
         <p className="mb-4 text-sm font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
           {t('flashcards.cardUpdated')}
@@ -336,9 +340,17 @@ export default function FlashcardsPanel({
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-            {t('flashcards.title', { count: cards.length })}
-          </h2>
+          {embedded ? (
+            cards.length > 0 && (
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {t('flashcards.title', { count: cards.length })}
+              </p>
+            )
+          ) : (
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              {t('flashcards.title', { count: cards.length })}
+            </h2>
+          )}
           {studyQueue.length > 0 && (
             <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mt-1">
               {t('flashcards.dueTodayBadge', { count: studyQueue.length })}
