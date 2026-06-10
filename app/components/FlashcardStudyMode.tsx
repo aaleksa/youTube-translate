@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import {
+  countDueOnDay,
   getFlashcardVideoUrl,
+  getFlashcards,
   recordFlashcardReview,
   resolveFlashcardTimestamp,
   shuffleFlashcards,
@@ -45,29 +47,48 @@ export default function FlashcardStudyMode({
   onComplete,
 }: FlashcardStudyModeProps) {
   const { t } = useI18n();
-  const sessionCards = useMemo(() => shuffleFlashcards(cards), [cards]);
+  const [queue, setQueue] = useState(() => shuffleFlashcards(cards));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [summary, setSummary] = useState<StudySessionSummary | null>(null);
   const [sessionKnown, setSessionKnown] = useState(0);
   const [sessionUnknown, setSessionUnknown] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const currentCard = sessionCards[currentIndex];
-  const total = sessionCards.length;
+  const initialTotal = useMemo(() => cards.length, [cards]);
+  const currentCard = queue[currentIndex];
+  const total = queue.length;
   const isComplete = summary !== null;
 
   const handleAnswer = (known: boolean) => {
     if (!currentCard || isComplete) return;
 
-    recordFlashcardReview(currentCard.id, known);
+    const result = recordFlashcardReview(currentCard.id, known);
+    if (!result) return;
+
+    setFeedback(
+      known
+        ? t('flashcards.nextReviewIn', { days: result.intervalDays })
+        : t('flashcards.nextReviewTomorrow')
+    );
+
     const nextKnown = sessionKnown + (known ? 1 : 0);
     const nextUnknown = sessionUnknown + (known ? 0 : 1);
+    let nextQueue = queue;
 
-    if (currentIndex >= total - 1) {
+    if (!known) {
+      nextQueue = [...queue, result.card];
+      setQueue(nextQueue);
+    }
+
+    const isLastCard = currentIndex >= nextQueue.length - 1;
+
+    if (isLastCard) {
       setSummary({
-        total,
+        total: nextKnown + nextUnknown,
         known: nextKnown,
         unknown: nextUnknown,
+        dueTomorrow: countDueOnDay(getFlashcards(), 1),
       });
       return;
     }
@@ -95,6 +116,11 @@ export default function FlashcardStudyMode({
           <p className="text-red-700 dark:text-red-400 font-semibold">
             {t('flashcards.unknownCount', { count: summary.unknown })}
           </p>
+          {summary.dueTomorrow > 0 && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t('flashcards.dueTomorrow', { count: summary.dueTomorrow })}
+            </p>
+          )}
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-2">
@@ -125,7 +151,7 @@ export default function FlashcardStudyMode({
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between gap-3 mb-4">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {t('flashcards.studyCardCount', { count: total })}
+          {t('flashcards.dueToday', { count: initialTotal })}
         </p>
         <button
           type="button"
@@ -142,9 +168,15 @@ export default function FlashcardStudyMode({
           total,
         })}
       </p>
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-4">
         <ProgressBar current={currentIndex + 1} total={total} />
       </div>
+
+      {feedback && (
+        <p className="text-center text-sm font-medium text-violet-700 dark:text-violet-300 mb-4">
+          {feedback}
+        </p>
+      )}
 
       <div className="rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 p-8 min-h-[12rem] flex flex-col items-center justify-center text-center">
         <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-50">
@@ -203,7 +235,10 @@ export default function FlashcardStudyMode({
       {!isFlipped ? (
         <button
           type="button"
-          onClick={() => setIsFlipped(true)}
+          onClick={() => {
+            setFeedback(null);
+            setIsFlipped(true);
+          }}
           className="mt-6 w-full min-h-12 px-4 py-3 rounded-lg bg-blue-600 text-white text-lg font-semibold hover:bg-blue-700 transition"
         >
           {t('flashcards.flip')}
