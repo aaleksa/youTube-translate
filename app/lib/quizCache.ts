@@ -23,7 +23,7 @@ export function getQuizCache(
       return null;
     }
 
-    if (entry.questions.length < 5) return null;
+    if (entry.questions.length < 3) return null;
 
     return { questions: entry.questions };
   } catch {

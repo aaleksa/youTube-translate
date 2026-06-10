@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getQuizCache, setQuizCache } from '../lib/quizCache';
 import {
   scoreQuiz,
@@ -53,8 +53,10 @@ export default function VideoQuizPanel({
   const [phase, setPhase] = useState<QuizPhase>('idle');
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
+  const autoLoadKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    autoLoadKeyRef.current = null;
     setQuiz(null);
     setLoading(false);
     setError('');
@@ -65,7 +67,7 @@ export default function VideoQuizPanel({
     if (!onShowPanelChange) {
       setInternalShowPanel(false);
     }
-  }, [videoId, transcriptText.length, onShowPanelChange]);
+  }, [videoId, transcriptText.length, taskLanguage, onShowPanelChange]);
 
   const resetAttempt = () => {
     setAnswers({});
@@ -79,12 +81,17 @@ export default function VideoQuizPanel({
     setAnswers({});
     setResult(null);
 
+    if (forceNew) {
+      autoLoadKeyRef.current = null;
+    }
+
     if (!forceNew) {
       const cached = getQuizCache(videoId, transcriptText.length);
       if (cached) {
         setQuiz(cached);
         setFromCache(true);
         setPhase('taking');
+        autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
         return;
       }
     }
@@ -111,19 +118,30 @@ export default function VideoQuizPanel({
       setQuizCache(videoId, transcriptText.length, nextQuiz);
       setQuiz(nextQuiz);
       setPhase('taking');
+      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка генерації тесту');
       setQuiz(null);
       setPhase('idle');
+      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
     } finally {
       setLoading(false);
     }
   }, [setShowPanel, transcriptText, videoId, taskLanguage]);
 
   useEffect(() => {
-    if (!showPanel || quiz || loading) return;
+    if (!showPanel) {
+      autoLoadKeyRef.current = null;
+      return;
+    }
+    if (quiz || loading) return;
+
+    const key = `${videoId}:${transcriptText.length}`;
+    if (autoLoadKeyRef.current === key) return;
+
+    autoLoadKeyRef.current = key;
     void loadQuiz();
-  }, [showPanel, quiz, loading, loadQuiz]);
+  }, [showPanel, quiz, loading, videoId, transcriptText.length, loadQuiz]);
 
   const handleSelect = (questionId: string, optionIndex: number) => {
     if (phase !== 'taking') return;
@@ -206,8 +224,17 @@ export default function VideoQuizPanel({
             </p>
           )}
 
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>
+          {error && !loading && (
+            <div className="mb-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <button
+                type="button"
+                onClick={() => void loadQuiz(true)}
+                className="mt-2 px-3 py-1.5 text-sm bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+              >
+                🔄 Спробувати знову
+              </button>
+            </div>
           )}
 
           {quiz && phase === 'results' && result && (
