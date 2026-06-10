@@ -278,6 +278,20 @@ const uk = {
     'Поки немає карток. Виділіть слово в транскрипті або збережіть з AI-аналізу.',
   'flashcards.noResults': 'Нічого не знайдено за запитом «{query}».',
   'flashcards.delete': 'Видалити картку',
+  'flashcards.study': '📖 Навчання',
+  'flashcards.studyCardCount': '{count} карток',
+  'flashcards.flip': 'Перевернути',
+  'flashcards.know': '✅ Знаю',
+  'flashcards.dontKnow': '❌ Не знаю',
+  'flashcards.repeatSentence': '▶ Повторити речення',
+  'flashcards.progress': 'Картка {current} / {total}',
+  'flashcards.studyComplete': 'Навчання завершено',
+  'flashcards.reviewed': '{count} карток переглянуто',
+  'flashcards.knowCount': '✅ Знаю: {count}',
+  'flashcards.unknownCount': '❌ Не знаю: {count}',
+  'flashcards.backToList': 'До списку карток',
+  'flashcards.closeStudy': 'Закрити',
+  'flashcards.stats': '✅ {known} · ❌ {unknown}',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -550,6 +564,20 @@ const en: Record<keyof typeof uk, string> = {
     'No flashcards yet. Select a word in the transcript or save from AI analysis.',
   'flashcards.noResults': 'No results for "{query}".',
   'flashcards.delete': 'Delete flashcard',
+  'flashcards.study': '📖 Study',
+  'flashcards.studyCardCount': '{count} cards',
+  'flashcards.flip': 'Flip',
+  'flashcards.know': '✅ Know',
+  'flashcards.dontKnow': "❌ Don't know",
+  'flashcards.repeatSentence': '▶ Repeat sentence',
+  'flashcards.progress': 'Card {current} / {total}',
+  'flashcards.studyComplete': 'Study complete',
+  'flashcards.reviewed': '{count} cards reviewed',
+  'flashcards.knowCount': '✅ Know: {count}',
+  'flashcards.unknownCount': "❌ Don't know: {count}",
+  'flashcards.backToList': 'Back to flashcards',
+  'flashcards.closeStudy': 'Close',
+  'flashcards.stats': '✅ {known} · ❌ {unknown}',
 };
 
 const pl: Record<keyof typeof uk, string> = {

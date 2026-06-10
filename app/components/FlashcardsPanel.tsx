@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getFlashcards, removeFlashcard, type Flashcard } from '../lib/flashcards';
+import FlashcardStudyMode from './FlashcardStudyMode';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface FlashcardsPanelProps {
@@ -12,10 +13,24 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
   const { t } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [search, setSearch] = useState('');
+  const [studying, setStudying] = useState(false);
 
   useEffect(() => {
     setCards(getFlashcards());
   }, [refreshKey]);
+
+  if (studying && cards.length > 0) {
+    return (
+      <FlashcardStudyMode
+        cards={cards}
+        onClose={() => setStudying(false)}
+        onComplete={() => {
+          setCards(getFlashcards());
+          setStudying(false);
+        }}
+      />
+    );
+  }
 
   const handleDelete = (id: string) => {
     setCards(removeFlashcard(id));
@@ -37,15 +52,26 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
           {t('flashcards.title', { count: cards.length })}
         </h2>
-        {cards.length > 0 && (
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('flashcards.searchPlaceholder')}
-            className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {cards.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setStudying(true)}
+                className="min-h-10 px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition whitespace-nowrap"
+              >
+                {t('flashcards.study')}
+              </button>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('flashcards.searchPlaceholder')}
+                className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {cards.length === 0 ? (
@@ -82,6 +108,14 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
               <p className="text-sm text-gray-700 dark:text-gray-300 italic mb-3">
                 &quot;{card.example}&quot;
               </p>
+              {(card.knownCount > 0 || card.unknownCount > 0) && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {t('flashcards.stats', {
+                    known: card.knownCount,
+                    unknown: card.unknownCount,
+                  })}
+                </p>
+              )}
               <a
                 href={card.videoUrl}
                 target="_blank"

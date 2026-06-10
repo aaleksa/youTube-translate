@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'yoytube-flashcards';
 
+const DEFAULT_EASE = 2.5;
+
 export interface Flashcard {
   id: string;
   word: string;
@@ -7,7 +9,22 @@ export interface Flashcard {
   example: string;
   videoId: string;
   videoUrl: string;
+  timestamp?: number;
   createdAt: number;
+  knownCount: number;
+  unknownCount: number;
+  lastReviewedAt?: number;
+  /** SRS foundation — not used until TASK-027 */
+  repetitions: number;
+  ease: number;
+  interval: number;
+  nextReview?: number;
+}
+
+export interface StudySessionSummary {
+  total: number;
+  known: number;
+  unknown: number;
 }
 
 export interface FlashcardDraft {
@@ -44,14 +61,39 @@ export function getFlashcardWordSet(): Set<string> {
   );
 }
 
+function migrateFlashcard(card: Partial<Flashcard>): Flashcard | null {
+  if (!card.id || !card.word) return null;
+
+  return {
+    id: card.id,
+    word: card.word,
+    translation: card.translation ?? '',
+    example: card.example ?? '',
+    videoId: card.videoId ?? '',
+    videoUrl: card.videoUrl ?? getVideoUrl(card.videoId ?? ''),
+    timestamp: card.timestamp,
+    createdAt: card.createdAt ?? Date.now(),
+    knownCount: card.knownCount ?? 0,
+    unknownCount: card.unknownCount ?? 0,
+    lastReviewedAt: card.lastReviewedAt,
+    repetitions: card.repetitions ?? 0,
+    ease: card.ease ?? DEFAULT_EASE,
+    interval: card.interval ?? 0,
+    nextReview: card.nextReview,
+  };
+}
+
 export function getFlashcards(): Flashcard[] {
   if (typeof window === 'undefined') return [];
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as Flashcard[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as Partial<Flashcard>[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((card) => migrateFlashcard(card))
+      .filter((card): card is Flashcard => card !== null);
   } catch {
     return [];
   }
@@ -70,7 +112,48 @@ function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
     videoId: draft.videoId,
     videoUrl: draft.videoUrl || getVideoUrl(draft.videoId),
     createdAt: Date.now(),
+    knownCount: 0,
+    unknownCount: 0,
+    repetitions: 0,
+    ease: DEFAULT_EASE,
+    interval: 0,
   };
+}
+
+export function recordFlashcardReview(
+  id: string,
+  known: boolean
+): Flashcard | null {
+  const cards = getFlashcards();
+  const index = cards.findIndex((card) => card.id === id);
+  if (index < 0) return null;
+
+  const card = cards[index];
+  const updated: Flashcard = {
+    ...card,
+    knownCount: card.knownCount + (known ? 1 : 0),
+    unknownCount: card.unknownCount + (known ? 1 : 0),
+    lastReviewedAt: Date.now(),
+  };
+
+  cards[index] = updated;
+  saveFlashcards(cards);
+  return updated;
+}
+
+export function shuffleFlashcards(cards: Flashcard[]): Flashcard[] {
+  const copy = [...cards];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+export function getFlashcardVideoUrl(card: Flashcard): string {
+  if (!card.timestamp || card.timestamp <= 0) return card.videoUrl;
+  const separator = card.videoUrl.includes('?') ? '&' : '?';
+  return `${card.videoUrl}${separator}t=${Math.floor(card.timestamp)}`;
 }
 
 export function addFlashcard(draft: FlashcardDraft): Flashcard | null {
