@@ -102,6 +102,30 @@ export default function VocabularyAnalysis({
     [flashcardsRefreshKey]
   );
 
+  useEffect(() => {
+    setKeyVocabulary(null);
+    setKeyVocabularyFromCache(false);
+    setKeyVocabularyError('');
+    setFrequentWords(null);
+    setFrequentWordsFromCache(false);
+    setFrequentWordsError('');
+    setIdioms(null);
+    setIdiomsFromCache(false);
+    setIdiomsError('');
+    setPhrasalVerbs(null);
+    setPhrasalVerbsFromCache(false);
+    setPhrasalVerbsError('');
+    setUsefulPhrases(null);
+    setUsefulPhrasesFromCache(false);
+    setUsefulPhrasesError('');
+    setCollocations(null);
+    setCollocationsFromCache(false);
+    setCollocationsError('');
+    setSlang(null);
+    setSlangFromCache(false);
+    setSlangError('');
+  }, [translationLanguage, videoId]);
+
   const visibleKeyVocabulary = useMemo(() => {
     if (!keyVocabulary) return [];
     return keyVocabulary.filter(
@@ -318,7 +342,7 @@ export default function VocabularyAnalysis({
     setIdiomsError('');
     setShowIdioms(true);
 
-    const cached = getIdiomsCache(videoId, text.length);
+    const cached = getIdiomsCache(videoId, text.length, translationLanguage);
     if (cached) {
       setIdioms(cached);
       setIdiomsFromCache(true);
@@ -342,7 +366,7 @@ export default function VocabularyAnalysis({
       }
 
       const found: IdiomItem[] = data.idioms ?? [];
-      setIdiomsCache(videoId, text.length, found);
+      setIdiomsCache(videoId, text.length, found, translationLanguage);
       setIdioms(found);
     } catch (error) {
       setIdiomsError(

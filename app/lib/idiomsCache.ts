@@ -9,14 +9,19 @@ export interface IdiomsCacheEntry {
   savedAt: number;
 }
 
+function cacheKey(videoId: string, translationLanguage: string): string {
+  return `${STORAGE_PREFIX}${videoId}-${translationLanguage}`;
+}
+
 export function getIdiomsCache(
   videoId: string,
-  textLength: number
+  textLength: number,
+  translationLanguage: string
 ): IdiomItem[] | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = localStorage.getItem(cacheKey(videoId, translationLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as IdiomsCacheEntry;
@@ -33,7 +38,8 @@ export function getIdiomsCache(
 export function setIdiomsCache(
   videoId: string,
   textLength: number,
-  idioms: IdiomItem[]
+  idioms: IdiomItem[],
+  translationLanguage: string
 ): void {
   const entry: IdiomsCacheEntry = {
     videoId,
@@ -42,9 +48,24 @@ export function setIdiomsCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  localStorage.setItem(
+    cacheKey(videoId, translationLanguage),
+    JSON.stringify(entry)
+  );
 }
 
-export function clearIdiomsCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+export function clearIdiomsCache(
+  videoId: string,
+  translationLanguage?: string
+): void {
+  if (translationLanguage) {
+    localStorage.removeItem(cacheKey(videoId, translationLanguage));
+    return;
+  }
+
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith(`${STORAGE_PREFIX}${videoId}-`)) {
+      localStorage.removeItem(key);
+    }
+  }
 }
