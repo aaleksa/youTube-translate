@@ -5,6 +5,15 @@ import {
   getDueFlashcards,
   type FlashcardReviewResult,
 } from './flashcardSrs';
+import {
+  estimateSentenceEnd,
+  findOrCreateSentence,
+  findSentenceInTranscript,
+  getSentenceById,
+  storedSentenceFromPipeline,
+  type StoredSentence,
+} from './sentenceStore';
+import type { Sentence } from './transcriptTypes';
 import { parseTimestampToSeconds } from './timestamp';
 
 const STORAGE_KEY = 'yoytube-flashcards';
@@ -30,6 +39,7 @@ export interface Flashcard {
   videoUrl?: string;
   videoTitle?: string;
   deckIds: string[];
+  sentenceId?: string;
   timestamp?: number;
   /** Sentence from subtitles when the card was first saved */
   originalExample?: string;
@@ -75,7 +85,12 @@ export interface FlashcardDraft {
   videoUrl?: string;
   videoTitle?: string;
   deckIds?: string[];
+  sentenceId?: string;
   timestamp?: number;
+}
+
+export interface FlashcardSentenceContext {
+  transcriptSentences?: Sentence[];
 }
 
 export interface VideoDeckSummary {
@@ -137,6 +152,18 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     (card.deckId ? [card.deckId] : []);
 
   const example = card.example ?? '';
+  let sentenceId = card.sentenceId;
+
+  if (!sentenceId && videoId && example) {
+    const startTime = card.timestamp ?? 0;
+    const stored = findOrCreateSentence({
+      videoId,
+      text: example,
+      startTime,
+      endTime: estimateSentenceEnd(startTime, example),
+    });
+    sentenceId = stored.id;
+  }
 
   return {
     id: card.id,
@@ -148,6 +175,7 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     videoUrl: card.videoUrl ?? (videoId ? getVideoUrl(videoId) : undefined),
     videoTitle: card.videoTitle,
     deckIds: [...new Set(deckIds.filter(Boolean))],
+    sentenceId,
     timestamp: card.timestamp,
     originalExample: card.originalExample ?? example,
     createdAt: card.createdAt ?? Date.now(),
@@ -170,9 +198,21 @@ export function getFlashcards(): Flashcard[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<Flashcard>[];
     if (!Array.isArray(parsed)) return [];
-    return parsed
+    const migrated = parsed
       .map((card) => migrateFlashcard(card))
       .filter((card): card is Flashcard => card !== null);
+
+    const migratedById = new Map(migrated.map((card) => [card.id, card]));
+    const needsPersist = parsed.some((card) => {
+      if (!card.id) return false;
+      const next = migratedById.get(card.id);
+      return Boolean(next && card.sentenceId !== next.sentenceId);
+    });
+    if (needsPersist) {
+      saveFlashcards(migrated);
+    }
+
+    return migrated;
   } catch {
     return [];
   }
@@ -182,8 +222,68 @@ export function saveFlashcards(cards: Flashcard[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
 }
 
-function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
+export function resolveSentenceForDraft(
+  draft: FlashcardDraft,
+  context?: FlashcardSentenceContext
+): string | undefined {
+  if (draft.sentenceId) return draft.sentenceId;
+  if (!draft.videoId) return undefined;
+
+  const example = draft.example.trim() || draft.word.trim();
+  if (!example) return undefined;
+
+  const pipelineMatch = context?.transcriptSentences?.length
+    ? findSentenceInTranscript(
+        draft.example,
+        draft.word,
+        context.transcriptSentences
+      )
+    : undefined;
+
+  if (pipelineMatch) {
+    return storedSentenceFromPipeline(draft.videoId, pipelineMatch).id;
+  }
+
+  const startTime = draft.timestamp ?? 0;
+
+  return findOrCreateSentence({
+    videoId: draft.videoId,
+    text: example,
+    startTime,
+    endTime: estimateSentenceEnd(startTime, example),
+  }).id;
+}
+
+export function resolveFlashcardSentence(
+  card: Flashcard
+): StoredSentence | undefined {
+  if (card.sentenceId) {
+    const stored = getSentenceById(card.sentenceId);
+    if (stored) return stored;
+  }
+
+  if (!card.videoId) return undefined;
+
+  const text = card.example.trim() || card.word.trim();
+  if (!text) return undefined;
+
+  const startTime = card.timestamp ?? 0;
+  return {
+    id: card.sentenceId ?? `fallback_${card.id}`,
+    videoId: card.videoId,
+    text,
+    startTime,
+    endTime: estimateSentenceEnd(startTime, text),
+  };
+}
+
+function createFlashcard(
+  draft: FlashcardDraft,
+  index = 0,
+  context?: FlashcardSentenceContext
+): Flashcard {
   const example = draft.example.trim();
+  const sentenceId = resolveSentenceForDraft(draft, context);
 
   return {
     id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
@@ -196,6 +296,7 @@ function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
       draft.videoUrl || (draft.videoId ? getVideoUrl(draft.videoId) : undefined),
     videoTitle: draft.videoTitle,
     deckIds: draft.deckIds ? [...new Set(draft.deckIds)] : [],
+    sentenceId,
     timestamp: draft.timestamp,
     originalExample: example || undefined,
     createdAt: Date.now(),
@@ -281,6 +382,8 @@ export function resolveFlashcardTimestamp(
   card: Flashcard,
   transcript?: Array<{ text: string; start?: string }>
 ): number | undefined {
+  const sentence = resolveFlashcardSentence(card);
+  if (sentence) return sentence.startTime;
   if (card.timestamp && card.timestamp > 0) return card.timestamp;
   if (!transcript?.length) return undefined;
   return findTimestampForExample(card.example, card.word, transcript);
@@ -391,16 +494,22 @@ export function toggleCardDeckMembership(
   return updated;
 }
 
-export function addFlashcard(draft: FlashcardDraft): Flashcard | null {
+export function addFlashcard(
+  draft: FlashcardDraft,
+  context?: FlashcardSentenceContext
+): Flashcard | null {
   if (hasFlashcard(draft.word)) return null;
 
-  const card = createFlashcard(draft);
+  const card = createFlashcard(draft, 0, context);
   const updated = [card, ...getFlashcards()];
   saveFlashcards(updated);
   return card;
 }
 
-export function addFlashcards(drafts: FlashcardDraft[]): {
+export function addFlashcards(
+  drafts: FlashcardDraft[],
+  context?: FlashcardSentenceContext
+): {
   added: Flashcard[];
   skipped: string[];
 } {
@@ -415,7 +524,7 @@ export function addFlashcards(drafts: FlashcardDraft[]): {
       continue;
     }
 
-    const card = createFlashcard(draft, index);
+    const card = createFlashcard(draft, index, context);
     added.push(card);
     existing.add(key);
   }

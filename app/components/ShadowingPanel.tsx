@@ -21,6 +21,11 @@ type ShadowingPhase = 'idle' | 'listen' | 'repeat';
 
 const SHADOWING_MODE_STORAGE_KEY = 'yoytube-shadowing-mode';
 
+interface ShadowingJumpRequest {
+  text: string;
+  key: number;
+}
+
 interface ShadowingPanelProps {
   videoId: string;
   transcript: TranscriptCue[];
@@ -29,6 +34,7 @@ interface ShadowingPanelProps {
   currentPlaybackTime: number;
   isPlayerReady: boolean;
   speechLanguage?: string;
+  jumpToText?: ShadowingJumpRequest | null;
   onSeek: (seconds: number, lineIndex: number) => void;
   onPauseVideo: () => void;
   onLineIndexChange?: (lineIndex: number | null) => void;
@@ -52,6 +58,7 @@ export default function ShadowingPanel({
   currentPlaybackTime,
   isPlayerReady,
   speechLanguage,
+  jumpToText,
   onSeek,
   onPauseVideo,
   onLineIndexChange,
@@ -204,6 +211,42 @@ export default function ShadowingPanel({
     onLineIndexChangeRef.current?.(null);
     onCaptionIndexesChangeRef.current?.([]);
   }, [videoId]);
+
+  const playLineRef = useRef(playLine);
+  const shadowingLinesRef = useRef(shadowingLines);
+  const lastJumpKeyRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    playLineRef.current = playLine;
+    shadowingLinesRef.current = shadowingLines;
+  }, [playLine, shadowingLines]);
+
+  useEffect(() => {
+    if (!jumpToText) {
+      lastJumpKeyRef.current = null;
+    }
+  }, [jumpToText]);
+
+  useEffect(() => {
+    if (!jumpToText?.text || !isPlayerReady) return;
+    if (lastJumpKeyRef.current === jumpToText.key) return;
+
+    const lines = shadowingLinesRef.current;
+    if (lines.length === 0) return;
+
+    const needle = jumpToText.text.trim().toLowerCase();
+    const index = lines.findIndex((line) => {
+      const haystack = line.text.trim().toLowerCase();
+      return haystack.includes(needle) || needle.includes(haystack);
+    });
+
+    if (index < 0) return;
+
+    lastJumpKeyRef.current = jumpToText.key;
+    setActive(true);
+    setFinished(false);
+    playLineRef.current(index);
+  }, [jumpToText, isPlayerReady]);
 
   const currentCue = shadowingLines[lineIndex];
   const currentPhrase = activePhrases[lineIndex];

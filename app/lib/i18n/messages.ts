@@ -343,6 +343,10 @@ const uk = {
   'flashcards.editErrorEmptyWord': 'Слово не може бути порожнім',
   'flashcards.editErrorDuplicate': 'Картка з таким словом вже існує',
   'flashcards.editErrorNotFound': 'Картку не знайдено',
+  'flashcards.listenSentence': '▶ Прослухати речення',
+  'flashcards.watchExample': '🎥 Дивитись приклад',
+  'flashcards.repeatSentenceX3': '🔁 Повторити ×3',
+  'flashcards.shadowSentence': '🎤 Shadow',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -680,6 +684,10 @@ const en: Record<keyof typeof uk, string> = {
   'flashcards.editErrorEmptyWord': 'Word cannot be empty',
   'flashcards.editErrorDuplicate': 'A card with this word already exists',
   'flashcards.editErrorNotFound': 'Card not found',
+  'flashcards.listenSentence': '▶ Listen sentence',
+  'flashcards.watchExample': '🎥 Watch example',
+  'flashcards.repeatSentenceX3': '🔁 Repeat ×3',
+  'flashcards.shadowSentence': '🎤 Shadow',
 };
 
 const pl: Record<keyof typeof uk, string> = {
