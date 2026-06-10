@@ -7,13 +7,25 @@ import type {
   TranscriptPipelineResult,
 } from './transcriptTypes';
 
-const ROLLING_GAP_SECONDS = 2.5;
+const ROLLING_GAP_SECONDS = 4;
+const ROLLING_OVERLAP_GAP_SECONDS = 10;
 const SENTENCE_GAP_SECONDS = 4;
 const SHADOWING_MIN_WORDS = 3;
 const SHADOWING_MAX_WORDS = 8;
 
 function normalizeCompare(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function normalizeWord(word: string): string {
+  return word.toLowerCase().replace(/^[.,!?;:]+|[.,!?;:]+$/g, '');
+}
+
+function getNormalizedWords(text: string): string[] {
+  return normalizeCompare(text)
+    .split(/\s+/)
+    .map(normalizeWord)
+    .filter(Boolean);
 }
 
 function stripTrailingPunctuation(text: string): string {
@@ -24,18 +36,89 @@ function endsSentence(text: string): boolean {
   return /[.!?]["']?\s*$/.test(text.trim());
 }
 
-function isStaleOverlapPrefix(complete: RawCaption, fragment: RawCaption): boolean {
-  if (!endsSentence(complete.text)) return false;
+function getSuffixPrefixOverlapSize(
+  previousText: string,
+  nextText: string,
+  minWords = 1
+): number {
+  const prevWords = getNormalizedWords(previousText);
+  const nextWords = getNormalizedWords(nextText);
+  if (prevWords.length === 0 || nextWords.length === 0) return 0;
 
-  const completeNorm = normalizeCompare(complete.text);
-  const fragmentNorm = normalizeCompare(fragment.text);
-  if (!fragmentNorm || fragmentNorm === completeNorm) return true;
-  if (completeNorm.startsWith(fragmentNorm) || fragmentNorm.startsWith(completeNorm)) {
-    return true;
+  const maxOverlap = Math.min(prevWords.length, nextWords.length, 12);
+  for (let size = maxOverlap; size >= minWords; size--) {
+    const suffix = prevWords.slice(-size).join(' ');
+    const prefix = nextWords.slice(0, size).join(' ');
+    if (suffix === prefix) return size;
   }
 
-  const tailWord = completeNorm.split(' ').pop() ?? '';
-  return tailWord.length > 2 && fragmentNorm.startsWith(tailWord);
+  return 0;
+}
+
+/** YouTube ASR: next cue often repeats the tail words of the previous cue. */
+export function hasSuffixPrefixWordOverlap(
+  previousText: string,
+  nextText: string,
+  minWords = 2
+): boolean {
+  return getSuffixPrefixOverlapSize(previousText, nextText, minWords) > 0;
+}
+
+/** Keep only words from `fragment` that are not already at the end of `complete`. */
+export function extractTailAfterOverlap(
+  completeText: string,
+  fragmentText: string
+): string | null {
+  const fragmentNorm = normalizeCompare(fragmentText);
+  if (!fragmentNorm) return null;
+
+  const completeNorm = normalizeCompare(completeText);
+  if (fragmentNorm === completeNorm) return null;
+  if (completeNorm.startsWith(fragmentNorm)) return null;
+  if (completeNorm.includes(fragmentNorm)) return null;
+
+  const displayWords = fragmentText.trim().split(/\s+/).filter(Boolean);
+  if (displayWords.length === 0) return null;
+
+  const overlapSize = getSuffixPrefixOverlapSize(completeText, fragmentText, 1);
+  if (overlapSize === 0) return fragmentText.trim();
+
+  const tailWords = displayWords.slice(overlapSize);
+  if (tailWords.length === 0) return null;
+  return tailWords.join(' ');
+}
+
+function pruneRollingDisplayLines(lines: RawCaption[]): RawCaption[] {
+  const result: RawCaption[] = [];
+
+  for (const line of lines) {
+    const previous = result[result.length - 1];
+    let text = line.text.trim();
+    if (!text) continue;
+
+    if (previous) {
+      const tail = extractTailAfterOverlap(previous.text, text);
+      if (tail === null) continue;
+      text = tail;
+      if (!text) continue;
+    }
+
+    const norm = normalizeCompare(text);
+    if (previous && normalizeCompare(previous.text).includes(norm)) {
+      continue;
+    }
+
+    result.push({ ...line, text });
+  }
+
+  return result.filter((line, index, items) => {
+    const norm = normalizeCompare(line.text);
+    return !items.some((other, otherIndex) => {
+      if (otherIndex <= index) return false;
+      const otherNorm = normalizeCompare(other.text);
+      return otherNorm.length > norm.length && otherNorm.includes(norm);
+    });
+  });
 }
 
 function transcriptCuesToRawCaptions(cues: TranscriptCue[]): RawCaption[] {
@@ -78,6 +161,17 @@ function isRollingContinuation(prev: RawCaption, next: RawCaption): boolean {
   if (prevText === nextText) return true;
   if (nextText.startsWith(prevText) || prevText.startsWith(nextText)) return true;
 
+  if (getSuffixPrefixOverlapSize(prev.text, next.text, 1) > 0) {
+    // Tail overlap after a finished sentence is a stale rolling frame, not a merge.
+    if (
+      endsSentence(prev.text) &&
+      !nextText.startsWith(prevText)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
   if (endsSentence(prev.text)) {
     if (
       Math.abs(next.start - prev.start) <= 0.5 &&
@@ -108,14 +202,62 @@ function isRollingContinuation(prev: RawCaption, next: RawCaption): boolean {
   return false;
 }
 
-function mergeCaptionGroup(group: RawCaption[]): RawCaption {
-  const longest = group.reduce((best, current) =>
-    current.text.length > best.text.length ? current : best
+function isCloseRollingWindow(prev: RawCaption, current: RawCaption): boolean {
+  const gapFromStart = current.start - prev.start;
+  const gapFromEnd = current.start - prev.end;
+  return (
+    gapFromStart <= ROLLING_GAP_SECONDS ||
+    gapFromEnd <= 1.5 ||
+    (gapFromStart <= ROLLING_OVERLAP_GAP_SECONDS &&
+      getSuffixPrefixOverlapSize(prev.text, current.text, 1) > 0)
   );
+}
 
+function stitchRollingTexts(previous: string, next: string): string {
+  const prev = previous.trim();
+  const nextText = next.trim();
+  if (!prev) return nextText;
+  if (!nextText) return prev;
+
+  const prevNorm = normalizeCompare(prev);
+  const nextNorm = normalizeCompare(nextText);
+  if (nextNorm.startsWith(prevNorm)) return nextText;
+  if (prevNorm.startsWith(nextNorm)) return prev;
+
+  const prevWords = getNormalizedWords(prev);
+  const nextWords = getNormalizedWords(nextText);
+  const displayPrevWords = prev.split(/\s+/).filter(Boolean);
+  const displayNextWords = nextText.split(/\s+/).filter(Boolean);
+  const maxOverlap = Math.min(prevWords.length, nextWords.length, 12);
+
+  for (let size = maxOverlap; size >= 1; size--) {
+    const suffix = prevWords.slice(-size).join(' ');
+    const prefix = nextWords.slice(0, size).join(' ');
+    if (suffix !== prefix) continue;
+
+    return [...displayPrevWords, ...displayNextWords.slice(size)].join(' ').trim();
+  }
+
+  const tail = extractTailAfterOverlap(prev, nextText);
+  if (tail && normalizeCompare(tail) !== nextNorm) {
+    return `${prev} ${tail}`.trim();
+  }
+
+  return prev.length >= nextText.length ? prev : nextText;
+}
+
+function mergeCaptionGroupText(group: RawCaption[]): string {
+  const ordered = [...group].sort((a, b) => a.start - b.start || a.index - b.index);
+  return ordered
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .reduce((merged, text) => stitchRollingTexts(merged, text), '');
+}
+
+function mergeCaptionGroup(group: RawCaption[]): RawCaption {
   return {
     index: group[0].index,
-    text: longest.text.trim(),
+    text: mergeCaptionGroupText(group),
     start: Math.min(...group.map((item) => item.start)),
     end: Math.max(...group.map((item) => item.end)),
     captionIndexes: [...new Set(group.flatMap((item) => item.captionIndexes))].sort(
@@ -146,7 +288,7 @@ export function dedupeRollingCaptions(captions: RawCaption[]): RawCaption[] {
       continue;
     }
 
-    const closeInTime = current.start - prev.start <= ROLLING_GAP_SECONDS;
+    const closeInTime = isCloseRollingWindow(prev, current);
     const rolling = isRollingContinuation(prev, current);
 
     if (closeInTime && rolling) {
@@ -155,10 +297,18 @@ export function dedupeRollingCaptions(captions: RawCaption[]): RawCaption[] {
     }
 
     merged.push(prev);
-    if (isStaleOverlapPrefix(prev, current)) {
+
+    const tail = extractTailAfterOverlap(prev.text, current.text);
+    if (tail === null) {
       group = [];
       continue;
     }
+
+    if (normalizeCompare(tail) !== normalizeCompare(current.text)) {
+      group = [{ ...current, text: tail }];
+      continue;
+    }
+
     group = [current];
   }
 
@@ -166,21 +316,9 @@ export function dedupeRollingCaptions(captions: RawCaption[]): RawCaption[] {
     merged.push(mergeCaptionGroup(group));
   }
 
-  return merged
-    .filter((item) => item.text.trim())
-    .filter((item, index, items) => {
-      const previous = items[index - 1];
-      if (previous && isStaleOverlapPrefix(previous, item)) {
-        return false;
-      }
-
-      const norm = normalizeCompare(item.text);
-      return !items.some((other, otherIndex) => {
-        if (otherIndex === index) return false;
-        const otherNorm = normalizeCompare(other.text);
-        return otherNorm.length > norm.length && otherNorm.includes(norm);
-      });
-    });
+  return pruneRollingDisplayLines(
+    merged.filter((item) => item.text.trim())
+  );
 }
 
 function finalizeTimedUnitEnds<T extends { start: number; end: number; text: string }>(
@@ -274,24 +412,124 @@ export function mergedCaptionsToSentences(
   return sentences;
 }
 
-function estimatePhraseTiming(
-  sentence: Sentence,
+function estimateChunkTiming(
+  unit: { start: number; end: number },
   startWord: number,
   endWord: number,
   totalWords: number
 ): { start: number; end: number } {
   if (totalWords <= 0) {
-    return { start: sentence.start, end: sentence.end };
+    return { start: unit.start, end: unit.end };
   }
 
-  const duration = Math.max(sentence.end - sentence.start, 0.5);
+  const duration = Math.max(unit.end - unit.start, 0.5);
   const startRatio = startWord / totalWords;
   const endRatio = endWord / totalWords;
 
   return {
-    start: sentence.start + duration * startRatio,
-    end: sentence.start + duration * endRatio,
+    start: unit.start + duration * startRatio,
+    end: unit.start + duration * endRatio,
   };
+}
+
+function splitTextIntoPhrases(input: {
+  text: string;
+  start: number;
+  end: number;
+  sentenceId: string;
+  captionIndexes: number[];
+  minWords?: number;
+  maxWords?: number;
+}): PhraseChunk[] {
+  const minWords = input.minWords ?? SHADOWING_MIN_WORDS;
+  const maxWords = input.maxWords ?? SHADOWING_MAX_WORDS;
+  const words = input.text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+
+  const phrases: PhraseChunk[] = [];
+
+  if (words.length <= maxWords) {
+    phrases.push({
+      id: `phrase_${phrases.length + 1}`,
+      text: input.text.trim(),
+      start: input.start,
+      end: input.end,
+      sentenceId: input.sentenceId,
+      captionIndexes: input.captionIndexes,
+    });
+    return phrases;
+  }
+
+  let index = 0;
+  while (index < words.length) {
+    const remaining = words.length - index;
+    let chunkSize = Math.min(maxWords, remaining);
+
+    if (remaining - chunkSize > 0 && remaining - chunkSize < minWords) {
+      chunkSize = remaining;
+    }
+
+    if (chunkSize < minWords && index > 0) {
+      const previous = phrases[phrases.length - 1];
+      previous.text = `${previous.text} ${words.slice(index).join(' ')}`.trim();
+      const timing = estimateChunkTiming(
+        input,
+        0,
+        words.length,
+        words.length
+      );
+      previous.end = timing.end;
+      break;
+    }
+
+    const sliceEnd = index + chunkSize;
+    const text = words.slice(index, sliceEnd).join(' ');
+    const timing = estimateChunkTiming(input, index, sliceEnd, words.length);
+
+    phrases.push({
+      id: `phrase_${phrases.length + 1}`,
+      text,
+      start: timing.start,
+      end: timing.end,
+      sentenceId: input.sentenceId,
+      captionIndexes: input.captionIndexes,
+    });
+
+    index = sliceEnd;
+  }
+
+  return phrases;
+}
+
+/** Shadowing units — one compact subtitle line each (same as transcript UI). */
+export function displayLinesToPhrases(
+  displayLines: RawCaption[],
+  minWords = SHADOWING_MIN_WORDS,
+  maxWords = SHADOWING_MAX_WORDS
+): PhraseChunk[] {
+  const phrases: PhraseChunk[] = [];
+
+  for (let lineIndex = 0; lineIndex < displayLines.length; lineIndex++) {
+    const line = displayLines[lineIndex];
+    const chunks = splitTextIntoPhrases({
+      text: line.text,
+      start: line.start,
+      end: line.end,
+      sentenceId: `line_${lineIndex + 1}`,
+      captionIndexes: line.captionIndexes,
+      minWords,
+      maxWords,
+    });
+
+    for (const chunk of chunks) {
+      phrases.push({
+        ...chunk,
+        id: `phrase_${phrases.length + 1}`,
+      });
+    }
+  }
+
+  return phrases;
 }
 
 export function sentencesToPhrases(
@@ -302,52 +540,21 @@ export function sentencesToPhrases(
   const phrases: PhraseChunk[] = [];
 
   for (const sentence of sentences) {
-    const words = sentence.text.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) continue;
+    const chunks = splitTextIntoPhrases({
+      text: sentence.text,
+      start: sentence.start,
+      end: sentence.end,
+      sentenceId: sentence.id,
+      captionIndexes: sentence.captionIndexes,
+      minWords,
+      maxWords,
+    });
 
-    if (words.length <= maxWords) {
+    for (const chunk of chunks) {
       phrases.push({
+        ...chunk,
         id: `phrase_${phrases.length + 1}`,
-        text: sentence.text,
-        start: sentence.start,
-        end: sentence.end,
-        sentenceId: sentence.id,
-        captionIndexes: sentence.captionIndexes,
       });
-      continue;
-    }
-
-    let index = 0;
-    while (index < words.length) {
-      const remaining = words.length - index;
-      let chunkSize = Math.min(maxWords, remaining);
-
-      if (remaining - chunkSize > 0 && remaining - chunkSize < minWords) {
-        chunkSize = remaining;
-      }
-
-      if (chunkSize < minWords && index > 0) {
-        const previous = phrases[phrases.length - 1];
-        previous.text = `${previous.text} ${words.slice(index).join(' ')}`.trim();
-        const timing = estimatePhraseTiming(sentence, 0, words.length, words.length);
-        previous.end = timing.end;
-        break;
-      }
-
-      const sliceEnd = index + chunkSize;
-      const text = words.slice(index, sliceEnd).join(' ');
-      const timing = estimatePhraseTiming(sentence, index, sliceEnd, words.length);
-
-      phrases.push({
-        id: `phrase_${phrases.length + 1}`,
-        text,
-        start: timing.start,
-        end: timing.end,
-        sentenceId: sentence.id,
-        captionIndexes: sentence.captionIndexes,
-      });
-
-      index = sliceEnd;
     }
   }
 
@@ -363,7 +570,7 @@ export function processTranscript(
   const sentences = finalizeTimedUnitEnds(
     mergedCaptionsToSentences(merged, rawCaptions)
   );
-  const phrases = finalizeTimedUnitEnds(sentencesToPhrases(sentences));
+  const phrases = finalizeTimedUnitEnds(displayLinesToPhrases(displayLines));
   const sentenceText = sentences.map((sentence) => sentence.text).join(' ');
 
   return {
