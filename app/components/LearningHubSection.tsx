@@ -133,7 +133,7 @@ export default function LearningHubSection({
             >
               {t('learningHub.tabAnalytics')}
             </button>
-            {summary.due > 0 && (
+            {statsReady && summary.due > 0 && (
               <span className="self-center text-xs font-medium text-amber-700 dark:text-amber-300">
                 {t('flashcards.dueTodayBadge', { count: summary.due })}
               </span>
