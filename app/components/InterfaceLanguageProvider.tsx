@@ -60,13 +60,33 @@ export function InterfaceLanguageProvider({
   }, [language, ready]);
 
   const setLanguage = useCallback((next: InterfaceLanguage) => {
+    const current = getLanguageSettings();
+    const translationMatchedInterface =
+      current.interfaceLanguage === current.translationLanguage;
+
     saveInterfaceLanguage(next);
     setLanguageState(next);
+
+    if (translationMatchedInterface) {
+      saveTranslationLanguage(next);
+      saveTaskLanguage(next);
+      setTranslationLanguageState(next);
+      setTaskLanguageState(next);
+    }
   }, []);
 
   const setTranslationLanguage = useCallback((next: TranslationLanguageCode) => {
+    const current = getLanguageSettings();
+    const interfaceMatchedTranslation =
+      current.interfaceLanguage === current.translationLanguage;
+
     saveTranslationLanguage(next);
     setTranslationLanguageState(next);
+
+    if (interfaceMatchedTranslation) {
+      saveInterfaceLanguage(next);
+      setLanguageState(next);
+    }
   }, []);
 
   const setTaskLanguage = useCallback((next: TranslationLanguageCode) => {
