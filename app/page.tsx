@@ -579,7 +579,7 @@ export default function Home() {
                 <div ref={shadowingPanelRef} id="shadowing-panel">
                   <ShadowingPanel
                     videoId={videoData.videoId}
-                    transcript={videoData.transcript}
+                    transcript={visibleTranscript}
                     phrases={videoData.phrases}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
