@@ -5,6 +5,8 @@ const STORAGE_KEY = 'yoytube-daily-study';
 export interface DailyStudyEntry {
   date: string;
   cardsReviewed: number;
+  correctReviews?: number;
+  incorrectReviews?: number;
 }
 
 function todayKey(date = new Date()): string {
@@ -33,7 +35,7 @@ function writeLog(entries: DailyStudyEntry[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
 }
 
-export function recordDailyCardReview(count = 1): void {
+export function recordDailyCardReview(count = 1, known = true): void {
   if (typeof window === 'undefined' || count <= 0) return;
 
   const key = todayKey();
@@ -41,15 +43,35 @@ export function recordDailyCardReview(count = 1): void {
   const index = log.findIndex((entry) => entry.date === key);
 
   if (index >= 0) {
+    const entry = log[index];
     log[index] = {
-      ...log[index],
-      cardsReviewed: log[index].cardsReviewed + count,
+      ...entry,
+      cardsReviewed: entry.cardsReviewed + count,
+      correctReviews: (entry.correctReviews ?? 0) + (known ? count : 0),
+      incorrectReviews: (entry.incorrectReviews ?? 0) + (known ? 0 : count),
     };
   } else {
-    log.push({ date: key, cardsReviewed: count });
+    log.push({
+      date: key,
+      cardsReviewed: count,
+      correctReviews: known ? count : 0,
+      incorrectReviews: known ? 0 : count,
+    });
   }
 
   writeLog(log);
+}
+
+export function getTodayStudyEntry(): DailyStudyEntry {
+  const key = todayKey();
+  return (
+    readLog().find((entry) => entry.date === key) ?? {
+      date: key,
+      cardsReviewed: 0,
+      correctReviews: 0,
+      incorrectReviews: 0,
+    }
+  );
 }
 
 export function getTodayCardsReviewed(): number {
