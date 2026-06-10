@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getDueFlashcards, getFlashcards } from '../lib/flashcards';
 import { getVocabularyProgress } from '../lib/flashcardSrs';
 import {
@@ -33,7 +33,12 @@ export default function LearningHubSection({
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<LearningHubTab>('flashcards');
-  const [statsVersion, setStatsVersion] = useState(0);
+  const [statsReady, setStatsReady] = useState(false);
+  const [summary, setSummary] = useState({
+    total: 0,
+    due: 0,
+    mastered: 0,
+  });
 
   useEffect(() => {
     setOpen(getLearningHubOpen());
@@ -41,16 +46,16 @@ export default function LearningHubSection({
   }, []);
 
   useEffect(() => {
-    setStatsVersion((v) => v + 1);
-  }, [refreshKey]);
-
-  const summary = useMemo(() => {
-    void statsVersion;
     const cards = getFlashcards();
     const progress = getVocabularyProgress(cards);
     const due = getDueFlashcards(cards).length;
-    return { total: cards.length, due, mastered: progress.mastered };
-  }, [statsVersion, refreshKey]);
+    setSummary({
+      total: cards.length,
+      due,
+      mastered: progress.mastered,
+    });
+    setStatsReady(true);
+  }, [refreshKey]);
 
   const toggleOpen = () => {
     setOpen((prev) => {
@@ -84,7 +89,7 @@ export default function LearningHubSection({
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
               {t('learningHub.title')}
             </h2>
-            {!open && summary.total > 0 && (
+            {!open && statsReady && summary.total > 0 && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {t('learningHub.summary', {
                   count: summary.total,
@@ -93,7 +98,7 @@ export default function LearningHubSection({
                 })}
               </p>
             )}
-            {!open && summary.total === 0 && (
+            {!open && statsReady && summary.total === 0 && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {t('learningHub.summaryEmpty')}
               </p>
@@ -117,7 +122,7 @@ export default function LearningHubSection({
               className={tabClass('flashcards')}
             >
               {t('learningHub.tabFlashcards')}
-              {summary.total > 0 && (
+              {statsReady && summary.total > 0 && (
                 <span className="ml-1.5 text-xs opacity-80">({summary.total})</span>
               )}
             </button>

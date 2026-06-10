@@ -202,6 +202,7 @@ export default function Home() {
       word,
       translation,
       example,
+      originalExample: example,
       videoId: videoData.videoId,
       videoUrl: getVideoUrl(videoData.videoId),
       videoTitle: videoData.title,
@@ -781,6 +782,7 @@ export default function Home() {
           sentenceContext={{
             transcriptSentences: videoData?.sentences,
           }}
+          transcript={visibleTranscript.map((line) => line.text).join('\n')}
           onClose={() => setFlashcardDraft(null)}
           onSaved={handleFlashcardSaved}
         />

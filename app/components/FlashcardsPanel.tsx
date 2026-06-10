@@ -9,6 +9,12 @@ import {
   type Deck,
 } from '../lib/decks';
 import {
+  countCardsNeedingEnrichment,
+  getCardsNeedingEnrichment,
+  runBulkEnrichment,
+  type BulkEnrichmentProgress,
+} from '../lib/flashcardEnrichment';
+import {
   filterFlashcards,
   getCardState,
   getFlashcards,
@@ -120,6 +126,14 @@ export default function FlashcardsPanel({
   const [deleteDeckId, setDeleteDeckId] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [showUpdatedToast, setShowUpdatedToast] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<BulkEnrichmentProgress | null>(
+    null
+  );
+
+  const enrichableCount = useMemo(
+    () => countCardsNeedingEnrichment(cards),
+    [cards]
+  );
 
   useEffect(() => {
     setCards(getFlashcards());
@@ -287,6 +301,19 @@ export default function FlashcardsPanel({
     setEditingCard((current) => (current?.id === card.id ? null : current));
   };
 
+  const handleBulkEnrich = async () => {
+    const targets = getCardsNeedingEnrichment(cards, 20);
+    if (targets.length === 0 || bulkProgress?.running) return;
+
+    await runBulkEnrichment(
+      targets.map((card) => card.id),
+      {
+        onProgress: setBulkProgress,
+      }
+    );
+    setCards(getFlashcards());
+  };
+
   if (quizzing) {
     return (
       <FlashcardQuizMode
@@ -338,6 +365,21 @@ export default function FlashcardsPanel({
         </p>
       )}
 
+      {bulkProgress && (
+        <p className="mb-4 text-sm text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+          {bulkProgress.running
+            ? t('enrichment.bulkRunning', {
+                completed: bulkProgress.completed,
+                failed: bulkProgress.failed,
+                pending: bulkProgress.pending,
+              })
+            : t('enrichment.bulkDone', {
+                completed: bulkProgress.completed,
+                failed: bulkProgress.failed,
+              })}
+        </p>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           {embedded ? (
@@ -385,6 +427,18 @@ export default function FlashcardsPanel({
                 placeholder={t('flashcards.searchPlaceholder')}
                 className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {enrichableCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void handleBulkEnrich()}
+                  disabled={bulkProgress?.running}
+                  className="min-h-10 px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('enrichment.bulkEnrich', {
+                    count: Math.min(20, enrichableCount),
+                  })}
+                </button>
+              )}
             </>
           )}
         </div>

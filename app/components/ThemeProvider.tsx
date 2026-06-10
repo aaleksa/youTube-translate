@@ -25,14 +25,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    setTheme(isDark ? 'dark' : 'light');
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)'
+    ).matches;
+
+    if (stored === 'dark' || stored === 'light') {
+      document.documentElement.classList.toggle('dark', stored === 'dark');
+      document.documentElement.classList.toggle('light', stored === 'light');
+      setTheme(stored);
+    } else {
+      setTheme(prefersDark ? 'dark' : 'light');
+    }
+
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (!mounted) return;
+    document.documentElement.classList.remove('light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    }
     localStorage.setItem('theme', theme);
   }, [theme, mounted]);
 

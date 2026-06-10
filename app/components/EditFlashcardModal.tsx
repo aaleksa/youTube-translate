@@ -2,9 +2,11 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useState } from 'react';
 import type { Deck } from '../lib/decks';
+import { enrichAndSaveCard } from '../lib/flashcardEnrichment';
 import {
   normalizeTags,
   updateFlashcard,
+  type CefrLevel,
   type Flashcard,
   type UpdateFlashcardError,
 } from '../lib/flashcards';
@@ -15,6 +17,7 @@ import { useI18n } from './InterfaceLanguageProvider';
 interface EditFlashcardModalProps {
   card: Flashcard | null;
   decks: Deck[];
+  transcript?: string;
   onClose: () => void;
   onSaved: (card: Flashcard) => void;
 }
@@ -36,6 +39,7 @@ function errorMessage(
 export default function EditFlashcardModal({
   card,
   decks,
+  transcript,
   onClose,
   onSaved,
 }: EditFlashcardModalProps) {
@@ -46,7 +50,15 @@ export default function EditFlashcardModal({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [deckIds, setDeckIds] = useState<string[]>([]);
+  const [explanation, setExplanation] = useState('');
+  const [partOfSpeech, setPartOfSpeech] = useState('');
+  const [level, setLevel] = useState<CefrLevel | ''>('');
+  const [ipa, setIpa] = useState('');
+  const [synonyms, setSynonyms] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [regenerating, setRegenerating] = useState<'translation' | 'example' | null>(
+    null
+  );
 
   useEffect(() => {
     if (!card) return;
@@ -56,6 +68,11 @@ export default function EditFlashcardModal({
     setTags(card.tags);
     setTagInput('');
     setDeckIds(card.deckIds);
+    setExplanation(card.explanation ?? '');
+    setPartOfSpeech(card.partOfSpeech ?? '');
+    setLevel(card.level ?? '');
+    setIpa(card.ipa ?? '');
+    setSynonyms(card.synonyms ?? []);
     setError('');
   }, [card, translationLanguage]);
 
@@ -64,6 +81,55 @@ export default function EditFlashcardModal({
   const canRestoreOriginal =
     Boolean(card.originalExample) &&
     card.originalExample !== example.trim();
+
+  const hasOriginalExample = Boolean(card.originalExample?.trim());
+
+  const applyCard = (updated: Flashcard) => {
+    setTranslation(getFlashcardTranslation(updated, translationLanguage));
+    setExample(updated.example);
+    setTags(updated.tags);
+    setExplanation(updated.explanation ?? '');
+    setPartOfSpeech(updated.partOfSpeech ?? '');
+    setLevel(updated.level ?? '');
+    setIpa(updated.ipa ?? '');
+    setSynonyms(updated.synonyms ?? []);
+    onSaved(updated);
+  };
+
+  const handleRegenerateTranslation = async () => {
+    setRegenerating('translation');
+    setError('');
+    try {
+      const updated = await enrichAndSaveCard(card.id, {
+        transcript,
+        fields: ['translation', 'metadata'],
+        forceTranslation: true,
+      });
+      if (updated) applyCard(updated);
+    } catch {
+      setError(t('enrichment.failed'));
+    } finally {
+      setRegenerating(null);
+    }
+  };
+
+  const handleRegenerateExample = async () => {
+    if (hasOriginalExample) return;
+    setRegenerating('example');
+    setError('');
+    try {
+      const updated = await enrichAndSaveCard(card.id, {
+        transcript,
+        fields: ['example'],
+        forceExample: true,
+      });
+      if (updated) applyCard(updated);
+    } catch {
+      setError(t('enrichment.failed'));
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   const addTag = (raw: string) => {
     const next = normalizeTags([...tags, raw]);
@@ -97,6 +163,11 @@ export default function EditFlashcardModal({
       example,
       tags,
       deckIds,
+      explanation: explanation.trim() || undefined,
+      partOfSpeech: partOfSpeech.trim() || undefined,
+      level: level || undefined,
+      ipa: ipa.trim() || undefined,
+      synonyms: synonyms.length > 0 ? synonyms : undefined,
     });
 
     if (!result.ok) {
@@ -130,9 +201,21 @@ export default function EditFlashcardModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('flashcards.editTranslation')}
-            </label>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('flashcards.editTranslation')}
+              </label>
+              <button
+                type="button"
+                onClick={() => void handleRegenerateTranslation()}
+                disabled={regenerating === 'translation'}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+              >
+                {regenerating === 'translation'
+                  ? t('enrichment.generating')
+                  : t('enrichment.regenerateTranslation')}
+              </button>
+            </div>
             <input
               type="text"
               value={translation}
@@ -146,16 +229,35 @@ export default function EditFlashcardModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('flashcards.editExample')}
               </label>
-              {canRestoreOriginal && (
-                <button
-                  type="button"
-                  onClick={() => setExample(card.originalExample ?? '')}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {t('flashcards.restoreOriginal')}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {canRestoreOriginal && (
+                  <button
+                    type="button"
+                    onClick={() => setExample(card.originalExample ?? '')}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {t('flashcards.restoreOriginal')}
+                  </button>
+                )}
+                {!hasOriginalExample && (
+                  <button
+                    type="button"
+                    onClick={() => void handleRegenerateExample()}
+                    disabled={regenerating === 'example'}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                  >
+                    {regenerating === 'example'
+                      ? t('enrichment.generating')
+                      : t('enrichment.regenerateExample')}
+                  </button>
+                )}
+              </div>
             </div>
+            {hasOriginalExample && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                {t('enrichment.fromSubtitles')}
+              </p>
+            )}
             <textarea
               value={example}
               onChange={(e) => setExample(e.target.value)}
@@ -163,6 +265,41 @@ export default function EditFlashcardModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          {(explanation || partOfSpeech || level || ipa || synonyms.length > 0) && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2 text-sm">
+              {explanation && (
+                <p className="text-gray-600 dark:text-gray-300">
+                  <span className="font-medium">{t('enrichment.explanation')}: </span>
+                  {explanation}
+                </p>
+              )}
+              {partOfSpeech && (
+                <p className="text-gray-600 dark:text-gray-300">
+                  <span className="font-medium">{t('enrichment.partOfSpeech')}: </span>
+                  {partOfSpeech}
+                </p>
+              )}
+              {level && (
+                <p className="text-gray-600 dark:text-gray-300">
+                  <span className="font-medium">CEFR: </span>
+                  {level}
+                </p>
+              )}
+              {ipa && (
+                <p className="text-gray-600 dark:text-gray-300">
+                  <span className="font-medium">IPA: </span>
+                  {ipa}
+                </p>
+              )}
+              {synonyms.length > 0 && (
+                <p className="text-gray-600 dark:text-gray-300">
+                  <span className="font-medium">{t('enrichment.synonyms')}: </span>
+                  {synonyms.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

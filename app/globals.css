@@ -1,15 +1,40 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Class-based dark + system preference (no blocking script — React 19 safe) */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not(.light), :not(.light) *) {
+      @slot;
+    }
+  }
+}
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+@media (prefers-color-scheme: dark) {
+  html:not(.light) {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    color-scheme: dark;
+  }
+}
+
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  color-scheme: dark;
+}
+
+.light {
+  --background: #ffffff;
+  --foreground: #171717;
+  color-scheme: light;
 }
 
 @theme inline {

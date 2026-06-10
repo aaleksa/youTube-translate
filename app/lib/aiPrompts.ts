@@ -191,6 +191,34 @@ Rules:
 - One line per word.`;
 }
 
+export function buildEnrichCardPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `${learnerIntro(code)} enrich a single vocabulary flashcard.
+
+Return ONLY valid JSON:
+{
+  "translation": "${lang} translation of the word or phrase",
+  "example": "English example sentence using the word (omit this field if originalExample is provided)",
+  "explanation": "Brief explanation in ${lang} (1 sentence)",
+  "partOfSpeech": "noun | verb | adjective | adverb | phrasal verb | idiom | phrase | other",
+  "level": "A1 | A2 | B1 | B2 | C1",
+  "tags": ["phrasal verb", "business"],
+  "synonyms": ["search", "find"],
+  "ipa": "/lʊk ʌp/"
+}
+
+Rules:
+- translation is required and must be in ${lang}.
+- If the user message includes originalExample from video subtitles, do NOT generate example — learners need the real sentence from the video.
+- If originalExample is absent and a transcript is provided, prefer a sentence from the transcript; otherwise write a natural B1–B2 example.
+- For multi-word verbs (look up, come across), set partOfSpeech to "phrasal verb" and include "phrasal verb" in tags.
+- level: estimate CEFR difficulty of the word/phrase for learners.
+- tags: 1–3 topical tags (e.g. travel, business) plus grammatical tags when relevant.
+- synonyms: 2–4 common English synonyms or related words (English only).
+- ipa: IPA pronunciation for the English word/phrase.
+- No text outside JSON.`;
+}
+
 export function buildPrepareFlashcardsPrompt(code: TranslationLanguageCode): string {
   const lang = targetLanguageName(code);
   return `You prepare vocabulary flashcards for ${lang} learners.

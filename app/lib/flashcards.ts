@@ -23,6 +23,9 @@ const STORAGE_KEY = 'yoytube-flashcards';
 
 const DEFAULT_EASE = 2.5;
 
+export type EnrichmentStatus = 'pending' | 'completed' | 'failed';
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+
 export type { CardState, FlashcardReviewResult } from './flashcardSrs';
 export {
   countDueOnDay,
@@ -49,6 +52,12 @@ export interface Flashcard {
   timestamp?: number;
   /** Sentence from subtitles when the card was first saved */
   originalExample?: string;
+  explanation?: string;
+  partOfSpeech?: string;
+  level?: CefrLevel;
+  synonyms?: string[];
+  ipa?: string;
+  enrichmentStatus?: EnrichmentStatus;
   createdAt: number;
   updatedAt?: number;
   knownCount: number;
@@ -69,6 +78,22 @@ export interface FlashcardUpdate {
   example: string;
   tags: string[];
   deckIds: string[];
+  explanation?: string;
+  partOfSpeech?: string;
+  level?: CefrLevel;
+  synonyms?: string[];
+  ipa?: string;
+}
+
+export interface FlashcardEnrichmentPatch {
+  translation?: string;
+  example?: string;
+  explanation?: string;
+  partOfSpeech?: string;
+  level?: CefrLevel;
+  tags?: string[];
+  synonyms?: string[];
+  ipa?: string;
 }
 
 export type UpdateFlashcardError = 'not_found' | 'empty_word' | 'duplicate_word';
@@ -95,6 +120,13 @@ export interface FlashcardDraft {
   deckIds?: string[];
   sentenceId?: string;
   timestamp?: number;
+  originalExample?: string;
+  explanation?: string;
+  partOfSpeech?: string;
+  level?: CefrLevel;
+  synonyms?: string[];
+  ipa?: string;
+  enrichmentStatus?: EnrichmentStatus;
 }
 
 export interface FlashcardSentenceContext {
@@ -199,6 +231,12 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     sentenceId,
     timestamp: card.timestamp,
     originalExample: card.originalExample ?? example,
+    explanation: card.explanation?.trim() || undefined,
+    partOfSpeech: card.partOfSpeech?.trim() || undefined,
+    level: card.level,
+    synonyms: card.synonyms?.length ? card.synonyms : undefined,
+    ipa: card.ipa?.trim() || undefined,
+    enrichmentStatus: card.enrichmentStatus,
     createdAt: card.createdAt ?? Date.now(),
     updatedAt: card.updatedAt,
     knownCount: card.knownCount ?? 0,
@@ -332,7 +370,15 @@ function createFlashcard(
     deckIds: draft.deckIds ? [...new Set(draft.deckIds)] : [],
     sentenceId,
     timestamp: draft.timestamp,
-    originalExample: example || undefined,
+    originalExample: draft.originalExample?.trim() || example || undefined,
+    explanation: draft.explanation?.trim() || undefined,
+    partOfSpeech: draft.partOfSpeech?.trim() || undefined,
+    level: draft.level,
+    synonyms: draft.synonyms?.length ? draft.synonyms : undefined,
+    ipa: draft.ipa?.trim() || undefined,
+    enrichmentStatus:
+      draft.enrichmentStatus ??
+      (translation ? 'completed' : 'pending'),
     createdAt: Date.now(),
     knownCount: 0,
     unknownCount: 0,
@@ -625,12 +671,88 @@ export function updateFlashcard(update: FlashcardUpdate): UpdateFlashcardResult 
     example: update.example.trim(),
     tags: normalizeTags(update.tags),
     deckIds: [...new Set(update.deckIds.filter(Boolean))],
+    explanation: update.explanation?.trim() || existing.explanation,
+    partOfSpeech: update.partOfSpeech?.trim() || existing.partOfSpeech,
+    level: update.level ?? existing.level,
+    synonyms:
+      update.synonyms !== undefined ? update.synonyms : existing.synonyms,
+    ipa: update.ipa?.trim() || existing.ipa,
     updatedAt: Date.now(),
   };
 
   cards[index] = updated;
   saveFlashcards(cards);
   return { ok: true, card: updated };
+}
+
+export function patchFlashcardEnrichment(
+  id: string,
+  enrichment: FlashcardEnrichmentPatch,
+  status: EnrichmentStatus,
+  options: {
+    forceTranslation?: boolean;
+    forceExample?: boolean;
+  } = {}
+): Flashcard | null {
+  const cards = getFlashcards();
+  const index = cards.findIndex((card) => card.id === id);
+  if (index < 0) return null;
+
+  const existing = cards[index];
+  const translationLanguage =
+    existing.translationLanguage ?? getSavedTranslationLanguage();
+
+  const nextTranslation = enrichment.translation?.trim();
+  const shouldUpdateTranslation =
+    Boolean(nextTranslation) &&
+    (options.forceTranslation || !existing.translation.trim());
+
+  const hasOriginalExample = Boolean(
+    existing.originalExample?.trim() || existing.example.trim()
+  );
+  const nextExample = enrichment.example?.trim();
+  const shouldUpdateExample =
+    Boolean(nextExample) &&
+    (options.forceExample ||
+      (!hasOriginalExample && !existing.example.trim()));
+
+  const translation = shouldUpdateTranslation
+    ? nextTranslation!
+    : existing.translation;
+
+  const example = shouldUpdateExample ? nextExample! : existing.example;
+
+  const mergedTags = normalizeTags([
+    ...existing.tags,
+    ...(enrichment.tags ?? []),
+  ]);
+
+  const updated: Flashcard = {
+    ...existing,
+    translation,
+    translations: {
+      ...existing.translations,
+      ...(shouldUpdateTranslation && translation
+        ? { [translationLanguage]: translation }
+        : {}),
+    },
+    translationLanguage,
+    example,
+    tags: mergedTags,
+    explanation: enrichment.explanation?.trim() || existing.explanation,
+    partOfSpeech: enrichment.partOfSpeech?.trim() || existing.partOfSpeech,
+    level: enrichment.level ?? existing.level,
+    synonyms: enrichment.synonyms?.length
+      ? enrichment.synonyms
+      : existing.synonyms,
+    ipa: enrichment.ipa?.trim() || existing.ipa,
+    enrichmentStatus: status,
+    updatedAt: Date.now(),
+  };
+
+  cards[index] = updated;
+  saveFlashcards(cards);
+  return updated;
 }
 
 export function findExampleLine(

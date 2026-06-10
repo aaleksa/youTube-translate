@@ -125,7 +125,7 @@ export async function prepareFlashcardForWord(
     return {
       word: enriched.word.trim() || trimmed,
       translation: enriched.translation.trim(),
-      example: enriched.example.trim() || fallbackExample || trimmed,
+      example: fallbackExample || enriched.example.trim() || trimmed,
     };
   }
 
@@ -142,7 +142,7 @@ export async function prepareFlashcardForWord(
     return {
       word: match.word.trim() || trimmed,
       translation: match.translation.trim(),
-      example: match.example.trim() || fallbackExample || trimmed,
+      example: fallbackExample || match.example.trim() || trimmed,
     };
   }
 

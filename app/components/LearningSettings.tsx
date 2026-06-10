@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  getFlashcardSettings,
+  updateAutoEnrichNewCards,
+  type FlashcardSettings,
+} from '../lib/flashcardSettings';
+import {
   getLearningSettings,
   updateAutoPause,
   type AutoPauseFeature,
@@ -16,6 +21,8 @@ interface LearningSettingsProps {
 export default function LearningSettings({ embedded = false }: LearningSettingsProps) {
   const { t } = useI18n();
   const [settings, setSettings] = useState<LearningSettings | null>(null);
+  const [flashcardSettings, setFlashcardSettings] =
+    useState<FlashcardSettings | null>(null);
   const [open, setOpen] = useState(false);
 
   const autoPauseOptions = useMemo(
@@ -30,6 +37,7 @@ export default function LearningSettings({ embedded = false }: LearningSettingsP
 
   useEffect(() => {
     setSettings(getLearningSettings());
+    setFlashcardSettings(getFlashcardSettings());
   }, []);
 
   const handleToggle = (feature: AutoPauseFeature, enabled: boolean) => {
@@ -37,7 +45,7 @@ export default function LearningSettings({ embedded = false }: LearningSettingsP
     setSettings(next);
   };
 
-  if (!settings) return null;
+  if (!settings || !flashcardSettings) return null;
 
   const anyEnabled = Object.values(settings.autoPause).some(Boolean);
   const isOpen = embedded || open;
@@ -70,6 +78,28 @@ export default function LearningSettings({ embedded = false }: LearningSettingsP
           {t('learning.continuousMode')}
         </p>
       )}
+
+      <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+          Flashcards
+        </p>
+        <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={flashcardSettings.autoEnrichNewCards}
+            onChange={(e) =>
+              setFlashcardSettings(updateAutoEnrichNewCards(e.target.checked))
+            }
+            className="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+          />
+          <span>
+            {t('enrichment.autoEnrich')}
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {t('enrichment.autoEnrichHint')}
+            </span>
+          </span>
+        </label>
+      </div>
     </>
   );
 
