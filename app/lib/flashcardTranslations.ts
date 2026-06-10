@@ -1,3 +1,4 @@
+import { enrichWordsForFlashcards } from './enrichFlashcards';
 import {
   getFlashcards,
   normalizeFlashcardWord,
@@ -6,17 +7,34 @@ import {
 } from './flashcards';
 import type { TranslationLanguageCode } from './translationLanguages';
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 12;
 
-function hasTranslationInLanguage(
+function hasCyrillic(text: string): boolean {
+  return /[\u0400-\u04FF]/.test(text);
+}
+
+/** Stored translation is unusable for the selected language (e.g. Ukrainian text under PL). */
+function isStaleTranslation(
+  text: string,
+  language: TranslationLanguageCode
+): boolean {
+  if (!text.trim()) return true;
+  if (language === 'uk') return false;
+  return hasCyrillic(text);
+}
+
+function needsTranslation(
   card: Flashcard,
   language: TranslationLanguageCode
 ): boolean {
-  if (card.translations?.[language]?.trim()) return true;
-  return (
-    (card.translationLanguage === language || !card.translationLanguage) &&
-    Boolean(card.translation.trim())
-  );
+  const mapped = card.translations?.[language]?.trim();
+  if (mapped) return isStaleTranslation(mapped, language);
+
+  if (card.translationLanguage === language) {
+    return isStaleTranslation(card.translation, language);
+  }
+
+  return true;
 }
 
 export function getFlashcardTranslation(
@@ -26,10 +44,7 @@ export function getFlashcardTranslation(
   const direct = card.translations?.[language]?.trim();
   if (direct) return direct;
 
-  if (
-    card.translationLanguage === language ||
-    !card.translationLanguage
-  ) {
+  if (card.translationLanguage === language) {
     return card.translation.trim();
   }
 
@@ -44,20 +59,23 @@ export async function ensureFlashcardTranslations(
 
   cards = cards.map((card) => {
     const sourceLang = card.translationLanguage ?? 'uk';
-    if (
-      card.translation.trim() &&
-      !card.translations?.[sourceLang]?.trim()
-    ) {
-      prefilled += 1;
-      return {
-        ...card,
-        translations: {
-          ...card.translations,
-          [sourceLang]: card.translation.trim(),
-        },
-      };
-    }
-    return card;
+    const needsLang = !card.translationLanguage;
+    const needsMapEntry =
+      card.translation.trim() && !card.translations?.[sourceLang]?.trim();
+
+    if (!needsLang && !needsMapEntry) return card;
+
+    prefilled += 1;
+    return {
+      ...card,
+      translationLanguage: sourceLang,
+      translations: needsMapEntry
+        ? {
+            ...card.translations,
+            [sourceLang]: card.translation.trim(),
+          }
+        : card.translations,
+    };
   });
 
   if (prefilled > 0) {
@@ -69,34 +87,36 @@ export async function ensureFlashcardTranslations(
   for (const card of cards) {
     const key = normalizeFlashcardWord(card.word);
     if (!key) continue;
-    if (hasTranslationInLanguage(card, language)) continue;
+    if (!needsTranslation(card, language)) continue;
     missing.set(key, card);
   }
 
   if (missing.size === 0) return 0;
 
-  const words = [...missing.values()].map((card) => card.word.trim());
   const translatedByKey = new Map<string, string>();
+  const missingCards = [...missing.values()];
 
-  for (let index = 0; index < words.length; index += BATCH_SIZE) {
-    const batch = words.slice(index, index + BATCH_SIZE);
-    const response = await fetch('/api/translate-lines', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lines: batch, targetLanguage: language }),
-    });
+  for (let index = 0; index < missingCards.length; index += BATCH_SIZE) {
+    const batch = missingCards.slice(index, index + BATCH_SIZE);
+    const words = batch.map((card) => card.word.trim());
+    const transcript = batch
+      .map((card) => card.example.trim() || card.word.trim())
+      .join('\n');
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to translate flashcards');
+    const enriched = await enrichWordsForFlashcards(
+      words,
+      transcript,
+      language
+    );
+
+    for (const item of enriched) {
+      const key = normalizeFlashcardWord(item.word);
+      const translation = item.translation.trim();
+      if (!key || !translation || isStaleTranslation(translation, language)) {
+        continue;
+      }
+      translatedByKey.set(key, translation);
     }
-
-    const batchTranslations: string[] = data.translations ?? [];
-    batch.forEach((word, batchIndex) => {
-      const translated = batchTranslations[batchIndex]?.trim();
-      if (!translated) return;
-      translatedByKey.set(normalizeFlashcardWord(word), translated);
-    });
   }
 
   if (translatedByKey.size === 0) return 0;

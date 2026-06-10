@@ -160,13 +160,14 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
 
   const example = card.example ?? '';
   const translation = (card.translation ?? '').trim();
-  const translationLanguage = card.translationLanguage;
+  const translationLanguage =
+    card.translationLanguage ?? (translation ? 'uk' : undefined);
   const translations: Partial<Record<TranslationLanguageCode, string>> = {
     ...card.translations,
   };
 
-  if (translation && Object.keys(translations).length === 0) {
-    translations[translationLanguage ?? 'uk'] = translation;
+  if (translation && translationLanguage && !translations[translationLanguage]) {
+    translations[translationLanguage] = translation;
   }
 
   let sentenceId = card.sentenceId;
@@ -230,7 +231,8 @@ export function getFlashcards(): Flashcard[] {
       return Boolean(
         next &&
           (card.sentenceId !== next.sentenceId ||
-            card.translations !== next.translations)
+            card.translations !== next.translations ||
+            card.translationLanguage !== next.translationLanguage)
       );
     });
     if (needsPersist) {
