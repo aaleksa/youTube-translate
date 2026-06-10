@@ -45,13 +45,13 @@ export default function VideoNotesPanel({
     if (!onShowPanelChange) {
       setInternalShowPanel(false);
     }
-  }, [videoId, transcriptText.length, onShowPanelChange]);
+  }, [videoId, transcriptText.length, taskLanguage, onShowPanelChange]);
 
   const loadNotes = useCallback(async () => {
     setError('');
     setShowPanel(true);
 
-    const cached = getNotesCache(videoId, transcriptText.length);
+    const cached = getNotesCache(videoId, transcriptText.length, taskLanguage);
     if (cached) {
       setNotes(cached);
       setFromCache(true);
@@ -84,7 +84,7 @@ export default function VideoNotesPanel({
         sections: data.sections ?? [],
       };
 
-      setNotesCache(videoId, transcriptText.length, result);
+      setNotesCache(videoId, transcriptText.length, taskLanguage, result);
       setNotes(result);
     } catch (err) {
       setError(

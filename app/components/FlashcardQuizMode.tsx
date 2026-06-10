@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   buildQuizQuestions,
   isQuizAnswerCorrect,
@@ -19,11 +19,13 @@ import {
   getTranslationLanguageName,
   getTranslationLanguageShortCode,
 } from '../lib/translationLanguages';
+import type { TranslationLanguageCode } from '../lib/translationLanguages';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface FlashcardQuizModeProps extends FlashcardSentenceHandlers {
   cards: Flashcard[];
   format: QuizFormat;
+  quizLanguage: TranslationLanguageCode;
   activeVideoId?: string;
   onClose: () => void;
   onComplete: () => void;
@@ -49,6 +51,7 @@ function questionInstruction(
 export default function FlashcardQuizMode({
   cards,
   format,
+  quizLanguage,
   activeVideoId,
   onListenSentence,
   onWatchExample,
@@ -57,12 +60,12 @@ export default function FlashcardQuizMode({
   onClose,
   onComplete,
 }: FlashcardQuizModeProps) {
-  const { t, translationLanguage } = useI18n();
-  const targetCode = getTranslationLanguageShortCode(translationLanguage);
-  const targetName = getTranslationLanguageName(translationLanguage);
+  const { t } = useI18n();
+  const targetCode = getTranslationLanguageShortCode(quizLanguage);
+  const targetName = getTranslationLanguageName(quizLanguage);
   const questions = useMemo(
-    () => buildQuizQuestions(cards, { format, translationLanguage }),
-    [cards, format, translationLanguage]
+    () => buildQuizQuestions(cards, { format, translationLanguage: quizLanguage }),
+    [cards, format, quizLanguage]
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [typingValue, setTypingValue] = useState('');
@@ -72,6 +75,15 @@ export default function FlashcardQuizMode({
     []
   );
   const [summary, setSummary] = useState<QuizSessionSummary | null>(null);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+    setTypingValue('');
+    setAnswered(false);
+    setIsCorrect(false);
+    setResults([]);
+    setSummary(null);
+  }, [quizLanguage, format, cards]);
 
   const currentQuestion = questions[currentIndex];
   const total = questions.length;

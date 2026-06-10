@@ -86,12 +86,12 @@ export default function VideoQuizPanel({
     }
 
     if (!forceNew) {
-      const cached = getQuizCache(videoId, transcriptText.length);
+      const cached = getQuizCache(videoId, transcriptText.length, taskLanguage);
       if (cached) {
         setQuiz(cached);
         setFromCache(true);
         setPhase('taking');
-        autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
+        autoLoadKeyRef.current = `${videoId}:${transcriptText.length}:${taskLanguage}`;
         return;
       }
     }
@@ -115,15 +115,15 @@ export default function VideoQuizPanel({
 
       const questions: QuizQuestion[] = data.questions ?? [];
       const nextQuiz: VideoQuiz = { questions };
-      setQuizCache(videoId, transcriptText.length, nextQuiz);
+      setQuizCache(videoId, transcriptText.length, taskLanguage, nextQuiz);
       setQuiz(nextQuiz);
       setPhase('taking');
-      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
+      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}:${taskLanguage}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка генерації тесту');
       setQuiz(null);
       setPhase('idle');
-      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}`;
+      autoLoadKeyRef.current = `${videoId}:${transcriptText.length}:${taskLanguage}`;
     } finally {
       setLoading(false);
     }
@@ -136,12 +136,12 @@ export default function VideoQuizPanel({
     }
     if (quiz || loading) return;
 
-    const key = `${videoId}:${transcriptText.length}`;
+    const key = `${videoId}:${transcriptText.length}:${taskLanguage}`;
     if (autoLoadKeyRef.current === key) return;
 
     autoLoadKeyRef.current = key;
     void loadQuiz();
-  }, [showPanel, quiz, loading, videoId, transcriptText.length, loadQuiz]);
+  }, [showPanel, quiz, loading, videoId, transcriptText.length, taskLanguage, loadQuiz]);
 
   const handleSelect = (questionId: string, optionIndex: number) => {
     if (phase !== 'taking') return;

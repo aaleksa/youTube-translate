@@ -5,21 +5,31 @@ const STORAGE_PREFIX = 'yoytube-quiz-';
 export interface QuizCacheEntry extends VideoQuiz {
   videoId: string;
   textLength: number;
+  taskLanguage: string;
   savedAt: number;
+}
+
+function cacheKey(videoId: string, taskLanguage: string): string {
+  return `${STORAGE_PREFIX}${videoId}-${taskLanguage}`;
 }
 
 export function getQuizCache(
   videoId: string,
-  textLength: number
+  textLength: number,
+  taskLanguage: string
 ): VideoQuiz | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = localStorage.getItem(cacheKey(videoId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as QuizCacheEntry;
-    if (entry.textLength !== textLength || !Array.isArray(entry.questions)) {
+    if (
+      entry.textLength !== textLength ||
+      entry.taskLanguage !== taskLanguage ||
+      !Array.isArray(entry.questions)
+    ) {
       return null;
     }
 
@@ -34,18 +44,26 @@ export function getQuizCache(
 export function setQuizCache(
   videoId: string,
   textLength: number,
+  taskLanguage: string,
   quiz: VideoQuiz
 ): void {
   const entry: QuizCacheEntry = {
     videoId,
     textLength,
+    taskLanguage,
     questions: quiz.questions,
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  localStorage.setItem(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
 }
 
 export function clearQuizCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+  const prefix = `${STORAGE_PREFIX}${videoId}`;
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      localStorage.removeItem(key);
+    }
+  }
 }

@@ -55,7 +55,7 @@ export default function VideoChaptersPanel({
     if (!onShowPanelChange) {
       setInternalShowPanel(false);
     }
-  }, [videoId, transcriptTextLength, onShowPanelChange]);
+  }, [videoId, transcriptTextLength, taskLanguage, onShowPanelChange]);
 
   const loadChapters = useCallback(async () => {
     setError('');

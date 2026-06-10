@@ -107,7 +107,8 @@ export default function PlaylistPanel({
     if (!force) {
       const cached = getPlaylistNotesCache(
         session.playlistId,
-        combinedText.length
+        combinedText.length,
+        taskLanguage
       );
       if (cached) {
         setCombinedNotes(cached);
@@ -147,6 +148,7 @@ export default function PlaylistPanel({
       setPlaylistNotesCache(
         session.playlistId,
         combinedText.length,
+        taskLanguage,
         result
       );
       setCombinedNotes(result);
@@ -165,7 +167,7 @@ export default function PlaylistPanel({
     setNotesError('');
     setNotesFromCache(false);
     setNotesLoading(false);
-  }, [session?.playlistId]);
+  }, [session?.playlistId, taskLanguage]);
 
   useEffect(() => {
     if (!session || loadProgress || session.videos.length === 0) return;

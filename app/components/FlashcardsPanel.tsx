@@ -103,7 +103,7 @@ export default function FlashcardsPanel({
   onRepeatSentence,
   onShadowSentence,
 }: FlashcardsPanelProps) {
-  const { t, translationLanguage } = useI18n();
+  const { t, translationLanguage, taskLanguage } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [search, setSearch] = useState('');
@@ -130,6 +130,9 @@ export default function FlashcardsPanel({
     void (async () => {
       try {
         await ensureFlashcardTranslations(translationLanguage);
+        if (taskLanguage !== translationLanguage) {
+          await ensureFlashcardTranslations(taskLanguage);
+        }
         if (!cancelled) {
           setCards(getFlashcards());
         }
@@ -141,7 +144,12 @@ export default function FlashcardsPanel({
     return () => {
       cancelled = true;
     };
-  }, [translationLanguage, refreshKey]);
+  }, [translationLanguage, taskLanguage, refreshKey]);
+
+  useEffect(() => {
+    setQuizzing(false);
+    setStudying(false);
+  }, [translationLanguage, taskLanguage]);
 
   useEffect(() => {
     if (!showUpdatedToast) return;
@@ -202,7 +210,7 @@ export default function FlashcardsPanel({
         quizSource === 'deck'
           ? selectedDeckId ?? resolved.deckId
           : undefined,
-      translationLanguage,
+      translationLanguage: taskLanguage,
     });
   }, [
     activeVideoId,
@@ -210,7 +218,7 @@ export default function FlashcardsPanel({
     quizSource,
     selectedDeckId,
     selectedVideoId,
-    translationLanguage,
+    taskLanguage,
     view,
   ]);
 
@@ -280,8 +288,10 @@ export default function FlashcardsPanel({
   if (quizzing) {
     return (
       <FlashcardQuizMode
+        key={`${taskLanguage}-${quizFormat}-${quizSource}-${view}-${selectedVideoId ?? ''}-${selectedDeckId ?? ''}`}
         cards={quizPool}
         format={quizFormat}
+        quizLanguage={taskLanguage}
         activeVideoId={activeVideoId}
         onListenSentence={onListenSentence}
         onWatchExample={onWatchExample}
@@ -299,6 +309,7 @@ export default function FlashcardsPanel({
   if (studying) {
     return (
       <FlashcardStudyMode
+        key={translationLanguage}
         cards={studyQueue}
         activeVideoId={activeVideoId}
         onListenSentence={onListenSentence}

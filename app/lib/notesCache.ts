@@ -5,21 +5,30 @@ const STORAGE_PREFIX = 'yoytube-notes-';
 export interface NotesCacheEntry extends VideoNotesResult {
   videoId: string;
   textLength: number;
+  taskLanguage: string;
   savedAt: number;
+}
+
+function cacheKey(videoId: string, taskLanguage: string): string {
+  return `${STORAGE_PREFIX}${videoId}-${taskLanguage}`;
 }
 
 export function getNotesCache(
   videoId: string,
-  textLength: number
+  textLength: number,
+  taskLanguage: string
 ): VideoNotesResult | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = localStorage.getItem(cacheKey(videoId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as NotesCacheEntry;
-    if (entry.textLength !== textLength) {
+    if (
+      entry.textLength !== textLength ||
+      entry.taskLanguage !== taskLanguage
+    ) {
       return null;
     }
 
@@ -44,20 +53,28 @@ export function getNotesCache(
 export function setNotesCache(
   videoId: string,
   textLength: number,
+  taskLanguage: string,
   result: VideoNotesResult
 ): void {
   const entry: NotesCacheEntry = {
     videoId,
     textLength,
+    taskLanguage,
     title: result.title,
     mainIdeas: result.mainIdeas,
     sections: result.sections,
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  localStorage.setItem(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
 }
 
 export function clearNotesCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+  const prefix = `${STORAGE_PREFIX}${videoId}`;
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      localStorage.removeItem(key);
+    }
+  }
 }

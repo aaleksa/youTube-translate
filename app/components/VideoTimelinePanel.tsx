@@ -55,7 +55,7 @@ export default function VideoTimelinePanel({
     if (!onShowPanelChange) {
       setInternalShowPanel(false);
     }
-  }, [videoId, transcriptTextLength, onShowPanelChange]);
+  }, [videoId, transcriptTextLength, taskLanguage, onShowPanelChange]);
 
   const loadTimeline = useCallback(async () => {
     setError('');

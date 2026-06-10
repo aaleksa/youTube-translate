@@ -64,13 +64,13 @@ export default function QuickInfoAnalysis({
     setShowNotes(false);
     setShowTimeline(false);
     setShowChapters(false);
-  }, [videoId, transcriptText.length]);
+  }, [videoId, transcriptText.length, taskLanguage]);
 
   const handleSummary = async () => {
     setSummaryError('');
     setShowSummary(true);
 
-    const cached = getSummaryCache(videoId, transcriptText.length);
+    const cached = getSummaryCache(videoId, transcriptText.length, taskLanguage);
     if (cached) {
       setSummary(cached);
       setSummaryFromCache(true);
@@ -97,7 +97,7 @@ export default function QuickInfoAnalysis({
       }
 
       const result: VideoSummaryResult = { summary: data.summary };
-      setSummaryCache(videoId, transcriptText.length, result);
+      setSummaryCache(videoId, transcriptText.length, taskLanguage, result);
       setSummary(result);
     } catch (error) {
       setSummaryError(
@@ -117,7 +117,7 @@ export default function QuickInfoAnalysis({
     setGrammarError('');
     setShowGrammar(true);
 
-    const cached = getGrammarCache(videoId, transcriptText.length);
+    const cached = getGrammarCache(videoId, transcriptText.length, taskLanguage);
     if (cached) {
       setGrammar(cached);
       setGrammarFromCache(true);
@@ -148,7 +148,7 @@ export default function QuickInfoAnalysis({
       const result: GrammarHighlightsResult = {
         highlights: data.highlights ?? [],
       };
-      setGrammarCache(videoId, transcriptText.length, result);
+      setGrammarCache(videoId, transcriptText.length, taskLanguage, result);
       setGrammar(result);
     } catch (error) {
       setGrammarError(
