@@ -8,7 +8,6 @@ import {
   getDailyGoalProgress,
   getDeckProgressList,
   getLearningOverview,
-  getPhrasalVerbProgress,
   getVideoProgressList,
   getWeakWords,
   stateBarPercent,
@@ -148,7 +147,6 @@ export default function LearningAnalyticsPanel({
   }, [activeVideoId, activeVideoTitle, cards]);
 
   const overview = useMemo(() => getLearningOverview(cards), [cards]);
-  const phrasal = useMemo(() => getPhrasalVerbProgress(cards), [cards]);
   const videoProgress = useMemo(
     () => getVideoProgressList(cards, titleByVideoId),
     [cards, titleByVideoId]
@@ -222,7 +220,7 @@ export default function LearningAnalyticsPanel({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
           {t('analytics.overview')}
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard
             label={t('analytics.wordsSaved')}
             value={overview.wordsSaved}
@@ -237,11 +235,6 @@ export default function LearningAnalyticsPanel({
             label={t('analytics.masteredWords')}
             value={overview.masteredWords}
             accent="text-emerald-600 dark:text-emerald-400"
-          />
-          <StatCard
-            label={t('analytics.phrasalVerbs')}
-            value={overview.phrasalVerbsSaved}
-            accent="text-amber-600 dark:text-amber-400"
           />
         </div>
       </section>
@@ -324,26 +317,6 @@ export default function LearningAnalyticsPanel({
           </div>
         </div>
       </section>
-
-      {phrasal.saved > 0 && (
-        <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
-            {t('analytics.phrasalTitle')}
-          </h3>
-          <div className="grid grid-cols-2 gap-3 max-w-md">
-            <StatCard
-              label={t('analytics.phrasalSaved')}
-              value={phrasal.saved}
-              accent="text-amber-600 dark:text-amber-400"
-            />
-            <StatCard
-              label={t('analytics.phrasalMastered')}
-              value={phrasal.mastered}
-              accent="text-emerald-600 dark:text-emerald-400"
-            />
-          </div>
-        </section>
-      )}
 
       {videoProgress.length > 0 && (
         <section>
