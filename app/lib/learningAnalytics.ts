@@ -1,16 +1,37 @@
 import type { Deck } from './decks';
 import type { Flashcard } from './flashcards';
 import { getCardState, getVocabularyProgress, type CardState } from './flashcardSrs';
-import { getStudyStreak, getTodayCardsReviewed } from './dailyStudyLog';
+import {
+  getStudyStreak,
+  getTodayCardsReviewed,
+  getTodayStudyEntry,
+} from './dailyStudyLog';
 import { getLearningGoals } from './learningGoals';
 import type { TranslationKey } from './i18n';
 
 export const PHRASAL_VERB_TAG = 'phrasal verb';
 
 export function isPhrasalVerbCard(card: Flashcard): boolean {
-  return card.tags.some(
-    (tag) => tag.trim().toLowerCase() === PHRASAL_VERB_TAG
-  );
+  if (
+    card.tags.some((tag) => tag.trim().toLowerCase() === PHRASAL_VERB_TAG)
+  ) {
+    return true;
+  }
+  return card.partOfSpeech?.trim().toLowerCase() === PHRASAL_VERB_TAG;
+}
+
+export function getCardSuccessRate(card: Flashcard): number | null {
+  const total = card.knownCount + card.unknownCount;
+  if (total === 0) return null;
+  return card.knownCount / total;
+}
+
+export function isWeakCard(card: Flashcard): boolean {
+  const total = card.knownCount + card.unknownCount;
+  if (total === 0) return false;
+  if (card.unknownCount > card.knownCount) return true;
+  const rate = getCardSuccessRate(card);
+  return rate !== null && rate < 0.6;
 }
 
 export function isCardStudied(card: Flashcard): boolean {
@@ -33,7 +54,29 @@ export interface LearningOverview {
   quizCorrect: number;
   quizWrong: number;
   quizAccuracyPercent: number | null;
+  srsSuccessRatePercent: number | null;
   stateDistribution: Record<CardState, number>;
+}
+
+export interface RecentActivity {
+  date: string;
+  cardsReviewed: number;
+  correct: number;
+  incorrect: number;
+}
+
+export function getSrsSuccessRatePercent(cards: Flashcard[]): number | null {
+  let known = 0;
+  let unknown = 0;
+
+  for (const card of cards) {
+    known += card.knownCount;
+    unknown += card.unknownCount;
+  }
+
+  const total = known + unknown;
+  if (total === 0) return null;
+  return Math.round((known / total) * 100);
 }
 
 export function getQuizAccuracyPercent(cards: Flashcard[]): number | null {
@@ -71,6 +114,7 @@ export function getLearningOverview(cards: Flashcard[]): LearningOverview {
     quizCorrect,
     quizWrong,
     quizAccuracyPercent: getQuizAccuracyPercent(cards),
+    srsSuccessRatePercent: getSrsSuccessRatePercent(cards),
     stateDistribution: {
       new: progress.new,
       learning: progress.learning,
@@ -154,18 +198,40 @@ export function getDeckProgressList(
 
 export function getWeakWords(cards: Flashcard[], limit = 12): Flashcard[] {
   return cards
-    .filter(
-      (card) =>
-        card.unknownCount > card.knownCount &&
-        card.unknownCount + card.knownCount > 0
-    )
+    .filter(isWeakCard)
     .sort((a, b) => {
-      const aGap = a.unknownCount - a.knownCount;
-      const bGap = b.unknownCount - b.knownCount;
-      if (bGap !== aGap) return bGap - aGap;
+      const aRate = getCardSuccessRate(a) ?? 1;
+      const bRate = getCardSuccessRate(b) ?? 1;
+      if (aRate !== bRate) return aRate - bRate;
       return b.unknownCount - a.unknownCount;
     })
     .slice(0, limit);
+}
+
+export function getHardestWords(cards: Flashcard[], limit = 10): Flashcard[] {
+  return cards
+    .filter((card) => card.knownCount + card.unknownCount >= 2)
+    .sort((a, b) => {
+      const aRate = getCardSuccessRate(a) ?? 1;
+      const bRate = getCardSuccessRate(b) ?? 1;
+      if (aRate !== bRate) return aRate - bRate;
+      return b.unknownCount - a.unknownCount;
+    })
+    .slice(0, limit);
+}
+
+export function getRecentActivity(): RecentActivity {
+  const entry = getTodayStudyEntry();
+  return {
+    date: entry.date,
+    cardsReviewed: entry.cardsReviewed,
+    correct: entry.correctReviews ?? 0,
+    incorrect: entry.incorrectReviews ?? 0,
+  };
+}
+
+export function masteredPercent(mastered: number, total: number): number {
+  return stateBarPercent(mastered, total);
 }
 
 export interface AchievementDefinition {

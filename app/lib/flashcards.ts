@@ -405,7 +405,7 @@ export function recordFlashcardReview(
 
   cards[index] = result.card;
   saveFlashcards(cards);
-  recordDailyCardReview();
+  recordDailyCardReview(1, known);
   return result;
 }
 
