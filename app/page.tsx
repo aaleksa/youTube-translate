@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
 import {
   saveToTranscriptHistory,
@@ -130,21 +130,26 @@ export default function Home() {
 
   useEffect(() => {
     if (!videoData) return;
-    setActiveLineIndex(
-      findActiveLineIndex(visibleTranscript, currentPlaybackTime)
+    const nextIndex = findActiveLineIndex(
+      visibleTranscript,
+      currentPlaybackTime
     );
+    setActiveLineIndex((prev) => (prev === nextIndex ? prev : nextIndex));
   }, [currentPlaybackTime, videoData, visibleTranscript]);
 
-  const handleShadowingCaptionIndexes = (rawIndexes: number[]) => {
-    if (!videoData?.displayLines?.length || showRawTranscript) {
-      setShadowingCaptionIndexes(rawIndexes);
-      return;
-    }
+  const handleShadowingCaptionIndexes = useCallback(
+    (rawIndexes: number[]) => {
+      if (!videoData?.displayLines?.length || showRawTranscript) {
+        setShadowingCaptionIndexes(rawIndexes);
+        return;
+      }
 
-    setShadowingCaptionIndexes(
-      mapRawCaptionIndexesToDisplayIndexes(videoData.displayLines, rawIndexes)
-    );
-  };
+      setShadowingCaptionIndexes(
+        mapRawCaptionIndexesToDisplayIndexes(videoData.displayLines, rawIndexes)
+      );
+    },
+    [showRawTranscript, videoData?.displayLines]
+  );
 
   const toggleRawTranscript = () => {
     setShowRawTranscript((prev) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getCueEndSeconds,
   getCueStartSeconds,
@@ -50,8 +50,11 @@ export default function ShadowingPanel({
   const listenStartedRef = useRef(false);
   const speechSupported = isSpeechRecognitionSupported();
   const pronunciationRequired = requirePronunciation && speechSupported;
-  const shadowingLines =
-    phrases && phrases.length > 0 ? timedUnitsToCues(phrases) : transcript;
+  const shadowingLines = useMemo(
+    () =>
+      phrases && phrases.length > 0 ? timedUnitsToCues(phrases) : transcript,
+    [phrases, transcript]
+  );
 
   const notifyLineChange = useCallback(
     (index: number | null) => {
@@ -145,6 +148,14 @@ export default function ShadowingPanel({
     shadowingLines,
   ]);
 
+  const onLineIndexChangeRef = useRef(onLineIndexChange);
+  const onCaptionIndexesChangeRef = useRef(onCaptionIndexesChange);
+
+  useEffect(() => {
+    onLineIndexChangeRef.current = onLineIndexChange;
+    onCaptionIndexesChangeRef.current = onCaptionIndexesChange;
+  }, [onCaptionIndexesChange, onLineIndexChange]);
+
   useEffect(() => {
     setActive(false);
     setPhase('idle');
@@ -152,8 +163,9 @@ export default function ShadowingPanel({
     setFinished(false);
     setPronunciationChecked(false);
     listenStartedRef.current = false;
-    notifyLineChange(null);
-  }, [videoId, notifyLineChange]);
+    onLineIndexChangeRef.current?.(null);
+    onCaptionIndexesChangeRef.current?.([]);
+  }, [videoId]);
 
   const currentCue = shadowingLines[lineIndex];
   const phaseLabel =
