@@ -117,13 +117,17 @@ export function removeFlashcard(id: string): Flashcard[] {
 
 export function findExampleLine(
   selected: string,
-  transcript: Array<{ text: string }>
+  transcript: Array<{ text: string }>,
+  sentences?: Array<{ text: string }>
 ): string {
   const trimmed = selected.trim();
   if (!trimmed) return '';
 
-  const matchingLine = transcript.find((item) =>
-    item.text.toLowerCase().includes(trimmed.toLowerCase())
+  const pool = sentences?.length ? sentences : transcript;
+  const needle = trimmed.toLowerCase();
+
+  const matchingLine = pool.find((item) =>
+    item.text.toLowerCase().includes(needle)
   );
 
   return matchingLine?.text ?? trimmed;

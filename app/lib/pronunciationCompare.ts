@@ -8,6 +8,7 @@ export interface PronunciationCompareResult {
   score: number;
   spokenText: string;
   words: WordMatch[];
+  missedWords: string[];
   extraWords: string[];
 }
 
@@ -71,6 +72,7 @@ export function comparePronunciation(
       score: 0,
       spokenText: spokenText.trim(),
       words: [],
+      missedWords: [],
       extraWords: spokenWords,
     };
   }
@@ -115,11 +117,15 @@ export function comparePronunciation(
   }
 
   const score = Math.round((matchedCount / expectedWords.length) * 100);
+  const missedWords = words
+    .filter((word) => word.status === 'missing')
+    .map((word) => word.expected);
 
   return {
     score,
     spokenText: spokenText.trim(),
     words,
+    missedWords,
     extraWords,
   };
 }

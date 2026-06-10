@@ -17,20 +17,32 @@ export function getCueEndSeconds(
   const item = transcript[index];
   if (!item) return 0;
 
+  return getTimedUnitEndSeconds(item, index, transcript);
+}
+
+export function getTimedUnitEndSeconds(
+  item: TranscriptCue,
+  index?: number,
+  transcript?: TranscriptCue[]
+): number {
   const startSeconds = getCueStartSeconds(item);
   const durationValue = parseTimestampToSeconds(item.duration);
 
-  if (item.duration?.trim() && durationValue > startSeconds) {
+  if (item.duration?.trim() && durationValue > startSeconds + 0.2) {
     return durationValue;
   }
 
-  if (index < transcript.length - 1) {
+  if (
+    typeof index === 'number' &&
+    transcript &&
+    index < transcript.length - 1
+  ) {
     const nextStart = getCueStartSeconds(transcript[index + 1]);
     if (nextStart > startSeconds) {
-      return nextStart;
+      return Math.max(startSeconds + 0.8, nextStart - 0.05);
     }
   }
 
-  const estimated = Math.max(2, Math.min(8, item.text.length / 12));
+  const estimated = Math.max(2, Math.min(12, item.text.length / 10));
   return startSeconds + estimated;
 }

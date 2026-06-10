@@ -6,14 +6,22 @@ import {
   type PronunciationCompareResult,
 } from '../lib/pronunciationCompare';
 import {
+  getBestScoreForPhrase,
+  savePronunciationAttempt,
+} from '../lib/pronunciationAttempts';
+import {
   createSpeechRecognition,
   isSpeechRecognitionSupported,
   mapTranscriptLanguageToSpeechLanguage,
 } from '../lib/speechRecognition';
+import { createShadowingAttempt } from '../lib/pronunciationTypes';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface PronunciationCheckerProps {
   expectedText: string;
+  videoId?: string;
+  sentenceId?: string;
+  phraseId?: string;
   speechLanguage?: string;
   onReplayOriginal?: () => void;
   onChecked?: (result: PronunciationCompareResult) => void;
@@ -37,6 +45,9 @@ function scoreRingColor(score: number): string {
 
 export default function PronunciationChecker({
   expectedText,
+  videoId,
+  sentenceId,
+  phraseId,
   speechLanguage,
   onReplayOriginal,
   onChecked,
@@ -46,9 +57,11 @@ export default function PronunciationChecker({
   const { t } = useI18n();
   const [state, setState] = useState<CheckerState>('idle');
   const [result, setResult] = useState<PronunciationCompareResult | null>(null);
+  const [bestScore, setBestScore] = useState<number | null>(null);
   const [error, setError] = useState('');
   const recognitionRef = useRef<ReturnType<typeof createSpeechRecognition>>(null);
   const gotResultRef = useRef(false);
+  const listenStartedAtRef = useRef<number | null>(null);
 
   const supported = isSpeechRecognitionSupported();
   const trimmedExpected = expectedText.trim();
@@ -61,11 +74,17 @@ export default function PronunciationChecker({
 
   useEffect(() => {
     gotResultRef.current = false;
+    listenStartedAtRef.current = null;
     setState('idle');
     setResult(null);
     setError('');
     cleanupRecognition();
-  }, [resetKey, trimmedExpected, cleanupRecognition]);
+    if (videoId) {
+      setBestScore(getBestScoreForPhrase(videoId, phraseId, trimmedExpected));
+    } else {
+      setBestScore(null);
+    }
+  }, [resetKey, trimmedExpected, cleanupRecognition, videoId, phraseId]);
 
   useEffect(() => cleanupRecognition, [cleanupRecognition]);
 
@@ -85,6 +104,7 @@ export default function PronunciationChecker({
     }
 
     recognitionRef.current = recognition;
+    listenStartedAtRef.current = performance.now();
     setState('listening');
 
     const applyTranscript = (transcript: string) => {
@@ -92,6 +112,25 @@ export default function PronunciationChecker({
 
       gotResultRef.current = true;
       const comparison = comparePronunciation(trimmedExpected, transcript);
+      const durationMs = listenStartedAtRef.current
+        ? Math.round(performance.now() - listenStartedAtRef.current)
+        : 0;
+
+      if (videoId) {
+        const attempt = createShadowingAttempt({
+          videoId,
+          sentenceId,
+          phraseId,
+          expectedText: trimmedExpected,
+          comparison,
+          durationMs,
+        });
+        savePronunciationAttempt(attempt);
+        setBestScore((current) =>
+          current === null ? comparison.score : Math.max(current, comparison.score)
+        );
+      }
+
       setResult(comparison);
       setState('result');
       onChecked?.(comparison);
@@ -133,6 +172,15 @@ export default function PronunciationChecker({
     const recognition = recognitionRef.current;
     if (!recognition) return;
     recognition.stop();
+  };
+
+  const tryAgain = () => {
+    gotResultRef.current = false;
+    listenStartedAtRef.current = null;
+    setResult(null);
+    setError('');
+    setState('idle');
+    cleanupRecognition();
   };
 
   if (!trimmedExpected) return null;
@@ -187,7 +235,16 @@ export default function PronunciationChecker({
                 onClick={startListening}
                 className="min-h-10 px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition"
               >
-                {t('pronunciation.startListening')}
+                {t('pronunciation.record')}
+              </button>
+            )}
+            {result && state !== 'listening' && (
+              <button
+                type="button"
+                onClick={tryAgain}
+                className="min-h-10 px-4 py-2 rounded-lg border border-rose-300 text-rose-800 dark:border-rose-800 dark:text-rose-200 text-sm font-semibold hover:bg-rose-100 dark:hover:bg-rose-950/40 transition"
+              >
+                {t('pronunciation.tryAgain')}
               </button>
             )}
           </div>
@@ -221,8 +278,22 @@ export default function PronunciationChecker({
                         ? t('pronunciation.feedbackGood')
                         : t('pronunciation.feedbackRetry')}
                   </p>
+                  {bestScore !== null && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t('pronunciation.bestScore').replace(
+                        '{score}',
+                        String(bestScore)
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {result.missedWords.length > 0 && (
+                <p className="text-xs text-red-700 dark:text-red-300">
+                  {t('pronunciation.missedWords')}: {result.missedWords.join(', ')}
+                </p>
+              )}
 
               {result.spokenText && (
                 <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -253,6 +324,7 @@ export default function PronunciationChecker({
                             : undefined
                         }
                       >
+                        {word.status === 'correct' ? '✓ ' : '✗ '}
                         {word.expected}
                       </span>
                     ))}

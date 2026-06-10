@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import URLInput from './components/URLInput';
 import {
   saveToTranscriptHistory,
@@ -45,18 +45,22 @@ import PlaylistPanel, {
   type PlaylistSession,
 } from './components/PlaylistPanel';
 import ShadowingPanel from './components/ShadowingPanel';
-interface TranscriptItem {
-  text: string;
-  start?: string;
-  duration?: string;
-}
+import {
+  enrichTranscriptData,
+  getDisplayTranscript,
+} from './lib/transcriptPipeline';
+import type { PhraseChunk, RawCaption, Sentence } from './lib/transcriptTypes';
+import type { TranscriptCue } from './lib/transcriptCue';
 
 interface TranscriptResponse {
   videoId: string;
   title?: string;
   channelName?: string;
   durationSeconds?: number;
-  transcript: TranscriptItem[];
+  transcript: TranscriptCue[];
+  rawCaptions?: RawCaption[];
+  sentences?: Sentence[];
+  phrases?: PhraseChunk[];
   text: string;
   selectedLanguage?: string;
   subtitleLanguageName?: string;
@@ -94,6 +98,9 @@ export default function Home() {
   const [shadowingLineIndex, setShadowingLineIndex] = useState<number | null>(
     null
   );
+  const [shadowingCaptionIndexes, setShadowingCaptionIndexes] = useState<
+    number[]
+  >([]);
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
@@ -108,10 +115,20 @@ export default function Home() {
     });
   };
 
+  const displayTranscript = useMemo(
+    () =>
+      videoData
+        ? getDisplayTranscript(videoData.sentences, videoData.transcript)
+        : [],
+    [videoData]
+  );
+
   useEffect(() => {
     if (!videoData) return;
-    setActiveLineIndex(findActiveLineIndex(videoData.transcript, currentPlaybackTime));
-  }, [currentPlaybackTime, videoData]);
+    setActiveLineIndex(
+      findActiveLineIndex(displayTranscript, currentPlaybackTime)
+    );
+  }, [currentPlaybackTime, videoData, displayTranscript]);
 
   const handleSeek = (seconds: number, lineIndex: number) => {
     videoPlayerRef.current?.seekTo(seconds);
@@ -140,13 +157,6 @@ export default function Home() {
   const handlePauseVideo = () => {
     videoPlayerRef.current?.pause();
   };
-
-  const scrollToShadowing = useCallback(() => {
-    shadowingPanelRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }, []);
 
   const handleSaveToFlashcards = (
     word: string,
@@ -177,7 +187,8 @@ export default function Home() {
     url?: string,
     options?: { fromCache?: boolean; keepPlaylist?: boolean }
   ) => {
-    setVideoData(data);
+    const enriched = enrichTranscriptData(data);
+    setVideoData(enriched);
     setCurrentPlaybackTime(0);
     setActiveLineIndex(0);
     setPlayerState({ isPlaying: false, isReady: false });
@@ -189,14 +200,14 @@ export default function Home() {
     }
 
     saveToTranscriptHistory({
-      videoId: data.videoId,
-      url: url || `https://www.youtube.com/watch?v=${data.videoId}`,
-      title: data.title || data.videoId,
-      text: data.text,
-      transcript: data.transcript,
+      videoId: enriched.videoId,
+      url: url || `https://www.youtube.com/watch?v=${enriched.videoId}`,
+      title: enriched.title || enriched.videoId,
+      text: enriched.text,
+      transcript: enriched.transcript,
     });
-    if (data.selectedLanguage) {
-      saveTranscriptLanguage(data.selectedLanguage);
+    if (enriched.selectedLanguage) {
+      saveTranscriptLanguage(enriched.selectedLanguage);
     }
     setHistoryRefreshKey((key) => key + 1);
 
@@ -506,7 +517,7 @@ export default function Home() {
                             {t('quickInfo.lines')}
                           </p>
                           <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                            {videoData.transcript.length}
+                            {displayTranscript.length}
                           </p>
                         </div>
                       </div>
@@ -553,28 +564,32 @@ export default function Home() {
                   <ShadowingPanel
                     videoId={videoData.videoId}
                     transcript={videoData.transcript}
+                    phrases={videoData.phrases}
+                    sentences={videoData.sentences}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
                     speechLanguage={videoData.selectedLanguage}
                     onSeek={handleSeek}
                     onPauseVideo={handlePauseVideo}
                     onLineIndexChange={setShadowingLineIndex}
+                    onCaptionIndexesChange={setShadowingCaptionIndexes}
                   />
                 </div>
                 <TranscriptDisplay
                   videoId={videoData.videoId}
                   videoTitle={videoData.title}
                   videoUrl={getVideoUrl(videoData.videoId)}
-                  transcript={videoData.transcript}
+                  transcript={displayTranscript}
                   fullText={videoData.text}
                   activeLineIndex={activeLineIndex}
                   shadowingLineIndex={shadowingLineIndex}
+                  shadowingCaptionIndexes={shadowingCaptionIndexes}
+                  sentences={videoData.sentences}
                   isPlaying={playerState.isPlaying}
                   onSeek={handleSeek}
                   onSaveToFlashcards={handleSaveToFlashcards}
                   flashcardsRefreshKey={flashcardsRefreshKey}
                   onPauseVideo={handlePauseVideo}
-                  onShadowingClick={scrollToShadowing}
                 />
               </div>
             </div>

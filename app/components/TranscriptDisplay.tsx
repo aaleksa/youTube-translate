@@ -41,6 +41,7 @@ import {
   saveTranslationLanguage,
 } from '../lib/languageSettings';
 import { useI18n } from './InterfaceLanguageProvider';
+import type { Sentence } from '../lib/transcriptTypes';
 
 interface TranscriptItem {
   text: string;
@@ -56,6 +57,8 @@ interface TranscriptDisplayProps {
   videoUrl?: string;
   activeLineIndex?: number;
   shadowingLineIndex?: number | null;
+  shadowingCaptionIndexes?: number[];
+  sentences?: Sentence[];
   isPlaying?: boolean;
   onSeek?: (seconds: number, lineIndex: number) => void;
   onSaveToFlashcards?: (
@@ -65,7 +68,6 @@ interface TranscriptDisplayProps {
   ) => void;
   flashcardsRefreshKey?: number;
   onPauseVideo?: () => void;
-  onShadowingClick?: () => void;
 }
 
 function countSelectionWords(text: string): number {
@@ -258,16 +260,26 @@ export default function TranscriptDisplay({
   videoUrl,
   activeLineIndex = 0,
   shadowingLineIndex = null,
+  shadowingCaptionIndexes = [],
+  sentences,
   isPlaying = false,
   onSeek,
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
   onPauseVideo,
-  onShadowingClick,
 }: TranscriptDisplayProps) {
   const { t, language } = useI18n();
-  const highlightLineIndex = shadowingLineIndex ?? activeLineIndex;
-  const isShadowingMode = shadowingLineIndex !== null;
+  const isShadowingMode =
+    shadowingCaptionIndexes.length > 0 || shadowingLineIndex !== null;
+  const highlightLineIndex =
+    shadowingCaptionIndexes[0] ?? shadowingLineIndex ?? activeLineIndex;
+  const isShadowingLine = useCallback(
+    (index: number) =>
+      shadowingCaptionIndexes.length > 0
+        ? shadowingCaptionIndexes.includes(index)
+        : isShadowingMode && index === shadowingLineIndex,
+    [isShadowingMode, shadowingCaptionIndexes, shadowingLineIndex]
+  );
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const seekClickRef = useRef(false);
@@ -547,7 +559,11 @@ export default function TranscriptDisplay({
     setSelectionError('');
 
     try {
-      const fallbackExample = findExampleLine(selectedText, transcript);
+      const fallbackExample = findExampleLine(
+        selectedText,
+        transcript,
+        sentences
+      );
       const prepared = await prepareFlashcardForWord(
         selectedText,
         fullText,
@@ -624,15 +640,6 @@ export default function TranscriptDisplay({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {onShadowingClick && (
-              <button
-                type="button"
-                onClick={onShadowingClick}
-                className="px-3 py-1.5 text-sm rounded-lg transition bg-violet-100 text-violet-900 hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 dark:hover:bg-violet-900 font-semibold"
-              >
-                {t('actions.shadowing')}
-              </button>
-            )}
             <ToolbarMenu
               label={copied ? '✓ Export' : t('actions.export')}
               active={copied}
@@ -838,7 +845,7 @@ export default function TranscriptDisplay({
                     translation={translations[index] ?? ''}
                     lineIndex={index}
                     isActive={index === highlightLineIndex}
-                    isShadowing={isShadowingMode && index === highlightLineIndex}
+                    isShadowing={isShadowingLine(index)}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                     seekTitle={t('transcript.seekLine')}
@@ -849,7 +856,7 @@ export default function TranscriptDisplay({
                     item={item}
                     lineIndex={index}
                     isActive={index === highlightLineIndex}
-                    isShadowing={isShadowingMode && index === highlightLineIndex}
+                    isShadowing={isShadowingLine(index)}
                     onSeek={handleSeek}
                     lineRef={setLineRef(index)}
                     seekTitle={t('transcript.seekLine')}

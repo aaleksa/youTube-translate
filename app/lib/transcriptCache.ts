@@ -1,3 +1,5 @@
+import { enrichTranscriptData } from './transcriptPipeline';
+import type { PhraseChunk, RawCaption, Sentence } from './transcriptTypes';
 import { extractVideoId } from './youtubeUrl';
 
 export const TRANSCRIPT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -19,6 +21,9 @@ export interface TranscriptCacheData {
   channelName?: string;
   durationSeconds?: number;
   transcript: TranscriptCacheLine[];
+  rawCaptions?: RawCaption[];
+  sentences?: Sentence[];
+  phrases?: PhraseChunk[];
   text: string;
   selectedLanguage?: string;
   subtitleLanguageName?: string;
@@ -150,7 +155,7 @@ function toCachedResult(
   storage: CachedTranscriptResult['storage']
 ): CachedTranscriptResult {
   return {
-    data: record.data,
+    data: enrichTranscriptData(record.data),
     url: record.url,
     savedAt: record.savedAt,
     expiresAt: record.expiresAt,
@@ -229,7 +234,7 @@ export async function setCachedTranscript(
     cacheKey,
     videoId,
     url: trimmedUrl,
-    data: { ...data, videoId },
+    data: enrichTranscriptData({ ...data, videoId }),
     savedAt,
     expiresAt: savedAt + TRANSCRIPT_CACHE_TTL_MS,
   };
