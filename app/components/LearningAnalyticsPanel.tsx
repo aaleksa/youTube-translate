@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getDecks } from '../lib/decks';
-import { getFlashcards } from '../lib/flashcards';
+import { getDecks, type Deck } from '../lib/decks';
+import { getFlashcards, type Flashcard } from '../lib/flashcards';
 import {
   getAchievements,
   getDailyGoalProgress,
@@ -119,14 +119,16 @@ export default function LearningAnalyticsPanel({
   activeVideoTitle,
 }: LearningAnalyticsPanelProps) {
   const { t } = useI18n();
-  const [cards, setCards] = useState(() => getFlashcards());
-  const [decks, setDecks] = useState(() => getDecks());
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [ready, setReady] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const [goalVersion, setGoalVersion] = useState(0);
 
   useEffect(() => {
     setCards(getFlashcards());
     setDecks(getDecks());
+    setReady(true);
   }, [refreshKey]);
 
   const titleByVideoId = useMemo(() => {
@@ -182,6 +184,10 @@ export default function LearningAnalyticsPanel({
     setGoalInput('');
     setGoalVersion((v) => v + 1);
   };
+
+  if (!ready) {
+    return null;
+  }
 
   if (cards.length === 0) {
     return (
