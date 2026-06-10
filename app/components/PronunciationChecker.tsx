@@ -32,14 +32,14 @@ interface PronunciationCheckerProps {
 type CheckerState = 'idle' | 'listening' | 'result' | 'error';
 
 function scoreColor(score: number): string {
-  if (score >= 85) return 'text-emerald-600 dark:text-emerald-400';
-  if (score >= 60) return 'text-amber-600 dark:text-amber-400';
+  if (score >= 90) return 'text-emerald-600 dark:text-emerald-400';
+  if (score >= 70) return 'text-amber-600 dark:text-amber-400';
   return 'text-red-600 dark:text-red-400';
 }
 
 function scoreRingColor(score: number): string {
-  if (score >= 85) return 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40';
-  if (score >= 60) return 'border-amber-500 bg-amber-50 dark:bg-amber-950/40';
+  if (score >= 90) return 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40';
+  if (score >= 70) return 'border-amber-500 bg-amber-50 dark:bg-amber-950/40';
   return 'border-red-500 bg-red-50 dark:bg-red-950/40';
 }
 
@@ -272,9 +272,9 @@ export default function PronunciationChecker({
                     {t('pronunciation.score')}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {result.score >= 85
+                    {result.score >= 90
                       ? t('pronunciation.feedbackGreat')
-                      : result.score >= 60
+                      : result.score >= 70
                         ? t('pronunciation.feedbackGood')
                         : t('pronunciation.feedbackRetry')}
                   </p>
@@ -316,15 +316,23 @@ export default function PronunciationChecker({
                         className={`px-2 py-1 rounded-md text-xs font-medium ${
                           word.status === 'correct'
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 line-through'
+                            : word.status === 'optional'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 line-through'
                         }`}
                         title={
-                          word.spoken && word.spoken !== word.expected
-                            ? word.spoken
-                            : undefined
+                          word.status === 'optional'
+                            ? t('pronunciation.optionalWord')
+                            : word.spoken && word.spoken !== word.expected
+                              ? word.spoken
+                              : undefined
                         }
                       >
-                        {word.status === 'correct' ? '✓ ' : '✗ '}
+                        {word.status === 'correct'
+                          ? '✓ '
+                          : word.status === 'optional'
+                            ? '~ '
+                            : '✗ '}
                         {word.expected}
                       </span>
                     ))}
