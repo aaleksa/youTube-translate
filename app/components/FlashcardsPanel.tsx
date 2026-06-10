@@ -2,14 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { getFlashcards, removeFlashcard, type Flashcard } from '../lib/flashcards';
+import type { TranscriptCue } from '../lib/transcriptCue';
 import FlashcardStudyMode from './FlashcardStudyMode';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface FlashcardsPanelProps {
   refreshKey: number;
+  activeVideoId?: string;
+  transcript?: TranscriptCue[];
+  onReplayInVideo?: (videoId: string, seconds: number) => void;
 }
 
-export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
+export default function FlashcardsPanel({
+  refreshKey,
+  activeVideoId,
+  transcript,
+  onReplayInVideo,
+}: FlashcardsPanelProps) {
   const { t } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [search, setSearch] = useState('');
@@ -23,6 +32,9 @@ export default function FlashcardsPanel({ refreshKey }: FlashcardsPanelProps) {
     return (
       <FlashcardStudyMode
         cards={cards}
+        activeVideoId={activeVideoId}
+        transcript={transcript}
+        onReplayInVideo={onReplayInVideo}
         onClose={() => setStudying(false)}
         onComplete={() => {
           setCards(getFlashcards());

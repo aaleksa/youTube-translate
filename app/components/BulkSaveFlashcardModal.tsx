@@ -3,15 +3,18 @@
 import { FormEvent, useEffect, useState } from 'react';
 import {
   addFlashcards,
+  findTimestampForExample,
   hasFlashcard,
   type FlashcardDraft,
 } from '../lib/flashcards';
 import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
+import type { TranscriptCue } from '../lib/transcriptCue';
 
 interface BulkSaveFlashcardModalProps {
   items: ParsedFlashcardItem[] | null;
   videoId: string;
   videoUrl: string;
+  transcript?: TranscriptCue[];
   onClose: () => void;
   onSaved: (count: number) => void;
 }
@@ -25,6 +28,7 @@ export default function BulkSaveFlashcardModal({
   items,
   videoId,
   videoUrl,
+  transcript = [],
   onClose,
   onSaved,
 }: BulkSaveFlashcardModalProps) {
@@ -93,12 +97,19 @@ export default function BulkSaveFlashcardModal({
         const example = row.example.trim();
         const translation = row.translation.trim() || example || word;
 
+        const resolvedExample = example || translation || word;
+
         return {
           word,
           translation,
-          example: example || translation || word,
+          example: resolvedExample,
           videoId,
           videoUrl,
+          timestamp: findTimestampForExample(
+            resolvedExample,
+            word,
+            transcript
+          ),
         };
       });
 

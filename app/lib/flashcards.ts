@@ -1,3 +1,5 @@
+import { parseTimestampToSeconds } from './timestamp';
+
 const STORAGE_KEY = 'yoytube-flashcards';
 
 const DEFAULT_EASE = 2.5;
@@ -33,6 +35,7 @@ export interface FlashcardDraft {
   example: string;
   videoId: string;
   videoUrl: string;
+  timestamp?: number;
 }
 
 export function getVideoUrl(videoId: string): string {
@@ -111,6 +114,7 @@ function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
     example: draft.example.trim(),
     videoId: draft.videoId,
     videoUrl: draft.videoUrl || getVideoUrl(draft.videoId),
+    timestamp: draft.timestamp,
     createdAt: Date.now(),
     knownCount: 0,
     unknownCount: 0,
@@ -150,10 +154,66 @@ export function shuffleFlashcards(cards: Flashcard[]): Flashcard[] {
   return copy;
 }
 
-export function getFlashcardVideoUrl(card: Flashcard): string {
-  if (!card.timestamp || card.timestamp <= 0) return card.videoUrl;
+export function findTimestampForExample(
+  example: string,
+  word: string,
+  transcript: Array<{ text: string; start?: string }>
+): number | undefined {
+  if (!transcript.length) return undefined;
+
+  const exampleNorm = example.trim().toLowerCase();
+  const wordNorm = word.trim().toLowerCase();
+  let bestMatch: { score: number; seconds: number } | undefined;
+
+  for (const line of transcript) {
+    const lineNorm = line.text.toLowerCase();
+    const seconds = parseTimestampToSeconds(line.start);
+    if (!line.start || seconds < 0) continue;
+
+    if (exampleNorm && lineNorm.includes(exampleNorm)) {
+      const score = exampleNorm.length + 1000;
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = { score, seconds };
+      }
+      continue;
+    }
+
+    if (exampleNorm && exampleNorm.includes(lineNorm) && lineNorm.length > 8) {
+      const score = lineNorm.length + 500;
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = { score, seconds };
+      }
+      continue;
+    }
+
+    if (wordNorm && lineNorm.includes(wordNorm)) {
+      const score = wordNorm.length;
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = { score, seconds };
+      }
+    }
+  }
+
+  return bestMatch?.seconds;
+}
+
+export function resolveFlashcardTimestamp(
+  card: Flashcard,
+  transcript?: Array<{ text: string; start?: string }>
+): number | undefined {
+  if (card.timestamp && card.timestamp > 0) return card.timestamp;
+  if (!transcript?.length) return undefined;
+  return findTimestampForExample(card.example, card.word, transcript);
+}
+
+export function getFlashcardVideoUrl(
+  card: Flashcard,
+  transcript?: Array<{ text: string; start?: string }>
+): string {
+  const timestamp = resolveFlashcardTimestamp(card, transcript);
+  if (!timestamp || timestamp <= 0) return card.videoUrl;
   const separator = card.videoUrl.includes('?') ? '&' : '?';
-  return `${card.videoUrl}${separator}t=${Math.floor(card.timestamp)}`;
+  return `${card.videoUrl}${separator}t=${Math.floor(timestamp)}`;
 }
 
 export function addFlashcard(draft: FlashcardDraft): Flashcard | null {

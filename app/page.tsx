@@ -25,6 +25,7 @@ import { useI18n } from './components/InterfaceLanguageProvider';
 import { saveTranscriptLanguage } from './lib/languageSettings';
 import {
   type FlashcardDraft,
+  findTimestampForExample,
   getVideoUrl,
 } from './lib/flashcards';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
@@ -78,6 +79,7 @@ interface TranscriptResponse {
 export default function Home() {
   const { t } = useI18n();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
   const shadowingPanelRef = useRef<HTMLDivElement>(null);
   const [videoData, setVideoData] = useState<TranscriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -186,14 +188,34 @@ export default function Home() {
     translation = ''
   ) => {
     if (!videoData) return;
+    const timestamp =
+      findTimestampForExample(example, word, visibleTranscript) ??
+      (currentPlaybackTime > 0 ? currentPlaybackTime : undefined);
+
     setFlashcardDraft({
       word,
       translation,
       example,
       videoId: videoData.videoId,
       videoUrl: getVideoUrl(videoData.videoId),
+      timestamp,
     });
   };
+
+  const handleReplayFlashcard = useCallback(
+    (videoId: string, seconds: number) => {
+      if (videoData?.videoId !== videoId) return;
+      videoSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      videoPlayerRef.current?.seekTo(seconds);
+      videoPlayerRef.current?.play();
+      setCurrentPlaybackTime(seconds);
+      setActiveLineIndex(findActiveLineIndex(visibleTranscript, seconds));
+    },
+    [videoData?.videoId, visibleTranscript]
+  );
 
   const handleSaveManyToFlashcards = (items: ParsedFlashcardItem[]) => {
     if (!videoData || items.length === 0) return;
@@ -470,7 +492,7 @@ export default function Home() {
         {videoData ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
-              <div className="lg:sticky lg:top-4 space-y-4">
+              <div ref={videoSectionRef} className="lg:sticky lg:top-4 space-y-4">
                 <div className="rounded-lg overflow-hidden shadow-lg bg-black">
                   <VideoPlayer
                     ref={videoPlayerRef}
@@ -633,7 +655,12 @@ export default function Home() {
         )}
 
         <div className="mt-6">
-          <FlashcardsPanel refreshKey={flashcardsRefreshKey} />
+          <FlashcardsPanel
+            refreshKey={flashcardsRefreshKey}
+            activeVideoId={videoData?.videoId}
+            transcript={visibleTranscript}
+            onReplayInVideo={handleReplayFlashcard}
+          />
         </div>
 
         <SaveFlashcardModal
@@ -647,6 +674,7 @@ export default function Home() {
             items={bulkFlashcardItems}
             videoId={videoData.videoId}
             videoUrl={getVideoUrl(videoData.videoId)}
+            transcript={visibleTranscript}
             onClose={() => setBulkFlashcardItems(null)}
             onSaved={() => handleFlashcardSaved()}
           />
