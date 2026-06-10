@@ -14,6 +14,7 @@ import VideoPlayer, {
 import TranscriptDisplay from './components/TranscriptDisplay';
 import BulkSaveFlashcardModal from './components/BulkSaveFlashcardModal';
 import FlashcardsPanel from './components/FlashcardsPanel';
+import LearningAnalyticsPanel from './components/LearningAnalyticsPanel';
 import SaveFlashcardModal from './components/SaveFlashcardModal';
 import TextProcessor from './components/TextProcessor';
 import QuickInfoAnalysis from './components/QuickInfoAnalysis';
@@ -777,6 +778,12 @@ export default function Home() {
             onShadowSentence={handleShadowSentence}
           />
         </div>
+
+        <LearningAnalyticsPanel
+          refreshKey={flashcardsRefreshKey}
+          activeVideoId={videoData?.videoId}
+          activeVideoTitle={videoData?.title}
+        />
 
         <SaveFlashcardModal
           draft={flashcardDraft}

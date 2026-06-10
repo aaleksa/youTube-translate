@@ -1,3 +1,4 @@
+import { recordDailyCardReview } from './dailyStudyLog';
 import {
   applyKnownReview,
   applyUnknownReview,
@@ -358,6 +359,7 @@ export function recordFlashcardReview(
 
   cards[index] = result.card;
   saveFlashcards(cards);
+  recordDailyCardReview();
   return result;
 }
 
