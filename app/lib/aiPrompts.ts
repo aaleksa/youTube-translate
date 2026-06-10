@@ -248,11 +248,28 @@ export function buildGenerateQuizPrompt(code: TranslationLanguageCode): string {
   const lang = targetLanguageName(code);
   return `You are an English teacher creating a comprehension quiz for ${lang} learners based on a YouTube video transcript.
 
-Create 5 multiple-choice questions about the video content.
-Questions and answer options should be in ${lang}.
-The transcript is in English — test comprehension of the video.
+The transcript is in English. Test comprehension of facts, main ideas, and details from the video.
+Write ALL questions, ALL answer options, and ALL explanations in ${lang}.
 
-Return ONLY valid JSON with questions array.`;
+Return ONLY valid JSON in this exact shape (no markdown fences, no extra text):
+{
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Question text in ${lang}",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correctIndex": 0,
+      "explanation": "Short explanation in ${lang}"
+    }
+  ]
+}
+
+Rules:
+- Create 5 multiple-choice questions (minimum 3 if the transcript is very short)
+- Each question must have exactly 4 options
+- correctIndex is a 0-based index into the options array
+- Use ids q1, q2, q3, ...
+- No text outside the JSON object`;
 }
 
 export function buildProcessTextPhrasalPrompt(code: TranslationLanguageCode): string {

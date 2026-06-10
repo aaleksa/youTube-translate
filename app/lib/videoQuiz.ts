@@ -16,9 +16,25 @@ export interface QuizResult {
   percentage: number;
 }
 
+export function extractJsonFromText(raw: string): string {
+  const trimmed = raw.trim();
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch?.[1]) return fenceMatch[1].trim();
+
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start >= 0 && end > start) return trimmed.slice(start, end + 1);
+
+  return trimmed;
+}
+
+const MIN_QUIZ_QUESTIONS = 3;
+
 export function parseQuizResponse(raw: string): VideoQuiz | null {
+  if (!raw.trim()) return null;
+
   try {
-    const parsed = JSON.parse(raw) as {
+    const parsed = JSON.parse(extractJsonFromText(raw)) as {
       questions?: Array<{
         id?: string;
         question?: string;
@@ -37,7 +53,7 @@ export function parseQuizResponse(raw: string): VideoQuiz | null {
       const question = item.question?.trim();
       const options = item.options?.map((o) => o.trim()).filter(Boolean);
       const correctIndex = item.correctIndex;
-      const explanation = item.explanation?.trim();
+      const explanation = item.explanation?.trim() ?? '';
 
       if (
         !question ||
@@ -46,8 +62,7 @@ export function parseQuizResponse(raw: string): VideoQuiz | null {
         options.length > 6 ||
         typeof correctIndex !== 'number' ||
         correctIndex < 0 ||
-        correctIndex >= options.length ||
-        !explanation
+        correctIndex >= options.length
       ) {
         continue;
       }
@@ -61,7 +76,7 @@ export function parseQuizResponse(raw: string): VideoQuiz | null {
       });
     }
 
-    if (questions.length < 5) return null;
+    if (questions.length < MIN_QUIZ_QUESTIONS) return null;
 
     return { questions: questions.slice(0, 10) };
   } catch {
