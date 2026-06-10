@@ -13,6 +13,7 @@ import {
 import type { FlashcardSentenceHandlers } from './FlashcardExampleActions';
 import FlashcardsPanel from './FlashcardsPanel';
 import LearningAnalyticsPanel from './LearningAnalyticsPanel';
+import LearningCoachPanel from './LearningCoachPanel';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface LearningHubSectionProps extends FlashcardSentenceHandlers {
@@ -118,6 +119,13 @@ export default function LearningHubSection({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => selectTab('coach')}
+              className={tabClass('coach')}
+            >
+              {t('learningHub.tabCoach')}
+            </button>
+            <button
+              type="button"
               onClick={() => selectTab('flashcards')}
               className={tabClass('flashcards')}
             >
@@ -144,7 +152,14 @@ export default function LearningHubSection({
 
       {open && (
         <div className="p-4 sm:p-5">
-          {tab === 'flashcards' ? (
+          {tab === 'coach' ? (
+            <LearningCoachPanel
+              embedded
+              refreshKey={refreshKey}
+              activeVideoId={activeVideoId}
+              activeVideoTitle={activeVideoTitle}
+            />
+          ) : tab === 'flashcards' ? (
             <FlashcardsPanel
               embedded
               refreshKey={refreshKey}
