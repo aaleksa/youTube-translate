@@ -15,13 +15,13 @@ import {
   getStudyQueue,
   getVideoDeckSummaries,
   removeFlashcard,
-  toggleCardDeckMembership,
   type Flashcard,
   type FlashcardView,
 } from '../lib/flashcards';
 import { startOfDay } from '../lib/flashcardSrs';
 import { getTranscriptHistory } from '../lib/transcriptHistory';
 import type { TranscriptCue } from '../lib/transcriptCue';
+import EditFlashcardModal from './EditFlashcardModal';
 import FlashcardStudyMode from './FlashcardStudyMode';
 import type { TranslationKey } from '../lib/i18n';
 import { useI18n } from './InterfaceLanguageProvider';
@@ -99,11 +99,19 @@ export default function FlashcardsPanel({
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [newDeckName, setNewDeckName] = useState('');
   const [deleteDeckId, setDeleteDeckId] = useState<string | null>(null);
+  const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
+  const [showUpdatedToast, setShowUpdatedToast] = useState(false);
 
   useEffect(() => {
     setCards(getFlashcards());
     setDecks(getDecks());
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (!showUpdatedToast) return;
+    const timer = window.setTimeout(() => setShowUpdatedToast(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [showUpdatedToast]);
 
   const titleByVideoId = useMemo(() => {
     const map: Record<string, string> = {};
@@ -192,9 +200,11 @@ export default function FlashcardsPanel({
     setDeleteDeckId(null);
   };
 
-  const handleToggleDeck = (cardId: string, deckId: string) => {
-    toggleCardDeckMembership(cardId, deckId);
+  const handleCardSaved = (card: Flashcard) => {
     setCards(getFlashcards());
+    setDecks(getDecks());
+    setShowUpdatedToast(true);
+    setEditingCard((current) => (current?.id === card.id ? null : current));
   };
 
   if (studying) {
@@ -216,6 +226,12 @@ export default function FlashcardsPanel({
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
+      {showUpdatedToast && (
+        <p className="mb-4 text-sm font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+          {t('flashcards.cardUpdated')}
+        </p>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -406,23 +422,42 @@ export default function FlashcardsPanel({
                         )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCards(removeFlashcard(card.id))}
-                      className="text-gray-400 hover:text-red-500 transition text-sm shrink-0"
-                      aria-label={t('flashcards.delete')}
-                    >
-                      ✕
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setEditingCard(card)}
+                        className="text-xs text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition px-1.5 py-0.5"
+                      >
+                        {t('flashcards.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCards(removeFlashcard(card.id))}
+                        className="text-gray-400 hover:text-red-500 transition text-sm px-1"
+                        aria-label={t('flashcards.delete')}
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                   <p className="text-green-700 dark:text-green-400 font-medium mb-2">
                     {card.translation}
                   </p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 italic mb-3">
-                    &quot;{card.example}&quot;
-                  </p>
-                  {cardDecks.length > 0 && (
+                  {card.example && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 italic mb-3">
+                      &quot;{card.example}&quot;
+                    </p>
+                  )}
+                  {(card.tags.length > 0 || cardDecks.length > 0) && (
                     <div className="flex flex-wrap gap-1 mb-2">
+                      {card.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
                       {cardDecks.map((deck) => (
                         <span
                           key={deck.id}
@@ -432,29 +467,6 @@ export default function FlashcardsPanel({
                         </span>
                       ))}
                     </div>
-                  )}
-                  {decks.length > 0 && (
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      {t('flashcards.assignDeck')}
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const deckId = e.target.value;
-                          if (!deckId) return;
-                          handleToggleDeck(card.id, deckId);
-                          e.currentTarget.value = '';
-                        }}
-                        className="mt-1 w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded"
-                      >
-                        <option value="">{t('flashcards.chooseDeck')}</option>
-                        {decks.map((deck) => (
-                          <option key={deck.id} value={deck.id}>
-                            {card.deckIds.includes(deck.id) ? '✓ ' : ''}
-                            {deck.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
                   )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                     {formatDueLabel(card, t)}
@@ -480,6 +492,13 @@ export default function FlashcardsPanel({
           </div>
         </>
       )}
+
+      <EditFlashcardModal
+        card={editingCard}
+        decks={decks}
+        onClose={() => setEditingCard(null)}
+        onSaved={handleCardSaved}
+      />
 
       {deleteDeckId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

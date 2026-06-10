@@ -25,21 +25,39 @@ export interface Flashcard {
   word: string;
   translation: string;
   example: string;
+  tags: string[];
   videoId?: string;
   videoUrl?: string;
   videoTitle?: string;
   deckIds: string[];
   timestamp?: number;
+  /** Sentence from subtitles when the card was first saved */
+  originalExample?: string;
   createdAt: number;
+  updatedAt?: number;
   knownCount: number;
   unknownCount: number;
   lastReviewedAt?: number;
-  /** SRS foundation — not used until TASK-027 */
   repetitions: number;
   ease: number;
   interval: number;
   nextReview?: number;
 }
+
+export interface FlashcardUpdate {
+  id: string;
+  word: string;
+  translation: string;
+  example: string;
+  tags: string[];
+  deckIds: string[];
+}
+
+export type UpdateFlashcardError = 'not_found' | 'empty_word' | 'duplicate_word';
+
+export type UpdateFlashcardResult =
+  | { ok: true; card: Flashcard }
+  | { ok: false; error: UpdateFlashcardError };
 
 export interface StudySessionSummary {
   total: number;
@@ -52,6 +70,7 @@ export interface FlashcardDraft {
   word: string;
   translation: string;
   example: string;
+  tags?: string[];
   videoId?: string;
   videoUrl?: string;
   videoTitle?: string;
@@ -84,8 +103,23 @@ export function findFlashcardByWord(word: string): Flashcard | undefined {
   );
 }
 
-export function hasFlashcard(word: string): boolean {
-  return Boolean(findFlashcardByWord(word));
+export function hasFlashcard(word: string, excludeId?: string): boolean {
+  const key = normalizeFlashcardWord(word);
+  if (!key) return false;
+  return getFlashcards().some(
+    (card) =>
+      normalizeFlashcardWord(card.word) === key && card.id !== excludeId
+  );
+}
+
+export function normalizeTags(tags: string[]): string[] {
+  return [
+    ...new Set(
+      tags
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    ),
+  ];
 }
 
 export function getFlashcardWordSet(): Set<string> {
@@ -102,17 +136,22 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     card.deckIds ??
     (card.deckId ? [card.deckId] : []);
 
+  const example = card.example ?? '';
+
   return {
     id: card.id,
     word: card.word,
     translation: card.translation ?? '',
-    example: card.example ?? '',
+    example,
+    tags: normalizeTags(card.tags ?? []),
     videoId,
     videoUrl: card.videoUrl ?? (videoId ? getVideoUrl(videoId) : undefined),
     videoTitle: card.videoTitle,
     deckIds: [...new Set(deckIds.filter(Boolean))],
     timestamp: card.timestamp,
+    originalExample: card.originalExample ?? example,
     createdAt: card.createdAt ?? Date.now(),
+    updatedAt: card.updatedAt,
     knownCount: card.knownCount ?? 0,
     unknownCount: card.unknownCount ?? 0,
     lastReviewedAt: card.lastReviewedAt,
@@ -144,17 +183,21 @@ export function saveFlashcards(cards: Flashcard[]): void {
 }
 
 function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
+  const example = draft.example.trim();
+
   return {
     id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
     word: draft.word.trim(),
     translation: draft.translation.trim(),
-    example: draft.example.trim(),
+    example,
+    tags: normalizeTags(draft.tags ?? []),
     videoId: draft.videoId,
     videoUrl:
       draft.videoUrl || (draft.videoId ? getVideoUrl(draft.videoId) : undefined),
     videoTitle: draft.videoTitle,
     deckIds: draft.deckIds ? [...new Set(draft.deckIds)] : [],
     timestamp: draft.timestamp,
+    originalExample: example || undefined,
     createdAt: Date.now(),
     knownCount: 0,
     unknownCount: 0,
@@ -388,6 +431,34 @@ export function removeFlashcard(id: string): Flashcard[] {
   const updated = getFlashcards().filter((card) => card.id !== id);
   saveFlashcards(updated);
   return updated;
+}
+
+export function updateFlashcard(update: FlashcardUpdate): UpdateFlashcardResult {
+  const cards = getFlashcards();
+  const index = cards.findIndex((card) => card.id === update.id);
+  if (index < 0) return { ok: false, error: 'not_found' };
+
+  const trimmedWord = update.word.trim();
+  if (!trimmedWord) return { ok: false, error: 'empty_word' };
+
+  if (hasFlashcard(trimmedWord, update.id)) {
+    return { ok: false, error: 'duplicate_word' };
+  }
+
+  const existing = cards[index];
+  const updated: Flashcard = {
+    ...existing,
+    word: trimmedWord,
+    translation: update.translation.trim(),
+    example: update.example.trim(),
+    tags: normalizeTags(update.tags),
+    deckIds: [...new Set(update.deckIds.filter(Boolean))],
+    updatedAt: Date.now(),
+  };
+
+  cards[index] = updated;
+  saveFlashcards(cards);
+  return { ok: true, card: updated };
 }
 
 export function findExampleLine(
