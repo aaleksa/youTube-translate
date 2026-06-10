@@ -2,6 +2,7 @@ import {
   applyKnownReview,
   applyUnknownReview,
   getDefaultNextReview,
+  getDueFlashcards,
   type FlashcardReviewResult,
 } from './flashcardSrs';
 import { parseTimestampToSeconds } from './timestamp';
@@ -24,8 +25,10 @@ export interface Flashcard {
   word: string;
   translation: string;
   example: string;
-  videoId: string;
-  videoUrl: string;
+  videoId?: string;
+  videoUrl?: string;
+  videoTitle?: string;
+  deckIds: string[];
   timestamp?: number;
   createdAt: number;
   knownCount: number;
@@ -49,10 +52,21 @@ export interface FlashcardDraft {
   word: string;
   translation: string;
   example: string;
-  videoId: string;
-  videoUrl: string;
+  videoId?: string;
+  videoUrl?: string;
+  videoTitle?: string;
+  deckIds?: string[];
   timestamp?: number;
 }
+
+export interface VideoDeckSummary {
+  videoId: string;
+  title: string;
+  cardsCount: number;
+  dueCount: number;
+}
+
+export type FlashcardView = 'all' | 'due' | 'video' | 'deck';
 
 export function getVideoUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
@@ -80,16 +94,23 @@ export function getFlashcardWordSet(): Set<string> {
   );
 }
 
-function migrateFlashcard(card: Partial<Flashcard>): Flashcard | null {
+function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flashcard | null {
   if (!card.id || !card.word) return null;
+
+  const videoId = card.videoId?.trim() || undefined;
+  const deckIds =
+    card.deckIds ??
+    (card.deckId ? [card.deckId] : []);
 
   return {
     id: card.id,
     word: card.word,
     translation: card.translation ?? '',
     example: card.example ?? '',
-    videoId: card.videoId ?? '',
-    videoUrl: card.videoUrl ?? getVideoUrl(card.videoId ?? ''),
+    videoId,
+    videoUrl: card.videoUrl ?? (videoId ? getVideoUrl(videoId) : undefined),
+    videoTitle: card.videoTitle,
+    deckIds: [...new Set(deckIds.filter(Boolean))],
     timestamp: card.timestamp,
     createdAt: card.createdAt ?? Date.now(),
     knownCount: card.knownCount ?? 0,
@@ -118,7 +139,7 @@ export function getFlashcards(): Flashcard[] {
   }
 }
 
-function saveFlashcards(cards: Flashcard[]): void {
+export function saveFlashcards(cards: Flashcard[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
 }
 
@@ -129,7 +150,10 @@ function createFlashcard(draft: FlashcardDraft, index = 0): Flashcard {
     translation: draft.translation.trim(),
     example: draft.example.trim(),
     videoId: draft.videoId,
-    videoUrl: draft.videoUrl || getVideoUrl(draft.videoId),
+    videoUrl:
+      draft.videoUrl || (draft.videoId ? getVideoUrl(draft.videoId) : undefined),
+    videoTitle: draft.videoTitle,
+    deckIds: draft.deckIds ? [...new Set(draft.deckIds)] : [],
     timestamp: draft.timestamp,
     createdAt: Date.now(),
     knownCount: 0,
@@ -223,10 +247,105 @@ export function getFlashcardVideoUrl(
   card: Flashcard,
   transcript?: Array<{ text: string; start?: string }>
 ): string {
+  const videoUrl =
+    card.videoUrl || (card.videoId ? getVideoUrl(card.videoId) : '');
+  if (!videoUrl) return '';
+
   const timestamp = resolveFlashcardTimestamp(card, transcript);
-  if (!timestamp || timestamp <= 0) return card.videoUrl;
-  const separator = card.videoUrl.includes('?') ? '&' : '?';
-  return `${card.videoUrl}${separator}t=${Math.floor(timestamp)}`;
+  if (!timestamp || timestamp <= 0) return videoUrl;
+  const separator = videoUrl.includes('?') ? '&' : '?';
+  return `${videoUrl}${separator}t=${Math.floor(timestamp)}`;
+}
+
+export function filterFlashcards(
+  cards: Flashcard[],
+  options: {
+    view: FlashcardView;
+    videoId?: string;
+    deckId?: string;
+  }
+): Flashcard[] {
+  let result = cards;
+
+  if (options.view === 'due') {
+    result = getDueFlashcards(result);
+  }
+
+  if (options.view === 'video' && options.videoId) {
+    result = result.filter((card) => card.videoId === options.videoId);
+  }
+
+  if (options.view === 'deck' && options.deckId) {
+    result = result.filter((card) => card.deckIds.includes(options.deckId!));
+  }
+
+  return result;
+}
+
+export function getStudyQueue(
+  cards: Flashcard[],
+  options: {
+    view: FlashcardView;
+    videoId?: string;
+    deckId?: string;
+  }
+): Flashcard[] {
+  const pool =
+    options.view === 'all'
+      ? cards
+      : filterFlashcards(cards, options);
+  return getDueFlashcards(pool);
+}
+
+export function getVideoDeckSummaries(
+  cards: Flashcard[],
+  titleByVideoId: Record<string, string> = {}
+): VideoDeckSummary[] {
+  const groups = new Map<string, Flashcard[]>();
+
+  for (const card of cards) {
+    if (!card.videoId) continue;
+    const group = groups.get(card.videoId) ?? [];
+    group.push(card);
+    groups.set(card.videoId, group);
+  }
+
+  return [...groups.entries()]
+    .map(([videoId, groupCards]) => ({
+      videoId,
+      title: titleByVideoId[videoId] || groupCards[0]?.videoTitle || videoId,
+      cardsCount: groupCards.length,
+      dueCount: getDueFlashcards(groupCards).length,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+}
+
+export function removeDeckFromCards(deckId: string): Flashcard[] {
+  const updated = getFlashcards().map((card) => ({
+    ...card,
+    deckIds: card.deckIds.filter((id) => id !== deckId),
+  }));
+  saveFlashcards(updated);
+  return updated;
+}
+
+export function toggleCardDeckMembership(
+  cardId: string,
+  deckId: string
+): Flashcard | null {
+  const cards = getFlashcards();
+  const index = cards.findIndex((card) => card.id === cardId);
+  if (index < 0) return null;
+
+  const card = cards[index];
+  const deckIds = card.deckIds.includes(deckId)
+    ? card.deckIds.filter((id) => id !== deckId)
+    : [...card.deckIds, deckId];
+
+  const updated = { ...card, deckIds };
+  cards[index] = updated;
+  saveFlashcards(cards);
+  return updated;
 }
 
 export function addFlashcard(draft: FlashcardDraft): Flashcard | null {

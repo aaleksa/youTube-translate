@@ -14,6 +14,7 @@ interface BulkSaveFlashcardModalProps {
   items: ParsedFlashcardItem[] | null;
   videoId: string;
   videoUrl: string;
+  videoTitle?: string;
   transcript?: TranscriptCue[];
   onClose: () => void;
   onSaved: (count: number) => void;
@@ -28,6 +29,7 @@ export default function BulkSaveFlashcardModal({
   items,
   videoId,
   videoUrl,
+  videoTitle,
   transcript = [],
   onClose,
   onSaved,
@@ -105,6 +107,7 @@ export default function BulkSaveFlashcardModal({
           example: resolvedExample,
           videoId,
           videoUrl,
+          videoTitle,
           timestamp: findTimestampForExample(
             resolvedExample,
             word,
