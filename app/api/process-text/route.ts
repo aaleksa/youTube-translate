@@ -1,5 +1,14 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import {
+  buildEnrichFlashcardsPrompt,
+  buildPrepareFlashcardsPrompt,
+  buildProcessTextKeywordsPrompt,
+  buildProcessTextPhrasalPrompt,
+  buildProcessTextTranslatePrompt,
+} from '../../lib/aiPrompts';
+import type { TranslationLanguageCode } from '../../lib/translationLanguages';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
 
@@ -40,28 +49,18 @@ function getMaxInputChars(): number {
     : LMSTUDIO_MAX_INPUT_CHARS;
 }
 
-function getSystemPrompt(query: string): string {
+function getSystemPrompt(
+  query: string,
+  translationLanguage: TranslationLanguageCode
+): string {
   const lower = query.toLowerCase();
 
   if (lower.includes('phrasal verb')) {
-    return `You are an English language teacher specializing in phrasal verbs.
-Find every phrasal verb or useful phrase in the text (verb + particle: up, out, on, off, in, away, back, etc.).
-For each item output exactly ONE line in this format:
-NUMBER. ENGLISH_PHRASE | UKRAINIAN_TRANSLATION
-
-Example:
-1. give up | здаватися
-2. pick me up | забрати мене
-
-Rules:
-- Only English phrase and Ukrainian translation — no explanations, examples, or bullet points.
-- Output ONLY the numbered list — no introduction or summary.
-If the text is in another language, still list English phrasal verbs if present.
-Do not say "there are no phrasal verbs" without carefully reading the entire text.`;
+    return buildProcessTextPhrasalPrompt(translationLanguage);
   }
 
-  if (lower.includes('translate') && lower.includes('ukrainian')) {
-    return 'You are a professional translator. Translate the text accurately into Ukrainian. Preserve tone and meaning.';
+  if (lower.includes('translate')) {
+    return buildProcessTextTranslatePrompt(translationLanguage);
   }
 
   if (lower.includes('summary') || lower.includes('summar')) {
@@ -69,49 +68,11 @@ Do not say "there are no phrasal verbs" without carefully reading the entire tex
   }
 
   if (lower.includes('keyword') || lower.includes('key word')) {
-    return `Extract the most important keywords and concepts from the text.
-For each item output exactly one line:
-NUMBER. ENGLISH_WORD_OR_PHRASE | UKRAINIAN_TRANSLATION
-Output ONLY the numbered list — no explanations or introduction.`;
+    return buildProcessTextKeywordsPrompt(translationLanguage);
   }
 
   return 'You are a helpful assistant that processes and analyzes text. Respond in the same language as the input text. Provide clear, structured output.';
 }
-
-const ENRICH_FLASHCARDS_PROMPT = `You are an English teacher helping Ukrainian learners build flashcards.
-For each English word or phrase from the list, provide:
-1. Ukrainian translation
-2. One example sentence taken from or based on the transcript
-
-Output ONLY numbered lines in this format:
-NUMBER. ENGLISH_WORD | UKRAINIAN_TRANSLATION | EXAMPLE_SENTENCE
-
-Rules:
-- Use the transcript for realistic examples.
-- No introductions, explanations, or frequency counts.
-- One line per word.`;
-
-const PREPARE_FLASHCARDS_PROMPT = `You prepare vocabulary flashcards for Ukrainian learners.
-You receive a video transcript and an AI analysis response in ANY format (lists, frequencies, explanations, markdown).
-
-Extract every English word or phrase worth learning. For each item provide:
-- word: English word or phrase (not Ukrainian)
-- translation: Ukrainian translation
-- example: one usage example from the transcript when possible
-
-Return ONLY valid JSON:
-{
-  "items": [
-    { "word": "get in", "translation": "сідати (в автомобіль)", "example": "Let's get in the taxi." }
-  ]
-}
-
-Rules:
-- Ignore frequency counts like "6 разів" or "37 times".
-- Ignore Ukrainian explanatory paragraphs; extract only learning pairs.
-- Skip duplicates and trivial function words (the, and, a) unless clearly important.
-- Include phrasal verbs and useful phrases as whole units.
-- No text outside JSON.`;
 
 function truncateByChars(
   text: string,
@@ -237,7 +198,9 @@ async function callLmStudio(
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, query, enrichWords, prepareFromResponse } = await request.json();
+    const { text, query, enrichWords, prepareFromResponse, translationLanguage } =
+      await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -263,10 +226,10 @@ export async function POST(request: NextRequest) {
       : '';
 
     const systemPrompt = isPrepareMode
-      ? PREPARE_FLASHCARDS_PROMPT
+      ? buildPrepareFlashcardsPrompt(lang)
       : isEnrichMode
-        ? ENRICH_FLASHCARDS_PROMPT
-        : getSystemPrompt(cleanQuery);
+        ? buildEnrichFlashcardsPrompt(lang)
+        : getSystemPrompt(cleanQuery, lang);
 
     const wordsList = isEnrichMode
       ? (enrichWords as string[])

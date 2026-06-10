@@ -20,7 +20,7 @@ export default function VideoNotesPanel({
   onShowPanelChange,
   hideButton = false,
 }: VideoNotesPanelProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [notes, setNotes] = useState<VideoNotesResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,7 +68,7 @@ export default function VideoNotesPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: transcriptText,
-          interfaceLanguage: language,
+          taskLanguage,
         }),
       });
 
@@ -94,7 +94,7 @@ export default function VideoNotesPanel({
     } finally {
       setLoading(false);
     }
-  }, [language, setShowPanel, transcriptText, videoId]);
+  }, [taskLanguage, setShowPanel, transcriptText, videoId]);
 
   useEffect(() => {
     if (!showPanel || notes || loading) return;

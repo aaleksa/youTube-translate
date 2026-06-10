@@ -15,6 +15,8 @@ import {
 } from './sentenceStore';
 import type { Sentence } from './transcriptTypes';
 import { parseTimestampToSeconds } from './timestamp';
+import { getSavedTranslationLanguage } from './languageSettings';
+import type { TranslationLanguageCode } from './translationLanguages';
 
 const STORAGE_KEY = 'yoytube-flashcards';
 
@@ -33,6 +35,9 @@ export interface Flashcard {
   id: string;
   word: string;
   translation: string;
+  translations?: Partial<Record<TranslationLanguageCode, string>>;
+  /** Language used for the primary translation field when the card was saved */
+  translationLanguage?: TranslationLanguageCode;
   example: string;
   tags: string[];
   videoId?: string;
@@ -47,6 +52,8 @@ export interface Flashcard {
   updatedAt?: number;
   knownCount: number;
   unknownCount: number;
+  quizCorrectCount: number;
+  quizWrongCount: number;
   lastReviewedAt?: number;
   repetitions: number;
   ease: number;
@@ -152,6 +159,16 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     (card.deckId ? [card.deckId] : []);
 
   const example = card.example ?? '';
+  const translation = (card.translation ?? '').trim();
+  const translationLanguage = card.translationLanguage;
+  const translations: Partial<Record<TranslationLanguageCode, string>> = {
+    ...card.translations,
+  };
+
+  if (translation && Object.keys(translations).length === 0) {
+    translations[translationLanguage ?? 'uk'] = translation;
+  }
+
   let sentenceId = card.sentenceId;
 
   if (!sentenceId && videoId && example) {
@@ -168,7 +185,9 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
   return {
     id: card.id,
     word: card.word,
-    translation: card.translation ?? '',
+    translation,
+    translations,
+    translationLanguage,
     example,
     tags: normalizeTags(card.tags ?? []),
     videoId,
@@ -182,6 +201,8 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     updatedAt: card.updatedAt,
     knownCount: card.knownCount ?? 0,
     unknownCount: card.unknownCount ?? 0,
+    quizCorrectCount: card.quizCorrectCount ?? 0,
+    quizWrongCount: card.quizWrongCount ?? 0,
     lastReviewedAt: card.lastReviewedAt,
     repetitions: card.repetitions ?? 0,
     ease: card.ease ?? DEFAULT_EASE,
@@ -206,7 +227,11 @@ export function getFlashcards(): Flashcard[] {
     const needsPersist = parsed.some((card) => {
       if (!card.id) return false;
       const next = migratedById.get(card.id);
-      return Boolean(next && card.sentenceId !== next.sentenceId);
+      return Boolean(
+        next &&
+          (card.sentenceId !== next.sentenceId ||
+            card.translations !== next.translations)
+      );
     });
     if (needsPersist) {
       saveFlashcards(migrated);
@@ -280,15 +305,21 @@ export function resolveFlashcardSentence(
 function createFlashcard(
   draft: FlashcardDraft,
   index = 0,
-  context?: FlashcardSentenceContext
+  context?: FlashcardSentenceContext,
+  translationLanguage: TranslationLanguageCode = 'uk'
 ): Flashcard {
   const example = draft.example.trim();
   const sentenceId = resolveSentenceForDraft(draft, context);
+  const translation = draft.translation.trim();
 
   return {
     id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
     word: draft.word.trim(),
-    translation: draft.translation.trim(),
+    translation,
+    translations: {
+      [translationLanguage]: translation,
+    },
+    translationLanguage,
     example,
     tags: normalizeTags(draft.tags ?? []),
     videoId: draft.videoId,
@@ -302,6 +333,8 @@ function createFlashcard(
     createdAt: Date.now(),
     knownCount: 0,
     unknownCount: 0,
+    quizCorrectCount: 0,
+    quizWrongCount: 0,
     repetitions: 0,
     ease: DEFAULT_EASE,
     interval: 0,
@@ -496,11 +529,12 @@ export function toggleCardDeckMembership(
 
 export function addFlashcard(
   draft: FlashcardDraft,
-  context?: FlashcardSentenceContext
+  context?: FlashcardSentenceContext,
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
 ): Flashcard | null {
   if (hasFlashcard(draft.word)) return null;
 
-  const card = createFlashcard(draft, 0, context);
+  const card = createFlashcard(draft, 0, context, translationLanguage);
   const updated = [card, ...getFlashcards()];
   saveFlashcards(updated);
   return card;
@@ -508,7 +542,8 @@ export function addFlashcard(
 
 export function addFlashcards(
   drafts: FlashcardDraft[],
-  context?: FlashcardSentenceContext
+  context?: FlashcardSentenceContext,
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
 ): {
   added: Flashcard[];
   skipped: string[];
@@ -524,7 +559,7 @@ export function addFlashcards(
       continue;
     }
 
-    const card = createFlashcard(draft, index, context);
+    const card = createFlashcard(draft, index, context, translationLanguage);
     added.push(card);
     existing.add(key);
   }
@@ -542,6 +577,23 @@ export function removeFlashcard(id: string): Flashcard[] {
   return updated;
 }
 
+export function recordQuizAnswer(cardId: string, isCorrect: boolean): Flashcard | null {
+  const cards = getFlashcards();
+  const index = cards.findIndex((card) => card.id === cardId);
+  if (index < 0) return null;
+
+  const card = cards[index];
+  const updated: Flashcard = {
+    ...card,
+    quizCorrectCount: card.quizCorrectCount + (isCorrect ? 1 : 0),
+    quizWrongCount: card.quizWrongCount + (isCorrect ? 0 : 1),
+  };
+
+  cards[index] = updated;
+  saveFlashcards(cards);
+  return updated;
+}
+
 export function updateFlashcard(update: FlashcardUpdate): UpdateFlashcardResult {
   const cards = getFlashcards();
   const index = cards.findIndex((card) => card.id === update.id);
@@ -555,10 +607,17 @@ export function updateFlashcard(update: FlashcardUpdate): UpdateFlashcardResult 
   }
 
   const existing = cards[index];
+  const translationLanguage = getSavedTranslationLanguage();
+  const translation = update.translation.trim();
   const updated: Flashcard = {
     ...existing,
     word: trimmedWord,
-    translation: update.translation.trim(),
+    translation,
+    translations: {
+      ...existing.translations,
+      [translationLanguage]: translation,
+    },
+    translationLanguage,
     example: update.example.trim(),
     tags: normalizeTags(update.tags),
     deckIds: [...new Set(update.deckIds.filter(Boolean))],

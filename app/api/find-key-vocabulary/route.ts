@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildKeyVocabularyPrompt } from '../../lib/aiPrompts';
 import { parseKeyVocabularyResponse } from '../../lib/keyVocabulary';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,34 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const FIND_KEY_VOCABULARY_PROMPT = `You are an English teacher helping Ukrainian learners extract the most useful vocabulary from a video transcript.
-
-Identify 15–30 key English words and short phrases worth learning from this transcript.
-Focus on words that are:
-- important for understanding the video topic
-- useful for everyday or professional English
-- not trivial (skip the, and, is, it, very common A1 words unless topic-critical)
-
-Return ONLY valid JSON:
-{
-  "vocabulary": [
-    {
-      "word": "negotiate",
-      "meaning": "вести переговори",
-      "example": "We need to negotiate a better deal."
-    }
-  ]
-}
-
-Rules:
-- word: single word or short phrase (2–4 words max), not full sentences
-- meaning: brief Ukrainian translation or explanation
-- example: sentence from the transcript where the word appears, or natural example in same context
-- Do not duplicate items with the same meaning
-- Skip proper names unless culturally important
-- If transcript is very short, return fewer items
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -61,7 +35,9 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildKeyVocabularyPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -86,7 +62,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: FIND_KEY_VOCABULARY_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

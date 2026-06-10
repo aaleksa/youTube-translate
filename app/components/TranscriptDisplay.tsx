@@ -30,16 +30,11 @@ import SentenceExplanation from './SentenceExplanation';
 import TranslationLanguageSelect from './TranslationLanguageSelect';
 import ToolbarMenu from './ToolbarMenu';
 import {
-  DEFAULT_TRANSLATION_LANGUAGE,
   getTranslationLanguageName,
   getTranslationLanguageShortCode,
   isTranslationLanguage,
   type TranslationLanguageCode,
 } from '../lib/translationLanguages';
-import {
-  getSavedTranslationLanguage,
-  saveTranslationLanguage,
-} from '../lib/languageSettings';
 import { useI18n } from './InterfaceLanguageProvider';
 import type { Sentence } from '../lib/transcriptTypes';
 
@@ -268,7 +263,7 @@ export default function TranscriptDisplay({
   flashcardsRefreshKey = 0,
   onPauseVideo,
 }: TranscriptDisplayProps) {
-  const { t, language } = useI18n();
+  const { t, language, translationLanguage, setTranslationLanguage } = useI18n();
   const isShadowingMode =
     shadowingCaptionIndexes.length > 0 || shadowingLineIndex !== null;
   const highlightLineIndex =
@@ -291,8 +286,6 @@ export default function TranscriptDisplay({
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [translationEnabled, setTranslationEnabled] = useState(false);
-  const [translationLanguage, setTranslationLanguage] =
-    useState<TranslationLanguageCode>(DEFAULT_TRANSLATION_LANGUAGE);
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState({ done: 0, total: 0 });
@@ -309,7 +302,6 @@ export default function TranscriptDisplay({
     if (saved !== null) {
       setAutoScroll(saved === 'true');
     }
-    setTranslationLanguage(getSavedTranslationLanguage());
   }, []);
 
   const cancelTranslation = useCallback(() => {
@@ -567,7 +559,8 @@ export default function TranscriptDisplay({
       const prepared = await prepareFlashcardForWord(
         selectedText,
         fullText,
-        fallbackExample
+        fallbackExample,
+        translationLanguage
       );
 
       onSaveToFlashcards(prepared.word, prepared.example, prepared.translation);
@@ -598,7 +591,6 @@ export default function TranscriptDisplay({
   const handleTranslationLanguageChange = (languageCode: string) => {
     if (!isTranslationLanguage(languageCode)) return;
 
-    saveTranslationLanguage(languageCode);
     setTranslationLanguage(languageCode);
     if (translationEnabled) {
       setTranslationEnabled(false);

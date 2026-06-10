@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from './InterfaceLanguageProvider';
+import GlobalTranslationLanguageSelect from './GlobalTranslationLanguageSelect';
 import InterfaceLanguageSelect from './InterfaceLanguageSelect';
 import LearningSettings from './LearningSettings';
+import TaskLanguageSelect from './TaskLanguageSelect';
 
 const topBarButtonClass =
   'p-2.5 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-md';
@@ -58,6 +60,8 @@ export default function AppSettingsPanel() {
           </h2>
           <div className="space-y-5">
             <InterfaceLanguageSelect />
+            <GlobalTranslationLanguageSelect />
+            <TaskLanguageSelect />
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <LearningSettings embedded />
             </div>

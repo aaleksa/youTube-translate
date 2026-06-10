@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildSlangPrompt } from '../../lib/aiPrompts';
 import { parseSlangResponse } from '../../lib/slang';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,34 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const FIND_SLANG_PROMPT = `You are an English teacher helping Ukrainian learners understand slang and informal language.
-
-Find slang words, informal expressions, colloquialisms, and casual speech in the transcript. Include:
-- internet slang and abbreviations (gonna, kinda, lit, vibe)
-- colloquial words (bucks, cool, awesome used informally)
-- informal phrases typical of spoken English
-- regional or youth slang when present
-
-Return ONLY valid JSON:
-{
-  "slang": [
-    {
-      "expression": "gonna",
-      "meaning": "going to — збираюся, буду",
-      "formality": "informal",
-      "example": "I'm gonna grab a taxi."
-    }
-  ]
-}
-
-Rules:
-- meaning: brief explanation AND Ukrainian translation
-- formality: one of: formal, neutral, informal, very informal, slang, vulgar
-- example: sentence from the transcript or natural example in same context
-- Do NOT include standard phrasal verbs or idioms unless clearly slang/colloquial
-- If nothing found, return { "slang": [] }
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -61,7 +35,9 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildSlangPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -86,7 +62,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: FIND_SLANG_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

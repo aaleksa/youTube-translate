@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildCollocationsPrompt } from '../../lib/aiPrompts';
 import { parseCollocationsResponse } from '../../lib/collocations';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,42 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const FIND_COLLOCATIONS_PROMPT = `You are an English teacher helping Ukrainian learners at B1+ level master collocations.
-
-Find natural word combinations (collocations) in the transcript — pairs or short groups of words that native speakers habitually use together.
-
-Examples of what TO include:
-- make a decision, take a break, do homework
-- heavy rain, strong coffee, deep sleep
-- highly recommend, widely used, fully aware
-- pay attention, catch a cold, run a business
-
-Examples of what NOT to include:
-- idioms with non-literal meaning (piece of cake) — those are idioms
-- phrasal verbs (give up, look into) — those are phrasal verbs
-- discourse phrases (by the way, I mean) — those are useful phrases
-- slang or crude informal expressions
-- single words without a collocation partner
-
-Return ONLY valid JSON:
-{
-  "collocations": [
-    {
-      "collocation": "make a decision",
-      "meaning": "прийняти рішення",
-      "example": "We need to make a decision by Friday."
-    }
-  ]
-}
-
-Rules:
-- collocation: 2–4 words that naturally go together
-- meaning: brief explanation in Ukrainian
-- example: sentence from the transcript where the collocation appears, or natural example in same context
-- List each distinct collocation once
-- If none found, return { "collocations": [] }
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -69,7 +35,9 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildCollocationsPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -94,7 +62,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: FIND_COLLOCATIONS_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

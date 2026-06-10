@@ -30,7 +30,7 @@ export default function VideoChaptersPanel({
   hideButton = false,
   onSeek,
 }: VideoChaptersPanelProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [chapters, setChapters] = useState<VideoChaptersResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +61,7 @@ export default function VideoChaptersPanel({
     setError('');
     setShowPanel(true);
 
-    const cached = getChaptersCache(videoId, transcriptTextLength, language);
+    const cached = getChaptersCache(videoId, transcriptTextLength, taskLanguage);
     if (cached) {
       setChapters(cached);
       setFromCache(true);
@@ -78,7 +78,7 @@ export default function VideoChaptersPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           transcript,
-          interfaceLanguage: language,
+          taskLanguage,
         }),
       });
 
@@ -96,7 +96,7 @@ export default function VideoChaptersPanel({
         throw new Error(t('chapters.empty'));
       }
 
-      setChaptersCache(videoId, transcriptTextLength, language, result);
+      setChaptersCache(videoId, transcriptTextLength, taskLanguage, result);
       setChapters(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('chapters.error'));
@@ -104,7 +104,7 @@ export default function VideoChaptersPanel({
     } finally {
       setLoading(false);
     }
-  }, [language, setShowPanel, t, transcript, transcriptTextLength, videoId]);
+  }, [taskLanguage, setShowPanel, t, transcript, transcriptTextLength, videoId]);
 
   useEffect(() => {
     if (!showPanel || chapters || loading) return;

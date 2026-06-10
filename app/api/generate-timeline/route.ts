@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildTimelinePrompt } from '../../lib/aiPrompts';
-import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
+import { resolveTaskLanguage } from '../../lib/aiInterfaceLanguage';
 import {
   formatTranscriptForTimeline,
   parseTimelineResponse,
@@ -31,8 +31,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { transcript, interfaceLanguage } = await request.json();
-    const language = resolveInterfaceLanguage(interfaceLanguage);
+    const { transcript, taskLanguage, interfaceLanguage } = await request.json();
+    const language = resolveTaskLanguage(taskLanguage ?? interfaceLanguage);
 
     if (!Array.isArray(transcript) || transcript.length === 0) {
       return NextResponse.json(

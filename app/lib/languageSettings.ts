@@ -16,6 +16,8 @@ export interface LanguageSettings {
   interfaceLanguage: InterfaceLanguage;
   transcriptLanguage: string;
   translationLanguage: TranslationLanguageCode;
+  /** Language for AI tasks: quiz, notes, summaries, explanations */
+  taskLanguage: TranslationLanguageCode;
 }
 
 function defaultSettings(): LanguageSettings {
@@ -24,6 +26,7 @@ function defaultSettings(): LanguageSettings {
     interfaceLanguage,
     transcriptLanguage: 'en',
     translationLanguage: interfaceLanguage,
+    taskLanguage: interfaceLanguage,
   };
 }
 
@@ -73,6 +76,15 @@ export function getLanguageSettings(): LanguageSettings {
           : isTranslationLanguage(migrated.interfaceLanguage)
             ? migrated.interfaceLanguage
             : DEFAULT_TRANSLATION_LANGUAGE,
+      taskLanguage:
+        parsed.taskLanguage && isTranslationLanguage(parsed.taskLanguage)
+          ? parsed.taskLanguage
+          : parsed.translationLanguage &&
+              isTranslationLanguage(parsed.translationLanguage)
+            ? parsed.translationLanguage
+            : isTranslationLanguage(migrated.interfaceLanguage)
+              ? migrated.interfaceLanguage
+              : DEFAULT_TRANSLATION_LANGUAGE,
     };
   } catch {
     return migrateLegacySettings();
@@ -108,6 +120,17 @@ export function saveTranslationLanguage(code: string): LanguageSettings {
     return getLanguageSettings();
   }
   return saveLanguageSettings({ translationLanguage: code });
+}
+
+export function getSavedTaskLanguage(): TranslationLanguageCode {
+  return getLanguageSettings().taskLanguage;
+}
+
+export function saveTaskLanguage(code: string): LanguageSettings {
+  if (!isTranslationLanguage(code)) {
+    return getLanguageSettings();
+  }
+  return saveLanguageSettings({ taskLanguage: code });
 }
 
 export function saveTranscriptLanguage(code: string): LanguageSettings {

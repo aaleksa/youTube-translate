@@ -30,7 +30,7 @@ export default function VideoTimelinePanel({
   hideButton = false,
   onSeek,
 }: VideoTimelinePanelProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [timeline, setTimeline] = useState<VideoTimelineResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +61,7 @@ export default function VideoTimelinePanel({
     setError('');
     setShowPanel(true);
 
-    const cached = getTimelineCache(videoId, transcriptTextLength, language);
+    const cached = getTimelineCache(videoId, transcriptTextLength, taskLanguage);
     if (cached) {
       setTimeline(cached);
       setFromCache(true);
@@ -78,7 +78,7 @@ export default function VideoTimelinePanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           transcript,
-          interfaceLanguage: language,
+          taskLanguage,
         }),
       });
 
@@ -96,7 +96,7 @@ export default function VideoTimelinePanel({
         throw new Error(t('timeline.empty'));
       }
 
-      setTimelineCache(videoId, transcriptTextLength, language, result);
+      setTimelineCache(videoId, transcriptTextLength, taskLanguage, result);
       setTimeline(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('timeline.error'));
@@ -104,7 +104,7 @@ export default function VideoTimelinePanel({
     } finally {
       setLoading(false);
     }
-  }, [language, setShowPanel, t, transcript, transcriptTextLength, videoId]);
+  }, [taskLanguage, setShowPanel, t, transcript, transcriptTextLength, videoId]);
 
   useEffect(() => {
     if (!showPanel || timeline || loading) return;

@@ -29,7 +29,7 @@ export default function TextProcessor({
   onSaveToFlashcards,
   onSaveManyToFlashcards,
 }: TextProcessorProps) {
-  const { t } = useI18n();
+  const { t, translationLanguage } = useI18n();
   const savedWords = useMemo(
     () => getFlashcardWordSet(),
     [flashcardsRefreshKey]
@@ -59,6 +59,7 @@ export default function TextProcessor({
         body: JSON.stringify({
           text,
           query,
+          translationLanguage,
         }),
       });
 
@@ -99,7 +100,11 @@ export default function TextProcessor({
     setError('');
 
     try {
-      const prepared = await prepareFlashcardsFromAiResponse(item.result, text);
+      const prepared = await prepareFlashcardsFromAiResponse(
+        item.result,
+        text,
+        translationLanguage
+      );
       const newItems = prepared.filter(
         (card) => !savedWords.has(card.word.trim().toLowerCase())
       );
