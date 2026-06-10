@@ -7,18 +7,25 @@ import {
   type TranscriptCue,
 } from '../lib/transcriptCue';
 import { formatTimestamp } from '../lib/timestamp';
+import {
+  pickShadowingUnits,
+  type ShadowingMode,
+} from '../lib/shadowingChunks';
 import { useI18n } from './InterfaceLanguageProvider';
 import PronunciationChecker from './PronunciationChecker';
 import { isSpeechRecognitionSupported } from '../lib/speechRecognition';
-import type { PhraseChunk } from '../lib/transcriptTypes';
+import type { PhraseChunk, ShadowingUnits } from '../lib/transcriptTypes';
 import { timedUnitsToCues } from '../lib/transcriptTypes';
 
 type ShadowingPhase = 'idle' | 'listen' | 'repeat';
+
+const SHADOWING_MODE_STORAGE_KEY = 'yoytube-shadowing-mode';
 
 interface ShadowingPanelProps {
   videoId: string;
   transcript: TranscriptCue[];
   phrases?: PhraseChunk[];
+  shadowingUnits?: ShadowingUnits;
   currentPlaybackTime: number;
   isPlayerReady: boolean;
   speechLanguage?: string;
@@ -28,10 +35,20 @@ interface ShadowingPanelProps {
   onCaptionIndexesChange?: (captionIndexes: number[]) => void;
 }
 
+function readStoredShadowingMode(): ShadowingMode {
+  if (typeof window === 'undefined') return 'normal';
+  const stored = localStorage.getItem(SHADOWING_MODE_STORAGE_KEY);
+  if (stored === 'easy' || stored === 'normal' || stored === 'advanced') {
+    return stored;
+  }
+  return 'normal';
+}
+
 export default function ShadowingPanel({
   videoId,
   transcript,
   phrases,
+  shadowingUnits,
   currentPlaybackTime,
   isPlayerReady,
   speechLanguage,
@@ -47,13 +64,26 @@ export default function ShadowingPanel({
   const [finished, setFinished] = useState(false);
   const [requirePronunciation, setRequirePronunciation] = useState(true);
   const [pronunciationChecked, setPronunciationChecked] = useState(false);
+  const [mode, setMode] = useState<ShadowingMode>('normal');
   const listenStartedRef = useRef(false);
   const speechSupported = isSpeechRecognitionSupported();
   const pronunciationRequired = requirePronunciation && speechSupported;
+
+  useEffect(() => {
+    setMode(readStoredShadowingMode());
+  }, []);
+
+  const activePhrases = useMemo(() => {
+    const fromUnits = pickShadowingUnits(shadowingUnits, mode);
+    if (fromUnits.length > 0) return fromUnits;
+    if (phrases && phrases.length > 0) return phrases;
+    return [];
+  }, [mode, phrases, shadowingUnits]);
+
   const shadowingLines = useMemo(
     () =>
-      phrases && phrases.length > 0 ? timedUnitsToCues(phrases) : transcript,
-    [phrases, transcript]
+      activePhrases.length > 0 ? timedUnitsToCues(activePhrases) : transcript,
+    [activePhrases, transcript]
   );
 
   const notifyLineChange = useCallback(
@@ -64,9 +94,9 @@ export default function ShadowingPanel({
         return;
       }
 
-      onCaptionIndexesChange?.(phrases?.[index]?.captionIndexes ?? [index]);
+      onCaptionIndexesChange?.(activePhrases[index]?.captionIndexes ?? [index]);
     },
-    [onCaptionIndexesChange, onLineIndexChange, phrases]
+    [activePhrases, onCaptionIndexesChange, onLineIndexChange]
   );
 
   const stopShadowing = useCallback(() => {
@@ -125,6 +155,14 @@ export default function ShadowingPanel({
     playLine(0);
   };
 
+  const handleModeChange = (nextMode: ShadowingMode) => {
+    setMode(nextMode);
+    localStorage.setItem(SHADOWING_MODE_STORAGE_KEY, nextMode);
+    if (active) {
+      stopShadowing();
+    }
+  };
+
   useEffect(() => {
     if (!active || phase !== 'listen' || shadowingLines.length === 0) return;
 
@@ -168,6 +206,7 @@ export default function ShadowingPanel({
   }, [videoId]);
 
   const currentCue = shadowingLines[lineIndex];
+  const currentPhrase = activePhrases[lineIndex];
   const phaseLabel =
     phase === 'listen'
       ? t('shadowing.listen')
@@ -176,6 +215,13 @@ export default function ShadowingPanel({
         : finished
           ? t('shadowing.finished')
           : t('shadowing.idle');
+
+  const progressLabel =
+    mode === 'easy'
+      ? t('shadowing.progressChunk')
+      : mode === 'advanced'
+        ? t('shadowing.progressParagraph')
+        : t('shadowing.progressSentence');
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-4">
@@ -193,6 +239,41 @@ export default function ShadowingPanel({
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         {t('shadowing.description')}
       </p>
+
+      <div className="mb-4">
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          {t('shadowing.modeLabel')}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {(
+            [
+              ['easy', 'shadowing.modeEasy'],
+              ['normal', 'shadowing.modeNormal'],
+              ['advanced', 'shadowing.modeAdvanced'],
+            ] as const
+          ).map(([value, labelKey]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleModeChange(value)}
+              className={`min-h-10 px-3 py-2 rounded-lg text-sm font-medium transition border ${
+                mode === value
+                  ? 'border-violet-500 bg-violet-50 text-violet-900 dark:bg-violet-950/50 dark:text-violet-100 dark:border-violet-500'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          {mode === 'easy'
+            ? t('shadowing.modeEasyHint')
+            : mode === 'normal'
+              ? t('shadowing.modeNormalHint')
+              : t('shadowing.modeAdvancedHint')}
+        </p>
+      </div>
 
       <label className="flex items-start gap-2 mb-4 cursor-pointer select-none">
         <input
@@ -225,7 +306,7 @@ export default function ShadowingPanel({
       ) : (
         <div className="space-y-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            {t('shadowing.progress')
+            {progressLabel
               .replace('{current}', String(lineIndex + 1))
               .replace('{total}', String(shadowingLines.length))}
           </p>
@@ -245,10 +326,10 @@ export default function ShadowingPanel({
             <PronunciationChecker
               expectedText={currentCue.text}
               videoId={videoId}
-              sentenceId={phrases?.[lineIndex]?.sentenceId}
-              phraseId={phrases?.[lineIndex]?.id}
+              sentenceId={currentPhrase?.sentenceId}
+              phraseId={currentPhrase?.id}
               speechLanguage={speechLanguage}
-              resetKey={`shadowing-${lineIndex}`}
+              resetKey={`shadowing-${mode}-${lineIndex}`}
               onReplayOriginal={() => playLine(lineIndex)}
               onChecked={() => setPronunciationChecked(true)}
             />

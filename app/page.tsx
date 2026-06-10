@@ -49,7 +49,12 @@ import {
   enrichTranscriptData,
   mapRawCaptionIndexesToDisplayIndexes,
 } from './lib/transcriptPipeline';
-import type { PhraseChunk, RawCaption, Sentence } from './lib/transcriptTypes';
+import type {
+  PhraseChunk,
+  RawCaption,
+  Sentence,
+  ShadowingUnits,
+} from './lib/transcriptTypes';
 import type { TranscriptCue } from './lib/transcriptCue';
 
 interface TranscriptResponse {
@@ -63,6 +68,7 @@ interface TranscriptResponse {
   rawCaptions?: RawCaption[];
   sentences?: Sentence[];
   phrases?: PhraseChunk[];
+  shadowingUnits?: ShadowingUnits;
   text: string;
   selectedLanguage?: string;
   subtitleLanguageName?: string;
@@ -581,6 +587,7 @@ export default function Home() {
                     videoId={videoData.videoId}
                     transcript={visibleTranscript}
                     phrases={videoData.phrases}
+                    shadowingUnits={videoData.shadowingUnits}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
                     speechLanguage={videoData.selectedLanguage}

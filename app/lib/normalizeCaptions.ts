@@ -1,5 +1,9 @@
 import { getCueEndSeconds, type TranscriptCue } from './transcriptCue';
 import { parseTimestampToSeconds } from './timestamp';
+import {
+  buildShadowingUnits,
+  displayLinesToSentences,
+} from './shadowingChunks';
 import type {
   PhraseChunk,
   RawCaption,
@@ -567,10 +571,9 @@ export function processTranscript(
   const rawCaptions = transcriptCuesToRawCaptions(cues);
   const merged = dedupeRollingCaptions(rawCaptions);
   const displayLines = finalizeTimedUnitEnds(merged);
-  const sentences = finalizeTimedUnitEnds(
-    mergedCaptionsToSentences(merged, rawCaptions)
-  );
-  const phrases = finalizeTimedUnitEnds(displayLinesToPhrases(displayLines));
+  const sentences = finalizeTimedUnitEnds(displayLinesToSentences(displayLines));
+  const shadowingUnits = buildShadowingUnits(displayLines, sentences);
+  const phrases = finalizeTimedUnitEnds(shadowingUnits.chunks);
   const sentenceText = sentences.map((sentence) => sentence.text).join(' ');
 
   return {
@@ -578,6 +581,11 @@ export function processTranscript(
     displayLines,
     sentences,
     phrases,
+    shadowingUnits: {
+      chunks: phrases,
+      sentences: finalizeTimedUnitEnds(shadowingUnits.sentences),
+      paragraphs: finalizeTimedUnitEnds(shadowingUnits.paragraphs),
+    },
     sentenceText,
   };
 }
