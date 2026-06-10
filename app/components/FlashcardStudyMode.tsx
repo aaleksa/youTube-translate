@@ -5,10 +5,11 @@ import {
   countDueOnDay,
   getFlashcards,
   recordFlashcardReview,
-  shuffleFlashcards,
   type Flashcard,
+  type ReviewRating,
   type StudySessionSummary,
 } from '../lib/flashcards';
+import { getWeaknessScore, sortReviewQueue } from '../lib/flashcardSrs';
 import { getFlashcardTranslation } from '../lib/flashcardTranslations';
 import FlashcardExampleActions, {
   type FlashcardSentenceHandlers,
@@ -48,7 +49,7 @@ export default function FlashcardStudyMode({
   onComplete,
 }: FlashcardStudyModeProps) {
   const { t, translationLanguage } = useI18n();
-  const [queue, setQueue] = useState(() => shuffleFlashcards(cards));
+  const [queue, setQueue] = useState(() => sortReviewQueue(cards));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [summary, setSummary] = useState<StudySessionSummary | null>(null);
@@ -61,23 +62,26 @@ export default function FlashcardStudyMode({
   const total = queue.length;
   const isComplete = summary !== null;
 
-  const handleAnswer = (known: boolean) => {
+  const getRatingFeedback = (rating: ReviewRating, intervalDays: number) => {
+    if (rating === 'again') return t('flashcards.nextReviewSoon');
+    if (intervalDays <= 1) return t('flashcards.nextReviewTomorrow');
+    return t('flashcards.nextReviewIn', { days: intervalDays });
+  };
+
+  const handleRating = (rating: ReviewRating) => {
     if (!currentCard || isComplete) return;
 
-    const result = recordFlashcardReview(currentCard.id, known);
+    const result = recordFlashcardReview(currentCard.id, rating);
     if (!result) return;
 
-    setFeedback(
-      known
-        ? t('flashcards.nextReviewIn', { days: result.intervalDays })
-        : t('flashcards.nextReviewTomorrow')
-    );
+    setFeedback(getRatingFeedback(result.rating, result.intervalDays));
 
+    const known = result.known;
     const nextKnown = sessionKnown + (known ? 1 : 0);
     const nextUnknown = sessionUnknown + (known ? 0 : 1);
     let nextQueue = queue;
 
-    if (!known) {
+    if (rating === 'again') {
       nextQueue = [...queue, result.card];
       setQueue(nextQueue);
     }
@@ -186,6 +190,11 @@ export default function FlashcardStudyMode({
 
         {isFlipped && (
           <div className="mt-6 w-full space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+            {getWeaknessScore(currentCard) > 0 && (
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                {t('flashcards.weakCardHint')}
+              </p>
+            )}
             <p className="text-xl font-semibold text-emerald-700 dark:text-emerald-400">
               {getFlashcardTranslation(currentCard, translationLanguage) || '…'}
             </p>
@@ -218,20 +227,34 @@ export default function FlashcardStudyMode({
           {t('flashcards.flip')}
         </button>
       ) : (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={() => handleAnswer(false)}
-            className="min-h-12 px-4 py-3 rounded-lg border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 font-semibold hover:bg-red-100 dark:hover:bg-red-950/60 transition"
+            onClick={() => handleRating('again')}
+            className="min-h-12 px-3 py-3 rounded-lg border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-950/60 transition"
           >
-            {t('flashcards.dontKnow')}
+            {t('flashcards.ratingAgain')}
           </button>
           <button
             type="button"
-            onClick={() => handleAnswer(true)}
-            className="min-h-12 px-4 py-3 rounded-lg border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+            onClick={() => handleRating('hard')}
+            className="min-h-12 px-3 py-3 rounded-lg border-2 border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200 text-sm font-semibold hover:bg-orange-100 dark:hover:bg-orange-950/60 transition"
           >
-            {t('flashcards.know')}
+            {t('flashcards.ratingHard')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRating('good')}
+            className="min-h-12 px-3 py-3 rounded-lg border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition"
+          >
+            {t('flashcards.ratingGood')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRating('easy')}
+            className="min-h-12 px-3 py-3 rounded-lg border-2 border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-950/60 transition"
+          >
+            {t('flashcards.ratingEasy')}
           </button>
         </div>
       )}

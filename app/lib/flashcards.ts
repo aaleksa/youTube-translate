@@ -1,10 +1,11 @@
 import { recordDailyCardReview } from './dailyStudyLog';
 import {
-  applyKnownReview,
-  applyUnknownReview,
+  applySmartReview,
   getDefaultNextReview,
   getDueFlashcards,
+  getReviewModifiers,
   type FlashcardReviewResult,
+  type ReviewRating,
 } from './flashcardSrs';
 import {
   estimateSentenceEnd,
@@ -26,7 +27,11 @@ const DEFAULT_EASE = 2.5;
 export type EnrichmentStatus = 'pending' | 'completed' | 'failed';
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 
-export type { CardState, FlashcardReviewResult } from './flashcardSrs';
+export type {
+  CardState,
+  FlashcardReviewResult,
+  ReviewRating,
+} from './flashcardSrs';
 export {
   countDueOnDay,
   getCardState,
@@ -393,19 +398,24 @@ function createFlashcard(
 
 export function recordFlashcardReview(
   id: string,
-  known: boolean
+  rating: ReviewRating | boolean
 ): FlashcardReviewResult | null {
   const cards = getFlashcards();
   const index = cards.findIndex((card) => card.id === id);
   if (index < 0) return null;
 
-  const result = known
-    ? applyKnownReview(cards[index])
-    : applyUnknownReview(cards[index]);
+  const resolvedRating: ReviewRating =
+    typeof rating === 'boolean' ? (rating ? 'good' : 'again') : rating;
+
+  const result = applySmartReview(
+    cards[index],
+    resolvedRating,
+    getReviewModifiers(cards[index])
+  );
 
   cards[index] = result.card;
   saveFlashcards(cards);
-  recordDailyCardReview(1, known);
+  recordDailyCardReview(1, result.known);
   return result;
 }
 
