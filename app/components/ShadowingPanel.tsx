@@ -73,8 +73,12 @@ export default function ShadowingPanel({
   const [pronunciationChecked, setPronunciationChecked] = useState(false);
   const [mode, setMode] = useState<ShadowingMode>('normal');
   const listenStartedRef = useRef(false);
-  const speechSupported = isSpeechRecognitionSupported();
+  const [speechSupported, setSpeechSupported] = useState(false);
   const pronunciationRequired = requirePronunciation && speechSupported;
+
+  useEffect(() => {
+    setSpeechSupported(isSpeechRecognitionSupported());
+  }, []);
 
   useEffect(() => {
     setMode(readStoredShadowingMode());

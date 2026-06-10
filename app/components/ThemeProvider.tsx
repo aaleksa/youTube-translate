@@ -6,6 +6,7 @@ type Theme = 'light' | 'dark';
 
 interface ThemeContextValue {
   theme: Theme;
+  mounted: boolean;
   toggleTheme: () => void;
 }
 
@@ -21,23 +22,26 @@ export function useTheme() {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
     setTheme(isDark ? 'dark' : 'light');
+    setMounted(true);
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   const toggleTheme = () => {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, mounted, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

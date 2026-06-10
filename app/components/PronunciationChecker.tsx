@@ -63,8 +63,12 @@ export default function PronunciationChecker({
   const gotResultRef = useRef(false);
   const listenStartedAtRef = useRef<number | null>(null);
 
-  const supported = isSpeechRecognitionSupported();
+  const [supported, setSupported] = useState(false);
   const trimmedExpected = expectedText.trim();
+
+  useEffect(() => {
+    setSupported(isSpeechRecognitionSupported());
+  }, []);
   const lang = mapTranscriptLanguageToSpeechLanguage(speechLanguage);
 
   const cleanupRecognition = useCallback(() => {

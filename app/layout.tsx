@@ -52,8 +52,6 @@ export const viewport: Viewport = {
   themeColor: "#2563eb",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,9 +64,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <PwaProvider>
           <ThemeProvider>
             <InterfaceLanguageProvider>
