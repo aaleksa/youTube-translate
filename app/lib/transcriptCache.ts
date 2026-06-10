@@ -22,6 +22,8 @@ export interface TranscriptCacheData {
   durationSeconds?: number;
   transcript: TranscriptCacheLine[];
   rawCaptions?: RawCaption[];
+  displayLines?: RawCaption[];
+  displayTranscript?: TranscriptCacheLine[];
   sentences?: Sentence[];
   phrases?: PhraseChunk[];
   text: string;

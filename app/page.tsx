@@ -47,7 +47,7 @@ import PlaylistPanel, {
 import ShadowingPanel from './components/ShadowingPanel';
 import {
   enrichTranscriptData,
-  getDisplayTranscript,
+  mapRawCaptionIndexesToDisplayIndexes,
 } from './lib/transcriptPipeline';
 import type { PhraseChunk, RawCaption, Sentence } from './lib/transcriptTypes';
 import type { TranscriptCue } from './lib/transcriptCue';
@@ -58,6 +58,8 @@ interface TranscriptResponse {
   channelName?: string;
   durationSeconds?: number;
   transcript: TranscriptCue[];
+  displayTranscript?: TranscriptCue[];
+  displayLines?: RawCaption[];
   rawCaptions?: RawCaption[];
   sentences?: Sentence[];
   phrases?: PhraseChunk[];
@@ -101,11 +103,22 @@ export default function Home() {
   const [shadowingCaptionIndexes, setShadowingCaptionIndexes] = useState<
     number[]
   >([]);
+  const [showRawTranscript, setShowRawTranscript] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
+    const rawView = localStorage.getItem('yoytube-transcript-raw-view');
+    if (rawView !== null) setShowRawTranscript(rawView === 'true');
   }, []);
+
+  const visibleTranscript = useMemo(() => {
+    if (!videoData) return [];
+    if (showRawTranscript) return videoData.transcript;
+    return videoData.displayTranscript?.length
+      ? videoData.displayTranscript
+      : videoData.transcript;
+  }, [showRawTranscript, videoData]);
 
   const toggleQuickInfo = () => {
     setQuickInfoOpen((prev) => {
@@ -115,20 +128,31 @@ export default function Home() {
     });
   };
 
-  const displayTranscript = useMemo(
-    () =>
-      videoData
-        ? getDisplayTranscript(videoData.sentences, videoData.transcript)
-        : [],
-    [videoData]
-  );
-
   useEffect(() => {
     if (!videoData) return;
     setActiveLineIndex(
-      findActiveLineIndex(displayTranscript, currentPlaybackTime)
+      findActiveLineIndex(visibleTranscript, currentPlaybackTime)
     );
-  }, [currentPlaybackTime, videoData, displayTranscript]);
+  }, [currentPlaybackTime, videoData, visibleTranscript]);
+
+  const handleShadowingCaptionIndexes = (rawIndexes: number[]) => {
+    if (!videoData?.displayLines?.length || showRawTranscript) {
+      setShadowingCaptionIndexes(rawIndexes);
+      return;
+    }
+
+    setShadowingCaptionIndexes(
+      mapRawCaptionIndexesToDisplayIndexes(videoData.displayLines, rawIndexes)
+    );
+  };
+
+  const toggleRawTranscript = () => {
+    setShowRawTranscript((prev) => {
+      const next = !prev;
+      localStorage.setItem('yoytube-transcript-raw-view', String(next));
+      return next;
+    });
+  };
 
   const handleSeek = (seconds: number, lineIndex: number) => {
     videoPlayerRef.current?.seekTo(seconds);
@@ -517,7 +541,7 @@ export default function Home() {
                             {t('quickInfo.lines')}
                           </p>
                           <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                            {displayTranscript.length}
+                            {visibleTranscript.length}
                           </p>
                         </div>
                       </div>
@@ -565,22 +589,24 @@ export default function Home() {
                     videoId={videoData.videoId}
                     transcript={videoData.transcript}
                     phrases={videoData.phrases}
-                    sentences={videoData.sentences}
                     currentPlaybackTime={currentPlaybackTime}
                     isPlayerReady={playerState.isReady}
                     speechLanguage={videoData.selectedLanguage}
                     onSeek={handleSeek}
                     onPauseVideo={handlePauseVideo}
                     onLineIndexChange={setShadowingLineIndex}
-                    onCaptionIndexesChange={setShadowingCaptionIndexes}
+                    onCaptionIndexesChange={handleShadowingCaptionIndexes}
                   />
                 </div>
                 <TranscriptDisplay
                   videoId={videoData.videoId}
                   videoTitle={videoData.title}
                   videoUrl={getVideoUrl(videoData.videoId)}
-                  transcript={displayTranscript}
+                  transcript={visibleTranscript}
                   fullText={videoData.text}
+                  showRawTranscript={showRawTranscript}
+                  onToggleRawTranscript={toggleRawTranscript}
+                  rawLineCount={videoData.transcript.length}
                   activeLineIndex={activeLineIndex}
                   shadowingLineIndex={shadowingLineIndex}
                   shadowingCaptionIndexes={shadowingCaptionIndexes}
