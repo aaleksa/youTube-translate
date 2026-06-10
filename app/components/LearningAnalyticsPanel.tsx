@@ -22,6 +22,7 @@ interface LearningAnalyticsPanelProps {
   refreshKey: number;
   activeVideoId?: string;
   activeVideoTitle?: string;
+  embedded?: boolean;
 }
 
 function StatCard({
@@ -116,6 +117,7 @@ export default function LearningAnalyticsPanel({
   refreshKey,
   activeVideoId,
   activeVideoTitle,
+  embedded = false,
 }: LearningAnalyticsPanelProps) {
   const { t } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -188,6 +190,14 @@ export default function LearningAnalyticsPanel({
   }
 
   if (cards.length === 0) {
+    if (embedded) {
+      return (
+        <p className="text-sm text-gray-600 dark:text-gray-400 py-4">
+          {t('analytics.empty')}
+        </p>
+      );
+    }
+
     return (
       <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
@@ -205,16 +215,22 @@ export default function LearningAnalyticsPanel({
     Math.round((dailyGoal.reviewedToday / dailyGoal.goal) * 100)
   );
 
+  const shellClass = embedded
+    ? 'space-y-8'
+    : 'mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6 space-y-8';
+
   return (
-    <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6 space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-          {t('analytics.title')}
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t('analytics.subtitle')}
-        </p>
-      </div>
+    <div className={shellClass}>
+      {!embedded && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {t('analytics.title')}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t('analytics.subtitle')}
+          </p>
+        </div>
+      )}
 
       <section>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">

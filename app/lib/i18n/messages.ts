@@ -419,6 +419,13 @@ const uk = {
   'analytics.achievement.streak30': 'Серія 30 днів',
   'analytics.achievement.phrasal50': '50 phrasal verbs освоєно',
   'analytics.achievement.quiz80': 'Точність quiz 80%+',
+  'learningHub.title': 'Навчання',
+  'learningHub.tabFlashcards': 'Flashcards',
+  'learningHub.tabAnalytics': 'Аналітика',
+  'learningHub.expand': '▼ Розгорнути',
+  'learningHub.collapse': '▲ Згорнути',
+  'learningHub.summary': '{count} карток · {due} на сьогодні · {mastered} освоєно',
+  'learningHub.summaryEmpty': 'Збережіть слова з відео, щоб почати',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -832,6 +839,13 @@ const en: Record<keyof typeof uk, string> = {
   'analytics.achievement.streak30': '30-day streak',
   'analytics.achievement.phrasal50': '50 phrasal verbs mastered',
   'analytics.achievement.quiz80': '80%+ quiz accuracy',
+  'learningHub.title': 'Learning',
+  'learningHub.tabFlashcards': 'Flashcards',
+  'learningHub.tabAnalytics': 'Analytics',
+  'learningHub.expand': '▼ Expand',
+  'learningHub.collapse': '▲ Collapse',
+  'learningHub.summary': '{count} cards · {due} due today · {mastered} mastered',
+  'learningHub.summaryEmpty': 'Save words from a video to get started',
 };
 
 const pl: Record<keyof typeof uk, string> = {

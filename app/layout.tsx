@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -63,8 +62,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Server-rendered blocking script — avoids next/script client render warning in React 19 */}
+        <script src="/theme-init.js" />
+      </head>
       <body className="min-h-full flex flex-col">
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
         <PwaProvider>
           <ThemeProvider>
             <InterfaceLanguageProvider>
