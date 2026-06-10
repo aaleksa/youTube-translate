@@ -67,6 +67,18 @@ export function getDeckById(deckId: string): Deck | undefined {
   return getDecks().find((deck) => deck.id === deckId);
 }
 
+export function restoreDecks(decks: Deck[]): void {
+  saveDecks(
+    decks
+      .filter((deck) => deck.id && deck.name?.trim())
+      .map((deck) => ({
+        id: deck.id,
+        name: deck.name.trim(),
+        createdAt: deck.createdAt ?? Date.now(),
+      }))
+  );
+}
+
 export function getDeckSummaries(
   decks: Deck[],
   cards: Flashcard[]

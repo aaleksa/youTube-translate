@@ -390,6 +390,26 @@ export function summarizeQuizSession(
   };
 }
 
+export function getQuizAttempts(): QuizAttempt[] {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const raw = localStorage.getItem(ATTEMPTS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as QuizAttempt[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function restoreQuizAttempts(attempts: QuizAttempt[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(
+    ATTEMPTS_KEY,
+    JSON.stringify(Array.isArray(attempts) ? attempts.slice(0, 200) : [])
+  );
+}
+
 export function saveQuizAttempt(attempt: Omit<QuizAttempt, 'id' | 'createdAt'>): void {
   if (typeof window === 'undefined') return;
 

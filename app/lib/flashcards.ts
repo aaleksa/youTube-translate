@@ -755,6 +755,205 @@ export function patchFlashcardEnrichment(
   return updated;
 }
 
+export type DuplicateStrategy = 'skip' | 'replace' | 'merge';
+
+export interface ImportedCardRow {
+  word: string;
+  translation?: string;
+  example?: string;
+  tags?: string[];
+  videoId?: string;
+  repetitions?: number;
+  interval?: number;
+  ease?: number;
+  nextReview?: number;
+  knownCount?: number;
+  unknownCount?: number;
+}
+
+export interface ImportFlashcardResult {
+  imported: number;
+  skipped: number;
+  replaced: number;
+  merged: number;
+  invalid: number;
+}
+
+function cardFromImportedRow(
+  row: ImportedCardRow,
+  index: number,
+  translationLanguage: TranslationLanguageCode,
+  preserve?: Flashcard
+): Flashcard | null {
+  const word = row.word.trim();
+  if (!word) return null;
+
+  const translation = row.translation?.trim() ?? '';
+  const example = row.example?.trim() ?? '';
+  const base = preserve
+    ? { ...preserve, updatedAt: Date.now() }
+    : createFlashcard(
+        {
+          word,
+          translation,
+          example,
+          tags: row.tags,
+          videoId: row.videoId,
+        },
+        index,
+        undefined,
+        translationLanguage
+      );
+
+  if (preserve) {
+    return {
+      ...base,
+      word,
+      translation: translation || base.translation,
+      translations: {
+        ...base.translations,
+        ...(translation
+          ? { [translationLanguage]: translation }
+          : {}),
+      },
+      example: example || base.example,
+      tags: normalizeTags(row.tags ?? base.tags),
+      videoId: row.videoId ?? base.videoId,
+      videoUrl:
+        row.videoId && !base.videoUrl
+          ? getVideoUrl(row.videoId)
+          : base.videoUrl,
+    };
+  }
+
+  if (row.repetitions !== undefined) base.repetitions = row.repetitions;
+  if (row.interval !== undefined) base.interval = row.interval;
+  if (row.ease !== undefined) base.ease = row.ease;
+  if (row.nextReview !== undefined) base.nextReview = row.nextReview;
+  if (row.knownCount !== undefined) base.knownCount = row.knownCount;
+  if (row.unknownCount !== undefined) base.unknownCount = row.unknownCount;
+
+  return base;
+}
+
+function mergeImportedRow(
+  existing: Flashcard,
+  row: ImportedCardRow,
+  translationLanguage: TranslationLanguageCode
+): Flashcard {
+  const translation = row.translation?.trim() || existing.translation;
+  const example = row.example?.trim() || existing.example;
+
+  return {
+    ...existing,
+    translation,
+    translations: {
+      ...existing.translations,
+      ...(translation ? { [translationLanguage]: translation } : {}),
+    },
+    example,
+    tags: normalizeTags([...existing.tags, ...(row.tags ?? [])]),
+    videoId: row.videoId ?? existing.videoId,
+    videoUrl:
+      row.videoId && !existing.videoUrl
+        ? getVideoUrl(row.videoId)
+        : existing.videoUrl,
+    updatedAt: Date.now(),
+  };
+}
+
+export function importFlashcardRows(
+  rows: ImportedCardRow[],
+  strategy: DuplicateStrategy,
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
+): ImportFlashcardResult {
+  const cards = [...getFlashcards()];
+  const byWord = new Map(
+    cards.map((card) => [normalizeFlashcardWord(card.word), card])
+  );
+  const result: ImportFlashcardResult = {
+    imported: 0,
+    skipped: 0,
+    replaced: 0,
+    merged: 0,
+    invalid: 0,
+  };
+
+  rows.forEach((row, index) => {
+    const word = row.word.trim();
+    if (!word) {
+      result.invalid += 1;
+      return;
+    }
+
+    const key = normalizeFlashcardWord(word);
+    const existing = byWord.get(key);
+    const existingIndex = existing
+      ? cards.findIndex((card) => card.id === existing.id)
+      : -1;
+
+    if (existing && strategy === 'skip') {
+      result.skipped += 1;
+      return;
+    }
+
+    if (existing && strategy === 'merge') {
+      const merged = mergeImportedRow(existing, row, translationLanguage);
+      if (existingIndex >= 0) cards[existingIndex] = merged;
+      byWord.set(key, merged);
+      result.merged += 1;
+      return;
+    }
+
+    if (existing && strategy === 'replace') {
+      const replaced = cardFromImportedRow(
+        row,
+        index,
+        translationLanguage,
+        existing
+      );
+      if (!replaced) {
+        result.invalid += 1;
+        return;
+      }
+      if (row.repetitions !== undefined) {
+        replaced.repetitions = row.repetitions;
+      }
+      if (row.interval !== undefined) replaced.interval = row.interval;
+      if (row.ease !== undefined) replaced.ease = row.ease;
+      if (row.nextReview !== undefined) {
+        replaced.nextReview = row.nextReview;
+      }
+      if (row.knownCount !== undefined) {
+        replaced.knownCount = row.knownCount;
+      }
+      if (row.unknownCount !== undefined) {
+        replaced.unknownCount = row.unknownCount;
+      }
+      if (existingIndex >= 0) cards[existingIndex] = replaced;
+      byWord.set(key, replaced);
+      result.replaced += 1;
+      return;
+    }
+
+    const created = cardFromImportedRow(row, index, translationLanguage);
+    if (!created) {
+      result.invalid += 1;
+      return;
+    }
+    cards.unshift(created);
+    byWord.set(key, created);
+    result.imported += 1;
+  });
+
+  saveFlashcards(cards);
+  return result;
+}
+
+export function restoreFlashcards(cards: Flashcard[]): void {
+  saveFlashcards(cards);
+}
+
 export function findExampleLine(
   selected: string,
   transcript: Array<{ text: string }>,
