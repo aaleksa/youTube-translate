@@ -47,6 +47,7 @@ function transcriptCuesToRawCaptions(cues: TranscriptCue[]): RawCaption[] {
       text: cue.text.trim(),
       start,
       end: Math.max(end, start + 0.1),
+      captionIndexes: [index],
     };
   });
 }
@@ -117,6 +118,9 @@ function mergeCaptionGroup(group: RawCaption[]): RawCaption {
     text: longest.text.trim(),
     start: Math.min(...group.map((item) => item.start)),
     end: Math.max(...group.map((item) => item.end)),
+    captionIndexes: [...new Set(group.flatMap((item) => item.captionIndexes))].sort(
+      (a, b) => a - b
+    ),
   };
 }
 
@@ -355,6 +359,7 @@ export function processTranscript(
 ): TranscriptPipelineResult {
   const rawCaptions = transcriptCuesToRawCaptions(cues);
   const merged = dedupeRollingCaptions(rawCaptions);
+  const displayLines = finalizeTimedUnitEnds(merged);
   const sentences = finalizeTimedUnitEnds(
     mergedCaptionsToSentences(merged, rawCaptions)
   );
@@ -363,6 +368,7 @@ export function processTranscript(
 
   return {
     rawCaptions,
+    displayLines,
     sentences,
     phrases,
     sentenceText,

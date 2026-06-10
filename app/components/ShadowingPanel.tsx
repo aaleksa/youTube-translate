@@ -10,7 +10,7 @@ import { formatTimestamp } from '../lib/timestamp';
 import { useI18n } from './InterfaceLanguageProvider';
 import PronunciationChecker from './PronunciationChecker';
 import { isSpeechRecognitionSupported } from '../lib/speechRecognition';
-import type { PhraseChunk, Sentence } from '../lib/transcriptTypes';
+import type { PhraseChunk } from '../lib/transcriptTypes';
 import { timedUnitsToCues } from '../lib/transcriptTypes';
 
 type ShadowingPhase = 'idle' | 'listen' | 'repeat';
@@ -19,7 +19,6 @@ interface ShadowingPanelProps {
   videoId: string;
   transcript: TranscriptCue[];
   phrases?: PhraseChunk[];
-  sentences?: Sentence[];
   currentPlaybackTime: number;
   isPlayerReady: boolean;
   speechLanguage?: string;
@@ -33,7 +32,6 @@ export default function ShadowingPanel({
   videoId,
   transcript,
   phrases,
-  sentences,
   currentPlaybackTime,
   isPlayerReady,
   speechLanguage,
@@ -63,20 +61,9 @@ export default function ShadowingPanel({
         return;
       }
 
-      if (sentences?.length && phrases?.length) {
-        const sentenceId = phrases[index]?.sentenceId;
-        const sentenceIndex = sentences.findIndex(
-          (sentence) => sentence.id === sentenceId
-        );
-        onCaptionIndexesChange?.(
-          sentenceIndex >= 0 ? [sentenceIndex] : [index]
-        );
-        return;
-      }
-
       onCaptionIndexesChange?.(phrases?.[index]?.captionIndexes ?? [index]);
     },
-    [onCaptionIndexesChange, onLineIndexChange, phrases, sentences]
+    [onCaptionIndexesChange, onLineIndexChange, phrases]
   );
 
   const stopShadowing = useCallback(() => {

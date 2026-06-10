@@ -299,9 +299,7 @@ function formatSuccessResponse(
   );
 
   const processed = processTranscript(normalizedTranscript);
-  const fullText =
-    processed.sentenceText ||
-    normalizedTranscript.map((item) => item.text).join(' ');
+  const fullText = normalizedTranscript.map((item) => item.text).join(' ');
   const selectedSubtitle = availableLanguages.find(
     (language) => language.code === selectedLanguage
   );
@@ -315,9 +313,11 @@ function formatSuccessResponse(
       : {}),
     transcript: normalizedTranscript,
     rawCaptions: processed.rawCaptions,
+    displayLines: processed.displayLines,
     sentences: processed.sentences,
     phrases: processed.phrases,
     text: fullText,
+    normalizedText: processed.sentenceText,
     availableLanguages,
     ...(selectedLanguage ? { selectedLanguage } : {}),
     ...(selectedSubtitle

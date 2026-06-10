@@ -108,6 +108,9 @@ const uk = {
   'transcript.cacheLoaded':
     'Транскрипт завантажено з кешу — повторний запит до API не виконувався.',
   'transcript.lines': 'рядків',
+  'transcript.viewRaw': 'Сирі субтитри',
+  'transcript.viewCompact': 'Компактно',
+  'transcript.compactFrom': 'з {raw} сирих',
   'transcript.seekHint': 'клік по рядку — перемотка',
   'transcript.searchPlaceholder': 'Пошук слова або фрази…',
   'transcript.searchResults': 'Показано {shown} з {total} рядків',
@@ -365,6 +368,9 @@ const en: Record<keyof typeof uk, string> = {
   'transcript.cacheLoaded':
     'Transcript loaded from cache — no repeat API request was made.',
   'transcript.lines': 'lines',
+  'transcript.viewRaw': 'Raw subtitles',
+  'transcript.viewCompact': 'Compact view',
+  'transcript.compactFrom': 'from {raw} raw',
   'transcript.seekHint': 'click a line to seek',
   'transcript.searchPlaceholder': 'Search word or phrase…',
   'transcript.searchResults': 'Showing {shown} of {total} lines',

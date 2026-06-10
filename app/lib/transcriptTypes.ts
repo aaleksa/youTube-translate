@@ -5,6 +5,7 @@ export interface RawCaption {
   text: string;
   start: number;
   end: number;
+  captionIndexes: number[];
 }
 
 export interface Sentence {
@@ -26,6 +27,7 @@ export interface PhraseChunk {
 
 export interface TranscriptPipelineResult {
   rawCaptions: RawCaption[];
+  displayLines: RawCaption[];
   sentences: Sentence[];
   phrases: PhraseChunk[];
   sentenceText: string;
