@@ -307,6 +307,26 @@ const uk = {
   'flashcards.stateLearning': 'Вивчення',
   'flashcards.stateReview': 'Повторення',
   'flashcards.stateMastered': 'Освоєна',
+  'flashcards.viewAll': 'Усі',
+  'flashcards.viewDue': 'На сьогодні',
+  'flashcards.viewByVideo': 'За відео',
+  'flashcards.viewByDeck': 'За колодою',
+  'flashcards.createDeck': 'Створити',
+  'flashcards.deckNamePlaceholder': 'Назва колоди',
+  'flashcards.deleteDeck': 'Видалити',
+  'flashcards.deleteDeckTitle': 'Видалити колоду?',
+  'flashcards.deleteDeckBody':
+    'Картки залишаться. Прив’язку до колоди буде знято.',
+  'flashcards.deleteDeckConfirm': 'Видалити',
+  'flashcards.cancel': 'Скасувати',
+  'flashcards.groupCount': '{count} карток',
+  'flashcards.groupDue': '{count} на повторення',
+  'flashcards.noVideoDecks': 'Немає карток із відео.',
+  'flashcards.noDecks': 'Створіть першу колоду вище.',
+  'flashcards.noCardsInView': 'У цьому розділі немає карток.',
+  'flashcards.backToGroups': '← До списку',
+  'flashcards.assignDeck': 'Додати до колоди',
+  'flashcards.chooseDeck': 'Оберіть колоду…',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -608,6 +628,26 @@ const en: Record<keyof typeof uk, string> = {
   'flashcards.stateLearning': 'Learning',
   'flashcards.stateReview': 'Review',
   'flashcards.stateMastered': 'Mastered',
+  'flashcards.viewAll': 'All',
+  'flashcards.viewDue': 'Due Today',
+  'flashcards.viewByVideo': 'By Video',
+  'flashcards.viewByDeck': 'By Deck',
+  'flashcards.createDeck': 'Create',
+  'flashcards.deckNamePlaceholder': 'Deck name',
+  'flashcards.deleteDeck': 'Delete',
+  'flashcards.deleteDeckTitle': 'Delete deck?',
+  'flashcards.deleteDeckBody':
+    'Cards will remain. Deck assignment will be removed.',
+  'flashcards.deleteDeckConfirm': 'Delete',
+  'flashcards.cancel': 'Cancel',
+  'flashcards.groupCount': '{count} cards',
+  'flashcards.groupDue': '{count} due',
+  'flashcards.noVideoDecks': 'No cards linked to videos yet.',
+  'flashcards.noDecks': 'Create your first deck above.',
+  'flashcards.noCardsInView': 'No cards in this view.',
+  'flashcards.backToGroups': '← Back to list',
+  'flashcards.assignDeck': 'Add to deck',
+  'flashcards.chooseDeck': 'Choose deck…',
 };
 
 const pl: Record<keyof typeof uk, string> = {

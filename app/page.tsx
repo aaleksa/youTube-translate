@@ -198,6 +198,7 @@ export default function Home() {
       example,
       videoId: videoData.videoId,
       videoUrl: getVideoUrl(videoData.videoId),
+      videoTitle: videoData.title,
       timestamp,
     });
   };
@@ -658,6 +659,7 @@ export default function Home() {
           <FlashcardsPanel
             refreshKey={flashcardsRefreshKey}
             activeVideoId={videoData?.videoId}
+            activeVideoTitle={videoData?.title}
             transcript={visibleTranscript}
             onReplayInVideo={handleReplayFlashcard}
           />
@@ -674,6 +676,7 @@ export default function Home() {
             items={bulkFlashcardItems}
             videoId={videoData.videoId}
             videoUrl={getVideoUrl(videoData.videoId)}
+            videoTitle={videoData.title}
             transcript={visibleTranscript}
             onClose={() => setBulkFlashcardItems(null)}
             onSaved={() => handleFlashcardSaved()}

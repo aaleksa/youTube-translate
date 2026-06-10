@@ -198,18 +198,18 @@ export default function FlashcardStudyMode({
                 currentCard,
                 transcript
               );
+              const videoId = currentCard.videoId;
               const canReplayInApp =
                 Boolean(timestamp) &&
-                activeVideoId === currentCard.videoId &&
+                Boolean(videoId) &&
+                activeVideoId === videoId &&
                 Boolean(onReplayInVideo);
 
-              if (canReplayInApp && timestamp !== undefined) {
+              if (canReplayInApp && timestamp !== undefined && videoId) {
                 return (
                   <button
                     type="button"
-                    onClick={() =>
-                      onReplayInVideo?.(currentCard.videoId, timestamp)
-                    }
+                    onClick={() => onReplayInVideo?.(videoId, timestamp)}
                     className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     {t('flashcards.repeatSentence')}
