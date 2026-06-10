@@ -14,7 +14,7 @@ const uk = {
   'settings.ariaLabel': 'Відкрити налаштування',
   'settings.translationLanguage': 'Мова перекладу',
   'settings.translationLanguageHint':
-    'Мова перекладів на картках, у субтитрах та vocabulary. Якщо збігається з мовою інтерфейсу — змінюються разом.',
+    'Мова перекладів на картках, у субтитрах та vocabulary. Незалежна від мови інтерфейсу.',
   'settings.taskLanguage': 'Мова завдань',
   'settings.taskLanguageHint':
     'Мова AI-завдань: тести, пояснення, конспекти',
@@ -393,7 +393,7 @@ const en: Record<keyof typeof uk, string> = {
   'settings.ariaLabel': 'Open settings',
   'settings.translationLanguage': 'Translation language',
   'settings.translationLanguageHint':
-    'Language for flashcard translations, subtitles, and vocabulary. Syncs with interface language when both match.',
+    'Language for flashcard translations, subtitles, and vocabulary. Independent from interface language.',
   'settings.taskLanguage': 'Task language',
   'settings.taskLanguageHint':
     'Language for AI tasks: quizzes, explanations, notes',
