@@ -1,5 +1,10 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  resolveTaskLanguage,
+  resolveTranslationLanguage,
+} from '../../lib/aiInterfaceLanguage';
+import { buildGrammarPrompt } from '../../lib/aiPrompts';
 import { parseGrammarHighlightsResponse } from '../../lib/grammarHighlights';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,32 +17,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const GRAMMAR_PROMPT = `You are an English grammar teacher analyzing a video transcript for Ukrainian learners.
-
-Identify the main grammar patterns, tenses, and constructions used in the transcript.
-Focus on what appears multiple times or is pedagogically notable.
-
-Examples: Present Perfect, Past Simple, Passive voice, Conditionals (2nd), Relative clauses, Modal verbs (should/must), Gerunds, Reported speech.
-
-Return ONLY valid JSON:
-{
-  "highlights": [
-    {
-      "pattern": "Present Perfect",
-      "count": 3,
-      "note": "Використовується для досвіду та результатів у теперішньому."
-    }
-  ]
-}
-
-Rules:
-- pattern: short English grammar label
-- count: approximate number of times the pattern appears in the transcript (minimum 1)
-- note: one short sentence in Ukrainian explaining usage in this video
-- List 3–8 most relevant patterns, ordered by importance or frequency
-- If very little grammar variety, return fewer items
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -59,7 +38,11 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage, taskLanguage, interfaceLanguage } =
+      await request.json();
+    const translationLang = resolveTranslationLanguage(translationLanguage);
+    const taskLang = resolveTaskLanguage(taskLanguage ?? interfaceLanguage);
+    const systemPrompt = buildGrammarPrompt(translationLang, taskLang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -84,7 +67,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: GRAMMAR_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

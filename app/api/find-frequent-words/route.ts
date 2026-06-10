@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildFrequentWordsPrompt } from '../../lib/aiPrompts';
 import {
   countFrequentWords,
   mergeFrequentWords,
@@ -13,23 +15,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const TRANSLATE_FREQUENT_WORDS_PROMPT = `You are an English teacher helping Ukrainian learners.
-You receive a list of the most frequent English words from a video transcript (already counted; stop words removed).
-
-For each word, provide a brief Ukrainian translation (1–4 words).
-
-Return ONLY valid JSON:
-{
-  "translations": [
-    { "word": "people", "meaning": "люди" }
-  ]
-}
-
-Rules:
-- Include every word from the input list, in the same order
-- meaning: brief Ukrainian translation only — no explanations
-- No text outside JSON`;
-
 function sanitizeText(text: string): string {
   return text
     .replace(/\0/g, '')
@@ -39,7 +24,9 @@ function sanitizeText(text: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildFrequentWordsPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -72,7 +59,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: TRANSLATE_FREQUENT_WORDS_PROMPT },
+          { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: `Words to translate:\n${wordList}`,

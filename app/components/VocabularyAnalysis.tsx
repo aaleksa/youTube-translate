@@ -54,7 +54,7 @@ export default function VocabularyAnalysis({
   onSaveToFlashcards,
   onSaveManyToFlashcards,
 }: VocabularyAnalysisProps) {
-  const { t } = useI18n();
+  const { t, translationLanguage } = useI18n();
   const [keyVocabulary, setKeyVocabulary] = useState<KeyVocabularyItem[] | null>(
     null
   );
@@ -224,7 +224,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-key-vocabulary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -278,7 +278,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-frequent-words', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -332,7 +332,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-idioms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -384,7 +384,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-phrasal-verbs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -438,7 +438,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-useful-phrases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -492,7 +492,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-collocations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();
@@ -544,7 +544,7 @@ export default function VocabularyAnalysis({
       const response = await fetch('/api/find-slang', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, translationLanguage }),
       });
 
       const data = await response.json();

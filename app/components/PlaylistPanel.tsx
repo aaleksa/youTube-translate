@@ -87,7 +87,7 @@ export default function PlaylistPanel({
   loadProgress,
   onSelectVideo,
 }: PlaylistPanelProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [combinedNotes, setCombinedNotes] = useState<VideoNotesResult | null>(
     null
   );
@@ -126,7 +126,7 @@ export default function PlaylistPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: combinedText,
-          interfaceLanguage: language,
+          taskLanguage,
           mode: 'playlist',
           playlistTitle: session.title,
         }),
@@ -158,7 +158,7 @@ export default function PlaylistPanel({
     } finally {
       setNotesLoading(false);
     }
-  }, [language, session, t]);
+  }, [taskLanguage, session, t]);
 
   useEffect(() => {
     setCombinedNotes(null);

@@ -1,3 +1,5 @@
+import { getSavedTranslationLanguage } from './languageSettings';
+import type { TranslationLanguageCode } from './translationLanguages';
 import type { ParsedFlashcardItem } from './parseFlashcardList';
 import { parseFlashcardList } from './parseFlashcardList';
 
@@ -5,7 +7,8 @@ const BATCH_SIZE = 12;
 
 export async function enrichWordsForFlashcards(
   words: string[],
-  transcript: string
+  transcript: string,
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
 ): Promise<ParsedFlashcardItem[]> {
   const uniqueWords = [...new Set(words.map((word) => word.trim()).filter(Boolean))];
   if (uniqueWords.length === 0) return [];
@@ -21,6 +24,7 @@ export async function enrichWordsForFlashcards(
       body: JSON.stringify({
         text: transcript,
         enrichWords: batch,
+        translationLanguage,
       }),
     });
 

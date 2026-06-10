@@ -14,7 +14,7 @@ export default function SentenceExplanation({
   sentence,
   onPauseVideo,
 }: SentenceExplanationProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SentenceExplanationResult | null>(null);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export default function SentenceExplanation({
       const response = await fetch('/api/explain-sentence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, interfaceLanguage: language }),
+        body: JSON.stringify({ sentence, taskLanguage }),
       });
 
       const data = await response.json();

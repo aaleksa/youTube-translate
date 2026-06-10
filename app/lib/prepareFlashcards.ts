@@ -1,3 +1,5 @@
+import { getSavedTranslationLanguage } from './languageSettings';
+import type { TranslationLanguageCode } from './translationLanguages';
 import { getFlashcardCandidatesFromResponse } from './flashcardCandidates';
 import { enrichWordsForFlashcards } from './enrichFlashcards';
 import type { ParsedFlashcardItem } from './parseFlashcardList';
@@ -41,7 +43,8 @@ export function parsePreparedFlashcardsJson(raw: string): ParsedFlashcardItem[] 
 
 async function prepareViaAi(
   aiResponse: string,
-  transcript: string
+  transcript: string,
+  translationLanguage: TranslationLanguageCode
 ): Promise<ParsedFlashcardItem[]> {
   const response = await fetch('/api/process-text', {
     method: 'POST',
@@ -49,6 +52,7 @@ async function prepareViaAi(
     body: JSON.stringify({
       text: transcript,
       prepareFromResponse: aiResponse,
+      translationLanguage,
     }),
   });
 
@@ -62,14 +66,19 @@ async function prepareViaAi(
 
 async function prepareViaFallback(
   aiResponse: string,
-  transcript: string
+  transcript: string,
+  translationLanguage: TranslationLanguageCode
 ): Promise<ParsedFlashcardItem[]> {
   const { ready, wordsNeedingEnrichment } =
     getFlashcardCandidatesFromResponse(aiResponse);
 
   const enriched =
     wordsNeedingEnrichment.length > 0
-      ? await enrichWordsForFlashcards(wordsNeedingEnrichment, transcript)
+      ? await enrichWordsForFlashcards(
+          wordsNeedingEnrichment,
+          transcript,
+          translationLanguage
+        )
       : [];
 
   const unique = new Map<string, ParsedFlashcardItem>();
@@ -84,28 +93,34 @@ async function prepareViaFallback(
 
 export async function prepareFlashcardsFromAiResponse(
   aiResponse: string,
-  transcript: string
+  transcript: string,
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
 ): Promise<ParsedFlashcardItem[]> {
   const trimmedResponse = aiResponse.trim();
   if (!trimmedResponse) return [];
 
-  const fromAi = await prepareViaAi(trimmedResponse, transcript);
+  const fromAi = await prepareViaAi(trimmedResponse, transcript, translationLanguage);
   if (fromAi.length > 0) return fromAi;
 
-  return prepareViaFallback(trimmedResponse, transcript);
+  return prepareViaFallback(trimmedResponse, transcript, translationLanguage);
 }
 
 export async function prepareFlashcardForWord(
   word: string,
   transcript: string,
-  fallbackExample = ''
+  fallbackExample = '',
+  translationLanguage: TranslationLanguageCode = getSavedTranslationLanguage()
 ): Promise<ParsedFlashcardItem> {
   const trimmed = word.trim();
   if (!trimmed) {
     throw new Error('Слово не вибрано');
   }
 
-  const [enriched] = await enrichWordsForFlashcards([trimmed], transcript);
+  const [enriched] = await enrichWordsForFlashcards(
+    [trimmed],
+    transcript,
+    translationLanguage
+  );
   if (enriched?.translation.trim()) {
     return {
       word: enriched.word.trim() || trimmed,
@@ -116,7 +131,8 @@ export async function prepareFlashcardForWord(
 
   const fromAi = await prepareViaAi(
     `English word or phrase to learn: ${trimmed}`,
-    transcript
+    transcript,
+    translationLanguage
   );
   const match =
     fromAi.find((item) => item.word.toLowerCase() === trimmed.toLowerCase()) ??

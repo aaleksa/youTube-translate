@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildSummaryPrompt } from '../../lib/aiPrompts';
-import { resolveInterfaceLanguage } from '../../lib/aiInterfaceLanguage';
+import { resolveTaskLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseSummaryResponse } from '../../lib/videoSummary';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -35,8 +35,8 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, interfaceLanguage } = await request.json();
-    const language = resolveInterfaceLanguage(interfaceLanguage);
+    const { text, taskLanguage, interfaceLanguage } = await request.json();
+    const language = resolveTaskLanguage(taskLanguage ?? interfaceLanguage);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });

@@ -14,13 +14,20 @@ import {
   type TranslationKey,
 } from '../lib/i18n';
 import {
-  getSavedInterfaceLanguage,
+  getLanguageSettings,
   saveInterfaceLanguage,
+  saveTaskLanguage,
+  saveTranslationLanguage,
 } from '../lib/languageSettings';
+import type { TranslationLanguageCode } from '../lib/translationLanguages';
 
 interface InterfaceLanguageContextValue {
   language: InterfaceLanguage;
+  translationLanguage: TranslationLanguageCode;
+  taskLanguage: TranslationLanguageCode;
   setLanguage: (language: InterfaceLanguage) => void;
+  setTranslationLanguage: (language: TranslationLanguageCode) => void;
+  setTaskLanguage: (language: TranslationLanguageCode) => void;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 }
 
@@ -33,10 +40,17 @@ export function InterfaceLanguageProvider({
   children: React.ReactNode;
 }) {
   const [language, setLanguageState] = useState<InterfaceLanguage>('uk');
+  const [translationLanguage, setTranslationLanguageState] =
+    useState<TranslationLanguageCode>('uk');
+  const [taskLanguage, setTaskLanguageState] =
+    useState<TranslationLanguageCode>('uk');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setLanguageState(getSavedInterfaceLanguage());
+    const settings = getLanguageSettings();
+    setLanguageState(settings.interfaceLanguage);
+    setTranslationLanguageState(settings.translationLanguage);
+    setTaskLanguageState(settings.taskLanguage);
     setReady(true);
   }, []);
 
@@ -50,6 +64,16 @@ export function InterfaceLanguageProvider({
     setLanguageState(next);
   }, []);
 
+  const setTranslationLanguage = useCallback((next: TranslationLanguageCode) => {
+    saveTranslationLanguage(next);
+    setTranslationLanguageState(next);
+  }, []);
+
+  const setTaskLanguage = useCallback((next: TranslationLanguageCode) => {
+    saveTaskLanguage(next);
+    setTaskLanguageState(next);
+  }, []);
+
   const t = useCallback(
     (key: TranslationKey, params?: Record<string, string | number>) =>
       translate(language, key, params),
@@ -57,8 +81,24 @@ export function InterfaceLanguageProvider({
   );
 
   const value = useMemo(
-    () => ({ language, setLanguage, t }),
-    [language, setLanguage, t]
+    () => ({
+      language,
+      translationLanguage,
+      taskLanguage,
+      setLanguage,
+      setTranslationLanguage,
+      setTaskLanguage,
+      t,
+    }),
+    [
+      language,
+      translationLanguage,
+      taskLanguage,
+      setLanguage,
+      setTranslationLanguage,
+      setTaskLanguage,
+      t,
+    ]
   );
 
   return (

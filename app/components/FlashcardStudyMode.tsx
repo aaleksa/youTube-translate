@@ -9,6 +9,7 @@ import {
   type Flashcard,
   type StudySessionSummary,
 } from '../lib/flashcards';
+import { getFlashcardTranslation } from '../lib/flashcardTranslations';
 import FlashcardExampleActions, {
   type FlashcardSentenceHandlers,
 } from './FlashcardExampleActions';
@@ -46,7 +47,7 @@ export default function FlashcardStudyMode({
   onClose,
   onComplete,
 }: FlashcardStudyModeProps) {
-  const { t } = useI18n();
+  const { t, translationLanguage } = useI18n();
   const [queue, setQueue] = useState(() => shuffleFlashcards(cards));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -186,7 +187,7 @@ export default function FlashcardStudyMode({
         {isFlipped && (
           <div className="mt-6 w-full space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
             <p className="text-xl font-semibold text-emerald-700 dark:text-emerald-400">
-              {currentCard.translation}
+              {getFlashcardTranslation(currentCard, translationLanguage) || '…'}
             </p>
             {currentCard.example && (
               <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 italic leading-relaxed">

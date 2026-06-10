@@ -32,7 +32,7 @@ export default function QuickInfoAnalysis({
   onPauseVideo,
   onSeek,
 }: QuickInfoAnalysisProps) {
-  const { language, t } = useI18n();
+  const { language, t, translationLanguage, taskLanguage } = useI18n();
   const [summary, setSummary] = useState<VideoSummaryResult | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState('');
@@ -86,7 +86,7 @@ export default function QuickInfoAnalysis({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: transcriptText,
-          interfaceLanguage: language,
+          taskLanguage,
         }),
       });
 
@@ -131,7 +131,12 @@ export default function QuickInfoAnalysis({
       const response = await fetch('/api/grammar-highlights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: transcriptText }),
+        body: JSON.stringify({
+          text: transcriptText,
+          translationLanguage,
+          taskLanguage,
+          interfaceLanguage: language,
+        }),
       });
 
       const data = await response.json();

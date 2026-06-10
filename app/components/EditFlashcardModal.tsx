@@ -8,6 +8,7 @@ import {
   type Flashcard,
   type UpdateFlashcardError,
 } from '../lib/flashcards';
+import { getFlashcardTranslation } from '../lib/flashcardTranslations';
 import type { TranslationKey } from '../lib/i18n';
 import { useI18n } from './InterfaceLanguageProvider';
 
@@ -38,7 +39,7 @@ export default function EditFlashcardModal({
   onClose,
   onSaved,
 }: EditFlashcardModalProps) {
-  const { t } = useI18n();
+  const { t, translationLanguage } = useI18n();
   const [word, setWord] = useState('');
   const [translation, setTranslation] = useState('');
   const [example, setExample] = useState('');
@@ -50,13 +51,13 @@ export default function EditFlashcardModal({
   useEffect(() => {
     if (!card) return;
     setWord(card.word);
-    setTranslation(card.translation);
+    setTranslation(getFlashcardTranslation(card, translationLanguage));
     setExample(card.example);
     setTags(card.tags);
     setTagInput('');
     setDeckIds(card.deckIds);
     setError('');
-  }, [card]);
+  }, [card, translationLanguage]);
 
   if (!card) return null;
 

@@ -18,12 +18,24 @@ import {
   type Flashcard,
   type FlashcardView,
 } from '../lib/flashcards';
+import {
+  ensureFlashcardTranslations,
+  getFlashcardTranslation,
+} from '../lib/flashcardTranslations';
 import { startOfDay } from '../lib/flashcardSrs';
 import { getTranscriptHistory } from '../lib/transcriptHistory';
 import EditFlashcardModal from './EditFlashcardModal';
 import FlashcardExampleActions, {
   type FlashcardSentenceHandlers,
 } from './FlashcardExampleActions';
+import {
+  getQuizPool,
+  getWeakFlashcards,
+  resolveQuizSourceFromView,
+  type QuizFormat,
+  type QuizSource,
+} from '../lib/flashcardQuiz';
+import FlashcardQuizMode from './FlashcardQuizMode';
 import FlashcardStudyMode from './FlashcardStudyMode';
 import type { TranslationKey } from '../lib/i18n';
 import { useI18n } from './InterfaceLanguageProvider';
@@ -91,11 +103,14 @@ export default function FlashcardsPanel({
   onRepeatSentence,
   onShadowSentence,
 }: FlashcardsPanelProps) {
-  const { t } = useI18n();
+  const { t, translationLanguage } = useI18n();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [search, setSearch] = useState('');
   const [studying, setStudying] = useState(false);
+  const [quizzing, setQuizzing] = useState(false);
+  const [quizFormat, setQuizFormat] = useState<QuizFormat>('multiple-choice');
+  const [quizSource, setQuizSource] = useState<QuizSource>('due');
   const [view, setView] = useState<FlashcardView>('all');
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
@@ -108,6 +123,25 @@ export default function FlashcardsPanel({
     setCards(getFlashcards());
     setDecks(getDecks());
   }, [refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await ensureFlashcardTranslations(translationLanguage);
+        if (!cancelled) {
+          setCards(getFlashcards());
+        }
+      } catch {
+        // Keep existing cards visible if translation fails (offline / no API key).
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [translationLanguage, refreshKey]);
 
   useEffect(() => {
     if (!showUpdatedToast) return;
@@ -150,6 +184,38 @@ export default function FlashcardsPanel({
     [cards, filterOptions]
   );
 
+  const quizPool = useMemo(() => {
+    const resolved = resolveQuizSourceFromView(
+      view,
+      selectedVideoId,
+      selectedDeckId,
+      activeVideoId
+    );
+
+    return getQuizPool(cards, {
+      source: quizSource,
+      videoId:
+        quizSource === 'video'
+          ? selectedVideoId ?? activeVideoId ?? resolved.videoId
+          : undefined,
+      deckId:
+        quizSource === 'deck'
+          ? selectedDeckId ?? resolved.deckId
+          : undefined,
+      translationLanguage,
+    });
+  }, [
+    activeVideoId,
+    cards,
+    quizSource,
+    selectedDeckId,
+    selectedVideoId,
+    translationLanguage,
+    view,
+  ]);
+
+  const weakCards = useMemo(() => getWeakFlashcards(cards), [cards]);
+
   const videoDecks = useMemo(
     () => getVideoDeckSummaries(cards, titleByVideoId),
     [cards, titleByVideoId]
@@ -165,7 +231,9 @@ export default function FlashcardsPanel({
     ? visibleCards.filter(
         (card) =>
           card.word.toLowerCase().includes(query) ||
-          card.translation.toLowerCase().includes(query) ||
+          getFlashcardTranslation(card, translationLanguage)
+            .toLowerCase()
+            .includes(query) ||
           card.example.toLowerCase().includes(query)
       )
     : visibleCards;
@@ -208,6 +276,25 @@ export default function FlashcardsPanel({
     setShowUpdatedToast(true);
     setEditingCard((current) => (current?.id === card.id ? null : current));
   };
+
+  if (quizzing) {
+    return (
+      <FlashcardQuizMode
+        cards={quizPool}
+        format={quizFormat}
+        activeVideoId={activeVideoId}
+        onListenSentence={onListenSentence}
+        onWatchExample={onWatchExample}
+        onRepeatSentence={onRepeatSentence}
+        onShadowSentence={onShadowSentence}
+        onClose={() => setQuizzing(false)}
+        onComplete={() => {
+          setCards(getFlashcards());
+          setQuizzing(false);
+        }}
+      />
+    );
+  }
 
   if (studying) {
     return (
@@ -260,6 +347,14 @@ export default function FlashcardsPanel({
                   ? t('flashcards.studyDue', { count: studyQueue.length })
                   : t('flashcards.studyNoneDue')}
               </button>
+              <button
+                type="button"
+                onClick={() => setQuizzing(true)}
+                disabled={quizPool.length === 0}
+                className="min-h-10 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('quiz.start', { count: Math.min(10, quizPool.length) })}
+              </button>
               <input
                 type="search"
                 value={search}
@@ -271,6 +366,65 @@ export default function FlashcardsPanel({
           )}
         </div>
       </div>
+
+      {cards.length > 0 && (
+        <div className="flex flex-col gap-3 mb-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('quiz.sourceLabel')}
+            </span>
+            {(
+              [
+                ['due', 'quiz.sourceDue'],
+                ['video', 'quiz.sourceVideo'],
+                ['deck', 'quiz.sourceDeck'],
+                ['weak', 'quiz.sourceWeak'],
+                ['all', 'quiz.sourceAll'],
+              ] as const
+            ).map(([source, labelKey]) => (
+              <button
+                key={source}
+                type="button"
+                onClick={() => setQuizSource(source)}
+                disabled={source === 'weak' && weakCards.length === 0}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${
+                  quizSource === source
+                    ? 'border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40'
+                }`}
+              >
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('quiz.formatLabel')}
+            </span>
+            {(
+              [
+                ['multiple-choice', 'quiz.formatMc'],
+                ['typing', 'quiz.formatTyping'],
+                ['mixed', 'quiz.formatMixed'],
+              ] as const
+            ).map(([format, labelKey]) => (
+              <button
+                key={format}
+                type="button"
+                onClick={() => setQuizFormat(format)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition border ${
+                  quizFormat === format
+                    ? 'border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {cards.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -445,7 +599,7 @@ export default function FlashcardsPanel({
                     </div>
                   </div>
                   <p className="text-green-700 dark:text-green-400 font-medium mb-2">
-                    {card.translation}
+                    {getFlashcardTranslation(card, translationLanguage) || '…'}
                   </p>
                   {card.example && (
                     <p className="text-sm text-gray-700 dark:text-gray-300 italic mb-3">

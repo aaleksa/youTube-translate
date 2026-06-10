@@ -8,6 +8,7 @@ import {
   type QuizResult,
   type VideoQuiz,
 } from '../lib/videoQuiz';
+import { useI18n } from './InterfaceLanguageProvider';
 
 interface VideoQuizPanelProps {
   videoId: string;
@@ -33,6 +34,7 @@ export default function VideoQuizPanel({
   onShowPanelChange,
   hideButton = false,
 }: VideoQuizPanelProps) {
+  const { taskLanguage } = useI18n();
   const [quiz, setQuiz] = useState<VideoQuiz | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,7 +97,7 @@ export default function VideoQuizPanel({
       const response = await fetch('/api/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: transcriptText }),
+        body: JSON.stringify({ text: transcriptText, taskLanguage }),
       });
 
       const data = await response.json();
@@ -116,7 +118,7 @@ export default function VideoQuizPanel({
     } finally {
       setLoading(false);
     }
-  }, [setShowPanel, transcriptText, videoId]);
+  }, [setShowPanel, transcriptText, videoId, taskLanguage]);
 
   useEffect(() => {
     if (!showPanel || quiz || loading) return;

@@ -21,7 +21,7 @@ export default function VideoDifficultyPanel({
   videoId,
   transcriptText,
 }: VideoDifficultyPanelProps) {
-  const { language, t } = useI18n();
+  const { taskLanguage, t } = useI18n();
   const [result, setResult] = useState<VideoDifficultyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +38,7 @@ export default function VideoDifficultyPanel({
       const cached = getDifficultyCache(
         videoId,
         transcriptText.length,
-        language
+        taskLanguage
       );
       if (cached) {
         setResult(cached);
@@ -54,7 +54,7 @@ export default function VideoDifficultyPanel({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: transcriptText,
-            interfaceLanguage: language,
+            taskLanguage,
           }),
         });
 
@@ -74,7 +74,7 @@ export default function VideoDifficultyPanel({
         setDifficultyCache(
           videoId,
           transcriptText.length,
-          language,
+          taskLanguage,
           assessment
         );
         setResult(assessment);
@@ -94,7 +94,7 @@ export default function VideoDifficultyPanel({
     return () => {
       cancelled = true;
     };
-  }, [videoId, transcriptText, language]);
+  }, [videoId, transcriptText, taskLanguage]);
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

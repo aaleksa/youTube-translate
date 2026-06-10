@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildPhrasalVerbsPrompt } from '../../lib/aiPrompts';
 import { parsePhrasalVerbsResponse } from '../../lib/phrasalVerbs';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,30 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const FIND_PHRASAL_VERBS_PROMPT = `You are an English teacher helping Ukrainian learners master phrasal verbs.
-
-Find every phrasal verb in the transcript (verb + particle: up, out, on, off, in, away, back, over, through, etc.).
-Include separable and inseparable phrasal verbs as they appear in context.
-
-Return ONLY valid JSON:
-{
-  "phrasalVerbs": [
-    {
-      "phrasalVerb": "pick up",
-      "meaning": "забрати, підібрати",
-      "example": "I'll pick you up at the airport."
-    }
-  ]
-}
-
-Rules:
-- meaning: brief explanation in Ukrainian
-- example: sentence from the transcript where the phrasal verb appears, or natural example in same context
-- List each distinct phrasal verb once (e.g. "pick up" not "picked up" and "pick up" separately unless different meanings)
-- Do not include idioms that are not phrasal verbs
-- If none found, return { "phrasalVerbs": [] }
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -57,7 +35,9 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildPhrasalVerbsPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -82,7 +62,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: FIND_PHRASAL_VERBS_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,

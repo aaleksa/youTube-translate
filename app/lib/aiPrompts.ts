@@ -1,8 +1,286 @@
 import { getAiResponseLanguageName } from './aiInterfaceLanguage';
-import type { InterfaceLanguage } from './i18n';
+import type { TranslationLanguageCode } from './translationLanguages';
 
-export function buildExplainSentencePrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export const LEARNING_SOURCE_LANGUAGE = 'English';
+
+export function targetLanguageName(code: TranslationLanguageCode): string {
+  return getAiResponseLanguageName(code);
+}
+
+export function learnerIntro(code: TranslationLanguageCode): string {
+  return `You are an English teacher helping ${targetLanguageName(code)} learners.`;
+}
+
+export function meaningInLanguage(code: TranslationLanguageCode): string {
+  return `brief explanation in ${targetLanguageName(code)}`;
+}
+
+export function translationInLanguage(code: TranslationLanguageCode): string {
+  return `${targetLanguageName(code)} translation`;
+}
+
+export function buildPhrasalVerbsPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `${learnerIntro(code)} master phrasal verbs.
+
+Find every phrasal verb in the transcript (verb + particle: up, out, on, off, in, away, back, over, through, etc.).
+Include separable and inseparable phrasal verbs as they appear in context.
+
+Return ONLY valid JSON:
+{
+  "phrasalVerbs": [
+    {
+      "phrasalVerb": "pick up",
+      "meaning": "example meaning in ${lang}",
+      "example": "I'll pick you up at the airport."
+    }
+  ]
+}
+
+Rules:
+- meaning: ${meaningInLanguage(code)}
+- example: sentence from the transcript where the phrasal verb appears, or natural example in same context
+- List each distinct phrasal verb once
+- Do not include idioms that are not phrasal verbs
+- If none found, return { "phrasalVerbs": [] }
+- No text outside JSON`;
+}
+
+export function buildKeyVocabularyPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `${learnerIntro(code)} extract the most useful vocabulary from a video transcript.
+
+Identify 15–30 key English words and short phrases worth learning from this transcript.
+
+Return ONLY valid JSON:
+{
+  "vocabulary": [
+    {
+      "word": "negotiate",
+      "meaning": "example in ${lang}",
+      "example": "We need to negotiate a better deal."
+    }
+  ]
+}
+
+Rules:
+- word: single word or short phrase (2–4 words max)
+- meaning: ${meaningInLanguage(code)}
+- example: from transcript when possible
+- Skip trivial function words unless topic-critical
+- No text outside JSON`;
+}
+
+export function buildFrequentWordsPrompt(code: TranslationLanguageCode): string {
+  return `${learnerIntro(code)}
+You receive a list of the most frequent English words from a video transcript (already counted; stop words removed).
+
+For each word, provide a brief ${targetLanguageName(code)} translation (1–4 words).
+
+Return ONLY valid JSON:
+{
+  "translations": [
+    { "word": "people", "meaning": "example translation" }
+  ]
+}
+
+Rules:
+- Include every word from the input list, in the same order
+- meaning: ${translationInLanguage(code)} only — no explanations
+- No text outside JSON`;
+}
+
+export function buildIdiomsPrompt(code: TranslationLanguageCode): string {
+  return `${learnerIntro(code)} understand idioms.
+
+Return ONLY valid JSON:
+{
+  "idioms": [
+    {
+      "idiom": "break the ice",
+      "meaning": "${meaningInLanguage(code)}",
+      "example": "He told a joke to break the ice."
+    }
+  ]
+}
+
+Rules:
+- meaning: ${meaningInLanguage(code)}
+- example: from transcript when possible
+- If none found, return { "idioms": [] }
+- No text outside JSON`;
+}
+
+export function buildUsefulPhrasesPrompt(code: TranslationLanguageCode): string {
+  return `${learnerIntro(code)} master natural spoken English.
+
+Return ONLY valid JSON:
+{
+  "phrases": [
+    {
+      "phrase": "by the way",
+      "meaning": "${meaningInLanguage(code)}",
+      "example": "By the way, I forgot to mention..."
+    }
+  ]
+}
+
+Rules:
+- meaning: ${meaningInLanguage(code)}
+- example: from transcript when possible
+- If none found, return { "phrases": [] }
+- No text outside JSON`;
+}
+
+export function buildCollocationsPrompt(code: TranslationLanguageCode): string {
+  return `${learnerIntro(code)} at B1+ level master collocations.
+
+Return ONLY valid JSON:
+{
+  "collocations": [
+    {
+      "collocation": "make a decision",
+      "meaning": "${meaningInLanguage(code)}",
+      "example": "We need to make a decision soon."
+    }
+  ]
+}
+
+Rules:
+- meaning: ${meaningInLanguage(code)}
+- example: from transcript when possible
+- If none found, return { "collocations": [] }
+- No text outside JSON`;
+}
+
+export function buildSlangPrompt(code: TranslationLanguageCode): string {
+  return `${learnerIntro(code)} understand slang and informal language.
+
+Return ONLY valid JSON:
+{
+  "slang": [
+    {
+      "term": "gonna",
+      "meaning": "${meaningInLanguage(code)}",
+      "example": "I'm gonna be late.",
+      "formality": "informal"
+    }
+  ]
+}
+
+Rules:
+- meaning: ${meaningInLanguage(code)} and brief explanation
+- formality: informal | very informal | neutral
+- If none found, return { "slang": [] }
+- No text outside JSON`;
+}
+
+export function buildEnrichFlashcardsPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `${learnerIntro(code)} build flashcards.
+For each English word or phrase from the list, provide:
+1. ${lang} translation
+2. One example sentence taken from or based on the transcript
+
+Output ONLY numbered lines in this format:
+NUMBER. ENGLISH_WORD | ${lang.toUpperCase()}_TRANSLATION | EXAMPLE_SENTENCE
+
+Rules:
+- Use the transcript for realistic examples.
+- No introductions, explanations, or frequency counts.
+- One line per word.`;
+}
+
+export function buildPrepareFlashcardsPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `You prepare vocabulary flashcards for ${lang} learners.
+You receive a video transcript and an AI analysis response in ANY format (lists, frequencies, explanations, markdown).
+
+Extract every English word or phrase worth learning. For each item provide:
+- word: English word or phrase (not ${lang})
+- translation: ${translationInLanguage(code)}
+- example: one usage example from the transcript when possible
+
+Return ONLY valid JSON:
+{
+  "items": [
+    { "word": "get in", "translation": "example in ${lang}", "example": "Let's get in the taxi." }
+  ]
+}
+
+Rules:
+- Ignore frequency counts.
+- Ignore explanatory paragraphs in the analysis; extract only learning pairs.
+- Skip duplicates and trivial function words unless clearly important.
+- Include phrasal verbs and useful phrases as whole units.
+- No text outside JSON.`;
+}
+
+export function buildGrammarPrompt(
+  translationLanguage: TranslationLanguageCode,
+  taskLanguage: TranslationLanguageCode
+): string {
+  const noteLang = targetLanguageName(taskLanguage);
+  return `You are an English grammar teacher analyzing a video transcript for ${targetLanguageName(translationLanguage)} learners.
+
+Identify the main grammar patterns, tenses, and constructions used in the transcript.
+
+Return ONLY valid JSON:
+{
+  "highlights": [
+    {
+      "pattern": "Present Perfect",
+      "count": 3,
+      "note": "Short note in ${noteLang} explaining usage in this video."
+    }
+  ]
+}
+
+Rules:
+- pattern: short English grammar label
+- count: approximate number of times the pattern appears (minimum 1)
+- note: one short sentence in ${noteLang}
+- List 3–8 most relevant patterns
+- No text outside JSON`;
+}
+
+export function buildGenerateQuizPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `You are an English teacher creating a comprehension quiz for ${lang} learners based on a YouTube video transcript.
+
+Create 5 multiple-choice questions about the video content.
+Questions and answer options should be in ${lang}.
+The transcript is in English — test comprehension of the video.
+
+Return ONLY valid JSON with questions array.`;
+}
+
+export function buildProcessTextPhrasalPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `You are an English language teacher specializing in phrasal verbs.
+Find every phrasal verb or useful phrase in the text (verb + particle: up, out, on, off, in, away, back, etc.).
+For each item output exactly ONE line in this format:
+NUMBER. ENGLISH_PHRASE | ${lang.toUpperCase()}_TRANSLATION
+
+Rules:
+- Only English phrase and ${lang} translation — no explanations, examples, or bullet points.
+- Output ONLY the numbered list — no introduction or summary.`;
+}
+
+export function buildProcessTextTranslatePrompt(code: TranslationLanguageCode): string {
+  return `You are a professional translator. Translate the text accurately into ${targetLanguageName(code)}. Preserve tone and meaning.`;
+}
+
+export function buildProcessTextKeywordsPrompt(code: TranslationLanguageCode): string {
+  const lang = targetLanguageName(code);
+  return `Extract the most important keywords and concepts from the text.
+For each item output exactly one line:
+NUMBER. ENGLISH_WORD_OR_PHRASE | ${lang.toUpperCase()}_TRANSLATION
+Output ONLY the numbered list — no explanations or introduction.`;
+}
+
+export function buildExplainSentencePrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are an English teacher helping language learners understand one sentence from a video transcript.
 
@@ -28,8 +306,8 @@ Rules:
 - No text outside JSON`;
 }
 
-export function buildNotesPrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export function buildNotesPrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are a study-notes assistant for language learners watching English YouTube videos.
 
@@ -64,10 +342,10 @@ Rules:
 }
 
 export function buildPlaylistNotesPrompt(
-  language: InterfaceLanguage,
+  code: TranslationLanguageCode,
   playlistTitle: string
 ): string {
-  const target = getAiResponseLanguageName(language);
+  const target = targetLanguageName(code);
 
   return `You are a study-notes assistant for language learners watching English YouTube videos.
 
@@ -104,8 +382,8 @@ Rules:
 - No text outside JSON`;
 }
 
-export function buildDifficultyPrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export function buildDifficultyPrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are an expert English teacher assessing video transcript difficulty using the CEFR scale (A1, A2, B1, B2, C1, C2).
 
@@ -124,8 +402,8 @@ Rules:
 - No text outside JSON`;
 }
 
-export function buildChaptersPrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export function buildChaptersPrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are a video study assistant for language learners watching English YouTube videos.
 
@@ -152,8 +430,8 @@ Rules:
 - No text outside JSON`;
 }
 
-export function buildTimelinePrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export function buildTimelinePrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are a video study assistant for language learners watching English YouTube videos.
 
@@ -179,8 +457,8 @@ Rules:
 - No text outside JSON`;
 }
 
-export function buildSummaryPrompt(language: InterfaceLanguage): string {
-  const target = getAiResponseLanguageName(language);
+export function buildSummaryPrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
 
   return `You are a concise summarizer for language learners watching English YouTube videos.
 

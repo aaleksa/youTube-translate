@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
+import { buildIdiomsPrompt } from '../../lib/aiPrompts';
 import { parseIdiomsResponse } from '../../lib/idioms';
 
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'openai';
@@ -12,31 +14,6 @@ const MAX_OUTPUT_TOKENS = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 2048;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const FIND_IDIOMS_PROMPT = `You are an English teacher helping Ukrainian learners understand idioms.
-
-Find every idiom and idiomatic expression in the transcript. Include:
-- common idioms (break the ice, piece of cake)
-- fixed expressions and sayings
-- culturally idiomatic phrases (not literal word combinations)
-
-Return ONLY valid JSON:
-{
-  "idioms": [
-    {
-      "idiom": "break the ice",
-      "meaning": "розпочати розмову, зняти напругу",
-      "example": "He told a joke to break the ice."
-    }
-  ]
-}
-
-Rules:
-- meaning: brief explanation in Ukrainian
-- example: a sentence from the transcript where the idiom appears, or a natural example using the same context
-- Skip phrasal verbs that are not idiomatic (e.g. "pick up" alone is not an idiom unless used idiomatically)
-- If no idioms found, return { "idioms": [] }
-- No text outside JSON`;
 
 function sanitizeText(text: string): string {
   return text
@@ -58,7 +35,9 @@ function truncateText(text: string, maxChars: number): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { text } = await request.json();
+    const { text, translationLanguage } = await request.json();
+    const lang = resolveTranslationLanguage(translationLanguage);
+    const systemPrompt = buildIdiomsPrompt(lang);
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -83,7 +62,7 @@ export async function POST(request: NextRequest) {
       const message = await openai.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: FIND_IDIOMS_PROMPT },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: input },
         ],
         temperature: 0.3,
