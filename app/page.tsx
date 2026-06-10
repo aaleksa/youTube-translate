@@ -103,22 +103,17 @@ export default function Home() {
   const [shadowingCaptionIndexes, setShadowingCaptionIndexes] = useState<
     number[]
   >([]);
-  const [showRawTranscript, setShowRawTranscript] = useState(false);
-
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
-    const rawView = localStorage.getItem('yoytube-transcript-raw-view');
-    if (rawView !== null) setShowRawTranscript(rawView === 'true');
   }, []);
 
   const visibleTranscript = useMemo(() => {
     if (!videoData) return [];
-    if (showRawTranscript) return videoData.transcript;
     return videoData.displayTranscript?.length
       ? videoData.displayTranscript
       : videoData.transcript;
-  }, [showRawTranscript, videoData]);
+  }, [videoData]);
 
   const toggleQuickInfo = () => {
     setQuickInfoOpen((prev) => {
@@ -139,7 +134,7 @@ export default function Home() {
 
   const handleShadowingCaptionIndexes = useCallback(
     (rawIndexes: number[]) => {
-      if (!videoData?.displayLines?.length || showRawTranscript) {
+      if (!videoData?.displayLines?.length) {
         setShadowingCaptionIndexes(rawIndexes);
         return;
       }
@@ -148,16 +143,8 @@ export default function Home() {
         mapRawCaptionIndexesToDisplayIndexes(videoData.displayLines, rawIndexes)
       );
     },
-    [showRawTranscript, videoData?.displayLines]
+    [videoData?.displayLines]
   );
-
-  const toggleRawTranscript = () => {
-    setShowRawTranscript((prev) => {
-      const next = !prev;
-      localStorage.setItem('yoytube-transcript-raw-view', String(next));
-      return next;
-    });
-  };
 
   const handleSeek = (seconds: number, lineIndex: number) => {
     videoPlayerRef.current?.seekTo(seconds);
@@ -609,9 +596,6 @@ export default function Home() {
                   videoUrl={getVideoUrl(videoData.videoId)}
                   transcript={visibleTranscript}
                   fullText={videoData.text}
-                  showRawTranscript={showRawTranscript}
-                  onToggleRawTranscript={toggleRawTranscript}
-                  rawLineCount={videoData.transcript.length}
                   activeLineIndex={activeLineIndex}
                   shadowingLineIndex={shadowingLineIndex}
                   shadowingCaptionIndexes={shadowingCaptionIndexes}

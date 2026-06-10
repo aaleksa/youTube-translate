@@ -68,9 +68,6 @@ interface TranscriptDisplayProps {
   ) => void;
   flashcardsRefreshKey?: number;
   onPauseVideo?: () => void;
-  showRawTranscript?: boolean;
-  onToggleRawTranscript?: () => void;
-  rawLineCount?: number;
 }
 
 function countSelectionWords(text: string): number {
@@ -270,9 +267,6 @@ export default function TranscriptDisplay({
   onSaveToFlashcards,
   flashcardsRefreshKey = 0,
   onPauseVideo,
-  showRawTranscript = false,
-  onToggleRawTranscript,
-  rawLineCount,
 }: TranscriptDisplayProps) {
   const { t, language } = useI18n();
   const isShadowingMode =
@@ -641,26 +635,11 @@ export default function TranscriptDisplay({
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {transcript.length} {t('transcript.lines')}
-              {!showRawTranscript &&
-                rawLineCount &&
-                rawLineCount > transcript.length &&
-                ` · ${t('transcript.compactFrom').replace('{raw}', String(rawLineCount))}`}
               {onSeek && ` · ${t('transcript.seekHint')}`}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {onToggleRawTranscript && rawLineCount && rawLineCount > transcript.length && (
-              <button
-                type="button"
-                onClick={onToggleRawTranscript}
-                className="px-3 py-1.5 text-sm rounded-lg transition border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {showRawTranscript
-                  ? t('transcript.viewCompact')
-                  : t('transcript.viewRaw')}
-              </button>
-            )}
             <ToolbarMenu
               label={copied ? '✓ Export' : t('actions.export')}
               active={copied}
