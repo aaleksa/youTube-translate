@@ -223,3 +223,18 @@ export interface UpsertVocabularyProgressInput {
   mastered: boolean;
   lastReviewDate?: number | null;
 }
+
+export interface SentenceExplanationRecord {
+  id: string;
+  userId: string;
+  sentence: string;
+  explanation: string;
+  translation: string;
+  createdAt: number;
+}
+
+export interface CreateSentenceExplanationInput {
+  sentence: string;
+  explanation: string;
+  translation: string;
+}
