@@ -119,6 +119,19 @@ export interface CreateFlashcardInput {
   unknownCount?: number;
 }
 
+export interface FlashcardListParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface PaginatedFlashcards {
+  items: FlashcardRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 export interface DeckRecord {
   id: string;
   userId: string;

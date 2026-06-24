@@ -1,8 +1,45 @@
-import type { CreateFlashcardInput, FlashcardRecord } from '../../../v2-core/types';
+import type {
+  CreateFlashcardInput,
+  FlashcardListParams,
+  FlashcardRecord,
+  PaginatedFlashcards,
+} from '../../../v2-core/types';
 import { apiDelete, apiGet, apiPost, apiPut } from './apiClient';
 
-export async function listFlashcards(): Promise<FlashcardRecord[]> {
-  return apiGet<FlashcardRecord[]>('/flashcards');
+function buildQuery(params?: FlashcardListParams): string {
+  if (!params) return '';
+
+  const search = new URLSearchParams();
+  if (params.limit !== undefined) {
+    search.set('limit', String(params.limit));
+  }
+  if (params.offset !== undefined) {
+    search.set('offset', String(params.offset));
+  }
+
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
+
+export async function listFlashcards(
+  params?: FlashcardListParams
+): Promise<PaginatedFlashcards> {
+  return apiGet<PaginatedFlashcards>(`/flashcards${buildQuery(params)}`);
+}
+
+export async function listAllFlashcards(): Promise<FlashcardRecord[]> {
+  const items: FlashcardRecord[] = [];
+  const limit = 100;
+  let offset = 0;
+
+  while (true) {
+    const page = await listFlashcards({ limit, offset });
+    items.push(...page.items);
+    if (!page.hasMore) break;
+    offset += limit;
+  }
+
+  return items;
 }
 
 export async function createFlashcard(

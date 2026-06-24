@@ -1,7 +1,7 @@
 import type { AuthenticatedContext, UserProgressRecord } from '../types';
 import { progressSk, userPk } from '../dynamodb/keys';
 import { getItem, type DynamoItem } from '../dynamodb/repository';
-import { listFlashcards } from './flashcard-service';
+import { listAllFlashcards } from './flashcard-service';
 
 interface ProgressItem extends DynamoItem {
   entityType: 'PROGRESS';
@@ -47,7 +47,7 @@ export async function getProgress(
     return toRecord(stored);
   }
 
-  const cards = await listFlashcards(auth);
+  const cards = await listAllFlashcards(auth);
   const now = Date.now();
 
   return {
