@@ -1,6 +1,6 @@
-import { ApiError, UnauthorizedError } from '../errors';
+import { ApiError } from '../errors';
 import type { AuthenticatedContext } from '../types';
-import { getBearerToken } from '../auth/context';
+import { getBearerToken } from '../auth/bearer-token';
 import { verifyAccessToken } from '../auth/jwt-verifier';
 
 export async function parseJsonBody<T>(request: Request): Promise<T> {

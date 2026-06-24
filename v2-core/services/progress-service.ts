@@ -12,17 +12,6 @@ interface ProgressItem extends DynamoItem {
   lastStudiedAt?: number;
 }
 
-function defaultProgress(userId: string): UserProgressRecord {
-  return {
-    userId,
-    cardsTotal: 0,
-    cardsMastered: 0,
-    cardsDueToday: 0,
-    streakDays: 0,
-    updatedAt: Date.now(),
-  };
-}
-
 function toRecord(item: ProgressItem): UserProgressRecord {
   return {
     userId: item.userId,

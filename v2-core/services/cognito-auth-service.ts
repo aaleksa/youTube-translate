@@ -1,4 +1,4 @@
-// @ts-nocheck — AWS Cognito; enable when STORAGE_BACKEND=dynamodb
+// @ts-nocheck — optional AWS SDK; excluded from tsc, lint ignored
 import {
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,

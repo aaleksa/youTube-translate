@@ -1,4 +1,4 @@
-// @ts-nocheck — AWS Lambda types; enable when deploying to AWS
+// @ts-nocheck — optional AWS Lambda types; excluded from tsc, lint ignored
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda';
 import { UnauthorizedError } from '../errors';
 import type { AuthenticatedContext } from '../types';
@@ -23,17 +23,4 @@ export function getAuthFromApiGatewayEvent(
     userId: String(claims.sub),
     email,
   };
-}
-
-export function getBearerToken(authorizationHeader?: string | null): string {
-  if (!authorizationHeader) {
-    throw new UnauthorizedError('Missing Authorization header');
-  }
-
-  const [scheme, token] = authorizationHeader.split(' ');
-  if (scheme?.toLowerCase() !== 'bearer' || !token) {
-    throw new UnauthorizedError('Invalid Authorization header');
-  }
-
-  return token;
 }

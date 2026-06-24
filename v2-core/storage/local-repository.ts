@@ -2,7 +2,17 @@ import type { DynamoItem } from '../dynamodb/repository';
 import { getLocalDatabase } from './local-db';
 
 function serializeItem(item: DynamoItem): string {
-  const { PK, SK, entityType, userId, createdAt, updatedAt, ...rest } = item;
+  const rest: Record<string, unknown> = { ...item };
+  for (const key of [
+    'PK',
+    'SK',
+    'entityType',
+    'userId',
+    'createdAt',
+    'updatedAt',
+  ]) {
+    delete rest[key];
+  }
   return JSON.stringify(rest);
 }
 

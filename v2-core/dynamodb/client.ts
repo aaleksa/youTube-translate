@@ -1,4 +1,4 @@
-// @ts-nocheck — AWS DynamoDB; enable when STORAGE_BACKEND=dynamodb
+// @ts-nocheck — optional AWS SDK; excluded from tsc, lint ignored
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
