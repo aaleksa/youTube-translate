@@ -207,3 +207,19 @@ export interface CreateQuizResultInput {
   score: number;
   totalQuestions: number;
 }
+
+export interface VocabularyProgressRecord {
+  id: string;
+  userId: string;
+  word: string;
+  reviewCount: number;
+  mastered: boolean;
+  lastReviewDate: number | null;
+}
+
+export interface UpsertVocabularyProgressInput {
+  word: string;
+  reviewCount: number;
+  mastered: boolean;
+  lastReviewDate?: number | null;
+}

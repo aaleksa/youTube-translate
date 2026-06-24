@@ -82,6 +82,19 @@ function ensureSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user ON quiz_results(userId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_video ON quiz_results(userId, videoId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_created ON quiz_results(userId, createdAt);
+
+    CREATE TABLE IF NOT EXISTS vocabulary_progress (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      word TEXT NOT NULL,
+      reviewCount INTEGER NOT NULL DEFAULT 0,
+      mastered INTEGER NOT NULL DEFAULT 0,
+      lastReviewDate INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_vocabulary_progress_user ON vocabulary_progress(userId);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_vocabulary_progress_user_word
+      ON vocabulary_progress(userId, word);
   `);
 }
 
