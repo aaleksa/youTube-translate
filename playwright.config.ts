@@ -33,6 +33,7 @@ export default defineConfig({
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
+        '**/offline-v2.spec.ts',
       ],
     },
     {
@@ -46,6 +47,7 @@ export default defineConfig({
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
+        '**/offline-v2.spec.ts',
       ],
     },
     {
@@ -59,6 +61,7 @@ export default defineConfig({
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
+        '**/offline-v2.spec.ts',
       ],
     },
     {
@@ -72,6 +75,7 @@ export default defineConfig({
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
+        '**/offline-v2.spec.ts',
       ],
     },
   ],

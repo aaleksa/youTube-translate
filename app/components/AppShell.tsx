@@ -10,6 +10,7 @@ import PremiumStatus from './premium/PremiumStatus';
 import { useAuth } from './auth/AuthProvider';
 import InstallAppButton from './InstallAppButton';
 import OfflineStatusBanner from './OfflineStatusBanner';
+import SyncStatusBadge from './SyncStatusBadge';
 import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
 
@@ -65,6 +66,7 @@ function AppShellChrome({ children }: { children: ReactNode }) {
     <>
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
         <PremiumStatus />
+        <SyncStatusBadge />
         <AuthButton />
         <InstallAppButton />
         <AppSettingsPanel />

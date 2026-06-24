@@ -5,6 +5,7 @@ import { normalizeFlashcardWord } from '../flashcards';
 import { isBackendV2Enabled } from './config';
 import * as flashcardsApi from './flashcardsApi';
 import { getAccessToken } from './tokenStorage';
+import { setPendingFlashcardSyncCount } from './syncStatus';
 
 const SERVER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,6 +13,10 @@ const SYNC_DEBOUNCE_MS = 2000;
 
 const pendingUpdates = new Map<string, ReturnType<typeof setTimeout>>();
 let bootstrapPromise: Promise<void> | null = null;
+
+function updatePendingSyncCount(): void {
+  setPendingFlashcardSyncCount(pendingUpdates.size);
+}
 
 export function resetFlashcardsSyncBootstrap(): void {
   bootstrapPromise = null;
@@ -22,6 +27,7 @@ export function cancelPendingFlashcardSyncs(): void {
     clearTimeout(timer);
   }
   pendingUpdates.clear();
+  updatePendingSyncCount();
 }
 
 function canSync(): boolean {
@@ -161,9 +167,11 @@ export function scheduleFlashcardSync(card: Flashcard): void {
     card.id,
     setTimeout(() => {
       pendingUpdates.delete(card.id);
+      updatePendingSyncCount();
       void syncFlashcardUpdate(card);
     }, SYNC_DEBOUNCE_MS)
   );
+  updatePendingSyncCount();
 }
 
 export async function syncFlashcardDelete(id: string): Promise<void> {

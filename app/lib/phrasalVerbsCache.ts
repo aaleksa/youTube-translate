@@ -1,5 +1,11 @@
 import type { PhrasalVerbItem } from './phrasalVerbs';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-phrasal-verbs-';
 
 export interface PhrasalVerbsCacheEntry {
@@ -16,7 +22,7 @@ export function getPhrasalVerbsCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = getAiCacheRaw(`${STORAGE_PREFIX}${videoId}`);
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as PhrasalVerbsCacheEntry;
@@ -42,9 +48,9 @@ export function setPhrasalVerbsCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  setAiCacheRaw(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
 }
 
 export function clearPhrasalVerbsCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+  removeAiCacheRaw(`${STORAGE_PREFIX}${videoId}`);
 }

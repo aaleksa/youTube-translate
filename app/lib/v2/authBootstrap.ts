@@ -2,6 +2,7 @@ import { bootstrapBookmarksSync } from './syncBookmarks';
 import { bootstrapDecksSync } from './syncDecks';
 import { bootstrapFlashcardsSync } from './syncFlashcards';
 import { bootstrapVideoHistorySync } from './syncVideoHistory';
+import { setBootstrapSyncActive } from './syncStatus';
 import { prepareUserSession } from './userSession';
 import {
   notifyBookmarksChanged,
@@ -10,14 +11,19 @@ import {
 } from '../dataRefresh';
 
 export async function bootstrapUserData(userId: string): Promise<void> {
-  await prepareUserSession(userId);
-  await bootstrapFlashcardsSync(userId);
-  await Promise.all([
-    bootstrapBookmarksSync(userId),
-    bootstrapDecksSync(userId),
-    bootstrapVideoHistorySync(userId),
-  ]);
-  notifyFlashcardsChanged();
-  notifyBookmarksChanged();
-  notifyVideoHistoryChanged();
+  setBootstrapSyncActive(true);
+  try {
+    await prepareUserSession(userId);
+    await bootstrapFlashcardsSync(userId);
+    await Promise.all([
+      bootstrapBookmarksSync(userId),
+      bootstrapDecksSync(userId),
+      bootstrapVideoHistorySync(userId),
+    ]);
+    notifyFlashcardsChanged();
+    notifyBookmarksChanged();
+    notifyVideoHistoryChanged();
+  } finally {
+    setBootstrapSyncActive(false);
+  }
 }

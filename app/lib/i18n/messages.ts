@@ -580,6 +580,9 @@ const uk = {
   'offline.v2Title': 'Офлайн — обмежений режим',
   'offline.v2Hint':
     'Показуються лише дані, збережені на цьому пристрої після останньої синхронізації. Вхід, AI, субтитри та синхронізація потребують мережі.',
+  'sync.statusSyncing': 'Синхронізація…',
+  'sync.statusPending': 'Збереження…',
+  'sync.statusOffline': 'Офлайн',
   'auth.sessionExpired': 'Сесію завершено. Увійдіть знову.',
   'auth.logout': 'Вийти',
   'auth.signUp': 'Зареєструватися',
@@ -1181,6 +1184,9 @@ const en: Record<keyof typeof uk, string> = {
   'offline.v2Title': 'Offline — limited mode',
   'offline.v2Hint':
     'Only data synced on this device is available. Sign-in, AI, transcripts, and sync require a network connection.',
+  'sync.statusSyncing': 'Syncing…',
+  'sync.statusPending': 'Saving…',
+  'sync.statusOffline': 'Offline',
   'auth.sessionExpired': 'Your session has expired. Please sign in again.',
   'auth.logout': 'Sign out',
   'auth.signUp': 'Sign up',

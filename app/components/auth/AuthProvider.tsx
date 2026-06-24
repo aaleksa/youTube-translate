@@ -20,6 +20,7 @@ import {
   getAccessToken,
   getStoredUser,
 } from '../../lib/v2/tokenStorage';
+import { isNetworkRequestError } from '../../lib/v2/networkError';
 
 type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
 
@@ -85,8 +86,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
         setReady(true);
         await bootstrapUserData(currentUser.userId);
-      } catch {
+      } catch (error) {
         if (cancelled) return;
+
+        const cachedUser = getStoredUser();
+        if (cachedUser && isNetworkRequestError(error)) {
+          setUser(cachedUser);
+          setReady(true);
+          if (typeof navigator !== 'undefined' && navigator.onLine) {
+            void bootstrapUserData(cachedUser.userId);
+          }
+          return;
+        }
+
         clearAuthStorage();
         await clearUserSession();
         setUser(null);

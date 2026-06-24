@@ -1,5 +1,12 @@
 import type { VideoNotesResult } from './videoNotes';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-playlist-notes-';
 
 export interface PlaylistNotesCacheEntry extends VideoNotesResult {
@@ -21,7 +28,7 @@ export function getPlaylistNotesCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(playlistId, taskLanguage));
+    const raw = getAiCacheRaw(cacheKey(playlistId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as PlaylistNotesCacheEntry;
@@ -66,18 +73,12 @@ export function setPlaylistNotesCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(
+  setAiCacheRaw(
     cacheKey(playlistId, taskLanguage),
     JSON.stringify(entry)
   );
 }
 
 export function clearPlaylistNotesCache(playlistId: string): void {
-  const prefix = `${STORAGE_PREFIX}${playlistId}`;
-  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) {
-      localStorage.removeItem(key);
-    }
-  }
+  removeAiCacheKeysWithLogicalPrefix(`${STORAGE_PREFIX}${playlistId}`);
 }

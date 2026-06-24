@@ -1,5 +1,12 @@
 import type { IdiomItem } from './idioms';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-idioms-';
 
 export interface IdiomsCacheEntry {
@@ -21,7 +28,7 @@ export function getIdiomsCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(videoId, translationLanguage));
+    const raw = getAiCacheRaw(cacheKey(videoId, translationLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as IdiomsCacheEntry;
@@ -48,7 +55,7 @@ export function setIdiomsCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(
+  setAiCacheRaw(
     cacheKey(videoId, translationLanguage),
     JSON.stringify(entry)
   );
@@ -59,13 +66,9 @@ export function clearIdiomsCache(
   translationLanguage?: string
 ): void {
   if (translationLanguage) {
-    localStorage.removeItem(cacheKey(videoId, translationLanguage));
+    removeAiCacheRaw(cacheKey(videoId, translationLanguage));
     return;
   }
 
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith(`${STORAGE_PREFIX}${videoId}-`)) {
-      localStorage.removeItem(key);
-    }
-  }
+  removeAiCacheKeysWithLogicalPrefix(`${STORAGE_PREFIX}${videoId}`);
 }
