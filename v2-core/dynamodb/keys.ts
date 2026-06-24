@@ -8,6 +8,7 @@ export const ENTITY = {
   VIDEO: 'VIDEO',
   PLAYBACK: 'PLAYBACK',
   BOOKMARK: 'BOOKMARK',
+  QUIZ_RESULT: 'QUIZ_RESULT',
 } as const;
 
 export function userPk(userId: string): string {
@@ -44,4 +45,8 @@ export function playbackPositionSk(videoId: string): string {
 
 export function bookmarkSk(bookmarkId: string): string {
   return `${ENTITY.BOOKMARK}#${bookmarkId}`;
+}
+
+export function quizResultSk(resultId: string): string {
+  return `${ENTITY.QUIZ_RESULT}#${resultId}`;
 }

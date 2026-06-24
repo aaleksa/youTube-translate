@@ -20,10 +20,11 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 
 | Файл / таблиця | Дані |
 |----------------|------|
-| `data/local.db` | Користувачі, refresh tokens, flashcards, bookmarks, decks, progress |
+| `data/local.db` | Користувачі, refresh tokens, flashcards, bookmarks, quiz results, decks, progress |
 | `users` | Профіль (`id`, `email`, `name`, timestamps) + auth (`passwordHash`, `googleId`, …) |
 | `flashcards` | Картки (`id`, `userId`, `word`, `translation`, `example`, `videoId`, `createdAt`) |
 | `bookmarks` | Закладки (`id`, `userId`, `videoId`, `timestamp`, `note`, `createdAt`) |
+| `quiz_results` | Результати quiz (`id`, `userId`, `videoId`, `score`, `totalQuestions`, `createdAt`) |
 | `items` | Video history, playback, decks, progress (V2 single-table entities) |
 
 Файл `data/local.db` **не комітиться** в git (див. `.gitignore`).

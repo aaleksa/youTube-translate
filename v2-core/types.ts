@@ -192,3 +192,18 @@ export interface CreateBookmarkInput {
   timestamp: number;
   note?: string;
 }
+
+export interface QuizResultRecord {
+  id: string;
+  userId: string;
+  videoId: string;
+  score: number;
+  totalQuestions: number;
+  createdAt: number;
+}
+
+export interface CreateQuizResultInput {
+  videoId: string;
+  score: number;
+  totalQuestions: number;
+}
