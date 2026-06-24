@@ -32,6 +32,14 @@ export async function login(input: LoginInput): Promise<AuthUser> {
   return user;
 }
 
+export async function loginWithGoogle(idToken: string): Promise<AuthUser> {
+  const tokens = await apiPost<AuthTokens>('/auth/google', { idToken });
+  saveTokens(tokens);
+  const user = await getCurrentUser();
+  saveUser(user);
+  return user;
+}
+
 export async function logout(): Promise<void> {
   const accessToken = getAccessToken();
   const refreshToken = getRefreshToken();

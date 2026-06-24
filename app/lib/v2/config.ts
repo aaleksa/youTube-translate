@@ -15,3 +15,7 @@ export function isLocalBackendOnClient(): boolean {
 export function isEmailVerificationEnabledOnClient(): boolean {
   return process.env.NEXT_PUBLIC_EMAIL_VERIFICATION_ENABLED === 'true';
 }
+
+export function isGoogleAuthConfiguredOnClient(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim());
+}

@@ -53,6 +53,20 @@ export async function login(input: LoginInput): Promise<AuthTokens> {
   return provider.login(input);
 }
 
+export async function loginWithGoogle(input: {
+  idToken: string;
+}): Promise<AuthTokens> {
+  if (!isLocalBackend()) {
+    throw new ApiError(
+      'Google sign-in is only available in local mode for now.',
+      503,
+      'GOOGLE_NOT_SUPPORTED'
+    );
+  }
+
+  return localAuth.loginWithGoogle(input);
+}
+
 export async function refreshTokens(
   input: RefreshTokenInput
 ): Promise<AuthTokens> {
