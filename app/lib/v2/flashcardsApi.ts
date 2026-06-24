@@ -1,4 +1,4 @@
-import type { FlashcardRecord } from '../../../v2-core/types';
+import type { CreateFlashcardInput, FlashcardRecord } from '../../../v2-core/types';
 import { apiDelete, apiGet, apiPost, apiPut } from './apiClient';
 
 export async function listFlashcards(): Promise<FlashcardRecord[]> {
@@ -6,7 +6,7 @@ export async function listFlashcards(): Promise<FlashcardRecord[]> {
 }
 
 export async function createFlashcard(
-  input: Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  input: CreateFlashcardInput
 ): Promise<FlashcardRecord> {
   return apiPost<FlashcardRecord>('/flashcards', input);
 }

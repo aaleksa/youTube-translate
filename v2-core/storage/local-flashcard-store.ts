@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { ApiError, NotFoundError } from '../errors';
-import type { Flashcard, FlashcardRecord } from '../types';
+import { ApiError, ConflictError, NotFoundError } from '../errors';
+import type { CreateFlashcardInput, Flashcard, FlashcardRecord } from '../types';
+import { validateCreateFlashcardInput, normalizeFlashcardWord } from '../validation/flashcard-input';
 import { getLocalDatabase } from './local-db';
 
 interface FlashcardMeta {
@@ -64,15 +65,6 @@ function toRecord(row: FlashcardRow): FlashcardRecord {
   };
 }
 
-function getRow(userId: string, cardId: string): FlashcardRow | null {
-  const db = getLocalDatabase();
-  return (
-    (db
-      .prepare(`SELECT * FROM flashcards WHERE id = ? AND userId = ?`)
-      .get(cardId, userId) as FlashcardRow | undefined) ?? null
-  );
-}
-
 export function listFlashcards(userId: string): FlashcardRecord[] {
   const db = getLocalDatabase();
   const rows = db
@@ -84,28 +76,49 @@ export function listFlashcards(userId: string): FlashcardRecord[] {
   return rows.map(toRecord);
 }
 
+function getRow(userId: string, cardId: string): FlashcardRow | null {
+  const db = getLocalDatabase();
+  return (
+    (db
+      .prepare(`SELECT * FROM flashcards WHERE id = ? AND userId = ?`)
+      .get(cardId, userId) as FlashcardRow | undefined) ?? null
+  );
+}
+
+function hasFlashcardWithWord(userId: string, word: string): boolean {
+  const db = getLocalDatabase();
+  const normalized = normalizeFlashcardWord(word);
+  const row = db
+    .prepare(
+      `SELECT id FROM flashcards
+       WHERE userId = ? AND lower(trim(word)) = ?`
+    )
+    .get(userId, normalized) as { id: string } | undefined;
+
+  return Boolean(row);
+}
+
 export function createFlashcard(
   userId: string,
-  input: Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  input: CreateFlashcardInput
 ): FlashcardRecord {
-  const word = input.word?.trim();
-  const translation = input.translation?.trim();
+  const validated = validateCreateFlashcardInput(input);
 
-  if (!word || !translation) {
-    throw new ApiError('word and translation are required', 400, 'INVALID_FLASHCARD');
+  if (hasFlashcardWithWord(userId, validated.word)) {
+    throw new ConflictError('A flashcard with this word already exists');
   }
 
   const now = Date.now();
   const id = randomUUID();
   const meta: FlashcardMeta = {
-    tags: input.tags ?? [],
-    deckIds: input.deckIds ?? [],
-    repetitions: input.repetitions ?? 0,
-    ease: input.ease ?? 2.5,
-    interval: input.interval ?? 0,
-    nextReview: input.nextReview,
-    knownCount: input.knownCount ?? 0,
-    unknownCount: input.unknownCount ?? 0,
+    tags: validated.tags ?? [],
+    deckIds: validated.deckIds ?? [],
+    repetitions: validated.repetitions ?? 0,
+    ease: validated.ease ?? 2.5,
+    interval: validated.interval ?? 0,
+    nextReview: validated.nextReview,
+    knownCount: validated.knownCount ?? 0,
+    unknownCount: validated.unknownCount ?? 0,
     updatedAt: now,
   };
 
@@ -117,10 +130,10 @@ export function createFlashcard(
   ).run(
     id,
     userId,
-    word,
-    translation,
-    input.example?.trim() ?? '',
-    input.videoId?.trim() || null,
+    validated.word,
+    validated.translation,
+    validated.example ?? '',
+    validated.videoId ?? null,
     now,
     JSON.stringify(meta)
   );
