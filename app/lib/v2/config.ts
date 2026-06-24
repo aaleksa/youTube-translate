@@ -19,3 +19,7 @@ export function isEmailVerificationEnabledOnClient(): boolean {
 export function isGoogleAuthConfiguredOnClient(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim());
 }
+
+export function isStripeConfiguredOnClient(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim());
+}

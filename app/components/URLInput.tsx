@@ -47,6 +47,7 @@ export default function URLInput({
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <input
+            data-testid="youtube-url-input"
             type="text"
             placeholder={t('urlInput.placeholder')}
             value={url}

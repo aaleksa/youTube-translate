@@ -18,7 +18,12 @@ export default function AuthButton() {
         <span className="hidden sm:inline text-sm text-gray-700 dark:text-gray-200 max-w-[10rem] truncate">
           {user.email}
         </span>
-        <button type="button" onClick={() => void logout()} className={topBarButtonClass}>
+        <button
+          type="button"
+          data-testid="auth-logout-button"
+          onClick={() => void logout()}
+          className={topBarButtonClass}
+        >
           {t('auth.logout')}
         </button>
       </div>
@@ -28,6 +33,7 @@ export default function AuthButton() {
   return (
     <button
       type="button"
+      data-testid="auth-login-button"
       onClick={() => openAuth('login')}
       className={topBarButtonClass}
     >
