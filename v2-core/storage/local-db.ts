@@ -129,6 +129,14 @@ function ensureSchema(db: Database.Database): void {
       autoPause TEXT NOT NULL DEFAULT '{}',
       bilingualMode INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS user_subscriptions (
+      userId TEXT PRIMARY KEY,
+      plan TEXT NOT NULL DEFAULT 'free',
+      status TEXT NOT NULL DEFAULT 'inactive',
+      startDate INTEGER,
+      endDate INTEGER
+    );
   `);
 }
 

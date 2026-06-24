@@ -13,6 +13,7 @@ export const ENTITY = {
   EXPLAIN_SENTENCE: 'EXPLAIN_SENTENCE',
   SELECTION_ANALYSIS: 'SELECTION_ANALYSIS',
   USER_SETTINGS: 'USER_SETTINGS',
+  USER_SUBSCRIPTION: 'USER_SUBSCRIPTION',
 } as const;
 
 export function userPk(userId: string): string {
@@ -69,4 +70,8 @@ export function selectionAnalysisSk(recordId: string): string {
 
 export function userSettingsSk(): string {
   return ENTITY.USER_SETTINGS;
+}
+
+export function userSubscriptionSk(): string {
+  return ENTITY.USER_SUBSCRIPTION;
 }
