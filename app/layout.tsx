@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthButton from "./components/auth/AuthButton";
 import AuthPanel from "./components/auth/AuthPanel";
+import RequireAuth from "./components/auth/RequireAuth";
 import { AuthProvider } from "./components/auth/AuthProvider";
 import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -77,7 +78,7 @@ export default function RootLayout({
                   <ThemeToggle />
                 </div>
                 <AuthPanel />
-                {children}
+                <RequireAuth>{children}</RequireAuth>
               </AuthProvider>
             </InterfaceLanguageProvider>
           </ThemeProvider>

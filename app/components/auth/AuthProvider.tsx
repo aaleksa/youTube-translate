@@ -65,10 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const bootstrap = async () => {
-      const storedUser = getStoredUser();
       const token = getAccessToken();
 
       if (!token) {
+        clearAuthStorage();
+        setUser(null);
         setReady(true);
         return;
       }
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await bootstrapUserData();
       } catch {
         clearAuthStorage();
-        setUser(storedUser);
+        setUser(null);
       } finally {
         setReady(true);
       }

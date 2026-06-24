@@ -570,6 +570,11 @@ const uk = {
   'auth.newPassword': 'Новий пароль',
   'auth.code': 'Код підтвердження',
   'auth.login': 'Увійти',
+  'auth.loading': 'Завантаження…',
+  'auth.loginRequiredTitle': 'Увійдіть, щоб продовжити',
+  'auth.loginRequiredHint':
+    'Транскрипти, AI-аналіз і збережені дані доступні лише після входу в акаунт.',
+  'auth.sessionExpired': 'Сесію завершено. Увійдіть знову.',
   'auth.logout': 'Вийти',
   'auth.signUp': 'Зареєструватися',
   'auth.confirm': 'Підтвердити',
@@ -1146,6 +1151,11 @@ const en: Record<keyof typeof uk, string> = {
   'auth.newPassword': 'New password',
   'auth.code': 'Confirmation code',
   'auth.login': 'Sign in',
+  'auth.loading': 'Loading…',
+  'auth.loginRequiredTitle': 'Sign in to continue',
+  'auth.loginRequiredHint':
+    'Transcripts, AI tools, and saved data are available only after you sign in.',
+  'auth.sessionExpired': 'Your session has expired. Please sign in again.',
   'auth.logout': 'Sign out',
   'auth.signUp': 'Sign up',
   'auth.confirm': 'Confirm',
