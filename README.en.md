@@ -626,6 +626,7 @@ npm start
 | `npm run build` | Production build + PWA icons |
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript (`tsc --noEmit`) |
 | `npm run test:responsive` | Playwright responsive tests |
 | `npm run test:auth` | Auth API + UI E2E (account isolation, login/logout) |
 | `npm run test:auth-isolation` | API isolation only (`account-isolation.spec.ts`) |
