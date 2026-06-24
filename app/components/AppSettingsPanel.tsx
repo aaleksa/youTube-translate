@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from './InterfaceLanguageProvider';
 import GlobalTranslationLanguageSelect from './GlobalTranslationLanguageSelect';
@@ -68,6 +69,15 @@ export default function AppSettingsPanel() {
             </div>
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <ImportExportSettings />
+            </div>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Link
+                href="/faq"
+                onClick={() => setOpen(false)}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+              >
+                {t('faq.openFaq')}
+              </Link>
             </div>
           </div>
         </div>

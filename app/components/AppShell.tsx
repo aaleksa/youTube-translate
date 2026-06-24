@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import AppSettingsPanel from './AppSettingsPanel';
 import { AppProviders } from './AppProviders';
 import AuthButton from './auth/AuthButton';
@@ -16,17 +18,21 @@ import PremiumCheckoutReturn from './premium/PremiumCheckoutReturn';
 import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
 
+const PUBLIC_ROUTES = new Set(['/faq', '/~offline']);
+
 function AuthenticatedMain({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
   const { enabled, ready, isAuthenticated, openAuth } = useAuth();
   const { t } = useI18n();
 
   useEffect(() => {
-    if (enabled && ready && !isAuthenticated) {
+    if (enabled && ready && !isAuthenticated && !isPublicRoute) {
       openAuth('login');
     }
-  }, [enabled, ready, isAuthenticated, openAuth]);
+  }, [enabled, ready, isAuthenticated, isPublicRoute, openAuth]);
 
-  if (!enabled) {
+  if (!enabled || isPublicRoute) {
     return <>{children}</>;
   }
 
@@ -48,13 +54,21 @@ function AuthenticatedMain({ children }: { children: ReactNode }) {
           <p className="text-gray-600 dark:text-gray-400">
             {t('auth.loginRequiredHint')}
           </p>
-          <button
-            type="button"
-            onClick={() => openAuth('login')}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            {t('auth.login')}
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => openAuth('login')}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              {t('auth.login')}
+            </button>
+            <Link
+              href="/faq"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              {t('faq.openFaq')}
+            </Link>
+          </div>
         </div>
       </div>
     );

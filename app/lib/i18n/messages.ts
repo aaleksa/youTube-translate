@@ -631,6 +631,41 @@ const uk = {
   'coach.llmError': 'Не вдалося завантажити AI-пораду',
   'coach.llmPremiumRequired':
     'AI-поради тренера доступні в Premium. Оновіть план для персональних рекомендацій.',
+  'faq.pageTitle': 'Часті питання',
+  'faq.pageSubtitle': 'Синхронізація, Premium, офлайн та інше',
+  'faq.backHome': 'На головну',
+  'faq.openFaq': 'Допомога / FAQ',
+  'faq.supportTitle': 'Підтримка',
+  'faq.supportBody':
+    'Не знайшли відповідь? Напишіть нам — вкажіть email акаунта та коротко опишіть проблему.',
+  'faq.supportEmail': 'Написати в підтримку',
+  'faq.q.account': 'Чи потрібен акаунт?',
+  'faq.a.account':
+    'У режимі V2 (хмарний акаунт) потрібен вхід — дані синхронізуються між пристроями після логіну.',
+  'faq.q.sync': 'Чи синхронізуються дані між пристроями?',
+  'faq.a.sync':
+    'Так, після входу в акаунт: флешкартки, колоди, закладки, історія відео, налаштування, квізи, щоденний журнал, вимова, позиція відео. Індикатор sync: Синхронізовано · Збереження… · Синхронізація… · Офлайн. Якщо дані на двох пристроях розійшлись — з’явиться банер «Дані об’єднано». JSON backup у налаштуваннях — для ручної копії.',
+  'faq.q.premium': 'Premium та AI',
+  'faq.a.premium':
+    'Безкоштовно: ~20 AI-запитів на день. Premium: безлімітний AI, пріоритет, AI-поради тренера. Після Stripe ви повернетесь на ?premium=success — підписка оновиться автоматично.',
+  'faq.q.subtitles': 'Чому не завантажуються субтитри?',
+  'faq.a.subtitles':
+    'Перевірте, чи є субтитри на YouTube; спробуйте іншу мову. Деякі відео обмежують доступ до субтитрів.',
+  'faq.q.ai': 'Чому AI не працює?',
+  'faq.a.ai':
+    'Потрібні інтернет і налаштований API-ключ на сервері (self-host). На публічній версії — зверніться до адміністратора або в підтримку.',
+  'faq.q.mastered': 'Що означає «освоєно»?',
+  'faq.a.mastered':
+    'Слово вважається освоєним після кількох успішних повторень у режимі навчання. Воно з’являтиметься рідше.',
+  'faq.q.anki': 'Чи можна імпортувати з Anki?',
+  'faq.a.anki':
+    'Прямий імпорт .apkg не підтримується. Експортуйте з Anki у CSV і імпортуйте через «Імпорт CSV» у налаштуваннях.',
+  'faq.q.offline': 'Чи працює офлайн?',
+  'faq.a.offline':
+    'Частково після входу: банер Offline, сесія зберігається, доступні картки та кешовані транскрипти. Нові відео, AI і sync потребують мережі. PWA можна встановити на телефон.',
+  'faq.q.deleteData': 'Як видалити всі дані?',
+  'faq.a.deleteData':
+    'Очистіть дані сайту в браузері (Application → Clear site data). Зробіть backup заздалегідь, якщо дані важливі.',
   'playback.resumedFrom': 'Продовжено з {time}',
 } as const;
 
@@ -1258,6 +1293,41 @@ const en: Record<keyof typeof uk, string> = {
   'coach.llmError': 'Could not load AI advice',
   'coach.llmPremiumRequired':
     'AI coach advice is a Premium feature. Upgrade for personalized recommendations.',
+  'faq.pageTitle': 'FAQ',
+  'faq.pageSubtitle': 'Sync, Premium, offline, and more',
+  'faq.backHome': 'Back to home',
+  'faq.openFaq': 'Help / FAQ',
+  'faq.supportTitle': 'Support',
+  'faq.supportBody':
+    'Did not find an answer? Email us with your account email and a short description of the issue.',
+  'faq.supportEmail': 'Contact support',
+  'faq.q.account': 'Do I need an account?',
+  'faq.a.account':
+    'In V2 (cloud account) sign-in is required — data syncs across devices after login.',
+  'faq.q.sync': 'Does data sync between devices?',
+  'faq.a.sync':
+    'Yes when signed in: flashcards, decks, bookmarks, video history, settings, quizzes, daily log, pronunciation, playback position. Sync badge: Synced · Saving… · Syncing… · Offline. If data diverged on two devices, a merge banner appears. JSON backup in settings for manual export.',
+  'faq.q.premium': 'Premium and AI',
+  'faq.a.premium':
+    'Free: ~20 AI requests per day. Premium: unlimited AI, priority, AI coach advice. After Stripe you return to ?premium=success — subscription refreshes automatically.',
+  'faq.q.subtitles': 'Why won’t subtitles load?',
+  'faq.a.subtitles':
+    'Check that the video has subtitles on YouTube; try another language. Some videos restrict subtitle access.',
+  'faq.q.ai': 'Why doesn’t AI work?',
+  'faq.a.ai':
+    'AI needs internet and a configured server API key (self-hosting). On a public deployment, contact the administrator or support.',
+  'faq.q.mastered': 'What does “mastered” mean?',
+  'faq.a.mastered':
+    'A word is mastered after several successful reviews in study mode. It still appears, but less often.',
+  'faq.q.anki': 'Can I import from Anki?',
+  'faq.a.anki':
+    'Direct .apkg import is not supported. Export from Anki to CSV and import via Import CSV in settings.',
+  'faq.q.offline': 'Does it work offline?',
+  'faq.a.offline':
+    'Partially when signed in: Offline banner, session kept, saved cards and cached transcripts work. New videos, AI, and sync need network. You can install the PWA on your phone.',
+  'faq.q.deleteData': 'How do I delete all data?',
+  'faq.a.deleteData':
+    'Clear site data in browser settings (Application → Clear site data). Back up first if the data matters.',
   'playback.resumedFrom': 'Resumed from {time}',
 };
 
