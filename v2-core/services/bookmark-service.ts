@@ -137,6 +137,7 @@ export async function deleteBookmark(
   const sk = bookmarkSk(normalizedId);
   const existing = await getItem<BookmarkItem>(pk, sk);
 
+  // Ownership: PK is scoped to auth.userId — another user's bookmark is not found (404).
   if (!existing || existing.userId !== auth.userId) {
     throw new NotFoundError('Bookmark not found');
   }
