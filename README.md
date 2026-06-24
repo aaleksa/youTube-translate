@@ -8,6 +8,8 @@
 
 🇬🇧 **English README:** [README.en.md](./README.en.md)
 
+🗄️ **Локальний backend (без AWS):** [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md)
+
 ---
 
 ## Цілі проєкту

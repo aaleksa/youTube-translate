@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import AuthButton from "./components/auth/AuthButton";
+import AuthPanel from "./components/auth/AuthPanel";
+import { AuthProvider } from "./components/auth/AuthProvider";
 import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
 import AppSettingsPanel from "./components/AppSettingsPanel";
@@ -66,12 +69,16 @@ export default function RootLayout({
         <PwaProvider>
           <ThemeProvider>
             <InterfaceLanguageProvider>
-              <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
-                <InstallAppButton />
-                <AppSettingsPanel />
-                <ThemeToggle />
-              </div>
-              {children}
+              <AuthProvider>
+                <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
+                  <AuthButton />
+                  <InstallAppButton />
+                  <AppSettingsPanel />
+                  <ThemeToggle />
+                </div>
+                <AuthPanel />
+                {children}
+              </AuthProvider>
             </InterfaceLanguageProvider>
           </ThemeProvider>
         </PwaProvider>
