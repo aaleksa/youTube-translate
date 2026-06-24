@@ -1,14 +1,17 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useEffect } from 'react';
-import { useAuth } from './AuthProvider';
-import { useI18n } from '../InterfaceLanguageProvider';
+import AppSettingsPanel from './AppSettingsPanel';
+import AuthButton from './auth/AuthButton';
+import AuthPanel from './auth/AuthPanel';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
+import InstallAppButton from './InstallAppButton';
+import { InterfaceLanguageProvider, useI18n } from './InterfaceLanguageProvider';
+import { ThemeProvider } from './ThemeProvider';
+import ThemeToggle from './ThemeToggle';
 
-export default function RequireAuth({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AuthenticatedMain({ children }: { children: ReactNode }) {
   const { enabled, ready, isAuthenticated, openAuth } = useAuth();
   const { t } = useI18n();
 
@@ -53,4 +56,23 @@ export default function RequireAuth({
   }
 
   return <>{children}</>;
+}
+
+export default function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ThemeProvider>
+      <InterfaceLanguageProvider>
+        <AuthProvider>
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
+            <AuthButton />
+            <InstallAppButton />
+            <AppSettingsPanel />
+            <ThemeToggle />
+          </div>
+          <AuthPanel />
+          <AuthenticatedMain>{children}</AuthenticatedMain>
+        </AuthProvider>
+      </InterfaceLanguageProvider>
+    </ThemeProvider>
+  );
 }

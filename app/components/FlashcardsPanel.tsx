@@ -130,6 +130,12 @@ export default function FlashcardsPanel({
     null
   );
 
+  useEffect(() => {
+    if (view === 'deck' && selectedDeckId) {
+      setQuizSource('deck');
+    }
+  }, [view, selectedDeckId]);
+
   const enrichableCount = useMemo(
     () => countCardsNeedingEnrichment(cards),
     [cards]
@@ -188,6 +194,39 @@ export default function FlashcardsPanel({
     }
     return map;
   }, [activeVideoId, activeVideoTitle, cards]);
+
+  const selectedDeckName = useMemo(
+    () => decks.find((deck) => deck.id === selectedDeckId)?.name ?? null,
+    [decks, selectedDeckId]
+  );
+
+  const selectedVideoTitle = useMemo(
+    () =>
+      selectedVideoId
+        ? titleByVideoId[selectedVideoId] ?? selectedVideoId
+        : null,
+    [selectedVideoId, titleByVideoId]
+  );
+
+  const quizSourceLabel = useMemo(() => {
+    if (quizSource === 'deck' && selectedDeckName) {
+      return selectedDeckName;
+    }
+    if (quizSource === 'video') {
+      const videoId = selectedVideoId ?? activeVideoId;
+      const title = videoId ? titleByVideoId[videoId] : null;
+      if (title) {
+        return title;
+      }
+    }
+    return null;
+  }, [
+    activeVideoId,
+    quizSource,
+    selectedDeckName,
+    selectedVideoId,
+    titleByVideoId,
+  ]);
 
   const filterOptions = useMemo(
     () => ({
@@ -280,6 +319,7 @@ export default function FlashcardsPanel({
     setDecks(getDecks());
     setNewDeckName('');
     setSelectedDeckId(deck.id);
+    setQuizSource('deck');
     setView('deck');
   };
 
@@ -322,6 +362,15 @@ export default function FlashcardsPanel({
         format={quizFormat}
         quizLanguage={taskLanguage}
         activeVideoId={activeVideoId}
+        sourceLabel={
+          quizSourceLabel
+            ? quizSource === 'deck'
+              ? `📚 ${quizSourceLabel}`
+              : quizSource === 'video'
+                ? `🎥 ${quizSourceLabel}`
+                : quizSourceLabel
+            : undefined
+        }
         onListenSentence={onListenSentence}
         onWatchExample={onWatchExample}
         onRepeatSentence={onRepeatSentence}
@@ -473,6 +522,31 @@ export default function FlashcardsPanel({
                 {t(labelKey)}
               </button>
             ))}
+            {quizSource === 'deck' && (
+              <select
+                value={selectedDeckId ?? ''}
+                onChange={(e) => {
+                  const deckId = e.target.value || null;
+                  setSelectedDeckId(deckId);
+                  if (deckId) {
+                    setView('deck');
+                  }
+                }}
+                className="min-w-[10rem] max-w-full px-2 py-1 rounded-lg text-xs font-medium border border-amber-400 dark:border-amber-600 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">{t('flashcards.chooseDeck')}</option>
+                {deckSummaries.map(({ deck }) => (
+                  <option key={deck.id} value={deck.id}>
+                    {deck.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {quizSource === 'video' && quizSourceLabel && (
+              <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                {quizSourceLabel}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
@@ -573,7 +647,10 @@ export default function FlashcardsPanel({
               >
                 <button
                   type="button"
-                  onClick={() => setSelectedDeckId(deck.id)}
+                  onClick={() => {
+                    setSelectedDeckId(deck.id);
+                    setQuizSource('deck');
+                  }}
                   className="flex-1 text-left hover:opacity-80 transition"
                 >
                   <p className="font-semibold text-gray-900 dark:text-gray-100">
@@ -616,16 +693,30 @@ export default function FlashcardsPanel({
       ) : (
         <>
           {(selectedVideoId || selectedDeckId) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedVideoId(null);
-                setSelectedDeckId(null);
-              }}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-3"
-            >
-              {t('flashcards.backToGroups')}
-            </button>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3">
+              <div className="min-w-0">
+                {selectedDeckId && selectedDeckName && (
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    📚 {selectedDeckName}
+                  </p>
+                )}
+                {selectedVideoId && selectedVideoTitle && (
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    🎥 {selectedVideoTitle}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVideoId(null);
+                  setSelectedDeckId(null);
+                }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline shrink-0 self-start sm:self-center"
+              >
+                {t('flashcards.backToGroups')}
+              </button>
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[32rem] overflow-y-auto pr-1">

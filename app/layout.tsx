@@ -1,15 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import AuthButton from "./components/auth/AuthButton";
-import AuthPanel from "./components/auth/AuthPanel";
-import RequireAuth from "./components/auth/RequireAuth";
-import { AuthProvider } from "./components/auth/AuthProvider";
-import { InterfaceLanguageProvider } from "./components/InterfaceLanguageProvider";
-import { ThemeProvider } from "./components/ThemeProvider";
-import AppSettingsPanel from "./components/AppSettingsPanel";
-import InstallAppButton from "./components/InstallAppButton";
+import AppShell from "./components/AppShell";
 import PwaProvider from "./components/PwaProvider";
-import ThemeToggle from "./components/ThemeToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -68,20 +60,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <PwaProvider>
-          <ThemeProvider>
-            <InterfaceLanguageProvider>
-              <AuthProvider>
-                <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
-                  <AuthButton />
-                  <InstallAppButton />
-                  <AppSettingsPanel />
-                  <ThemeToggle />
-                </div>
-                <AuthPanel />
-                <RequireAuth>{children}</RequireAuth>
-              </AuthProvider>
-            </InterfaceLanguageProvider>
-          </ThemeProvider>
+          <AppShell>{children}</AppShell>
         </PwaProvider>
       </body>
     </html>
