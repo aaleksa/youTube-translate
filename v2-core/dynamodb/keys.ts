@@ -11,6 +11,7 @@ export const ENTITY = {
   QUIZ_RESULT: 'QUIZ_RESULT',
   VOCAB_PROGRESS: 'VOCAB_PROGRESS',
   EXPLAIN_SENTENCE: 'EXPLAIN_SENTENCE',
+  SELECTION_ANALYSIS: 'SELECTION_ANALYSIS',
 } as const;
 
 export function userPk(userId: string): string {
@@ -59,4 +60,8 @@ export function vocabularyProgressSk(progressId: string): string {
 
 export function explainSentenceSk(recordId: string): string {
   return `${ENTITY.EXPLAIN_SENTENCE}#${recordId}`;
+}
+
+export function selectionAnalysisSk(recordId: string): string {
+  return `${ENTITY.SELECTION_ANALYSIS}#${recordId}`;
 }

@@ -238,3 +238,16 @@ export interface CreateSentenceExplanationInput {
   explanation: string;
   translation: string;
 }
+
+export interface SelectionAnalysisRecord {
+  id: string;
+  userId: string;
+  selectedText: string;
+  analysis: string;
+  createdAt: number;
+}
+
+export interface CreateSelectionAnalysisInput {
+  selectedText: string;
+  analysis: string;
+}
