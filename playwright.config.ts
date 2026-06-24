@@ -12,6 +12,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'auth-isolation',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: '**/account-isolation.spec.ts',
+    },
+    {
       name: 'iPhone 14',
       use: {
         ...devices['iPhone 14'],

@@ -25,6 +25,7 @@ import type {
   ConfirmForgotPasswordInput,
   ConfirmSignUpInput,
   CreateBookmarkInput,
+  CreateDeckInput,
   CreateFlashcardInput,
   FlashcardRecord,
   ForgotPasswordInput,
@@ -169,6 +170,20 @@ async function dispatchProtected(
 
   if (method === 'GET' && path === '/decks') {
     return ok(await deckService.listDecks(auth));
+  }
+
+  if (method === 'POST' && path === '/decks') {
+    return ok(
+      await deckService.createDeck(auth, body as CreateDeckInput),
+      201
+    );
+  }
+
+  const deckMatch = path.match(/^\/decks\/([^/]+)$/);
+  if (deckMatch && method === 'DELETE') {
+    return ok(
+      await deckService.deleteDeck(auth, decodeURIComponent(deckMatch[1]))
+    );
   }
 
   if (method === 'GET' && path === '/progress') {

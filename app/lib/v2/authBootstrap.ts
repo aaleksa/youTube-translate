@@ -1,4 +1,5 @@
 import { bootstrapBookmarksSync } from './syncBookmarks';
+import { bootstrapDecksSync } from './syncDecks';
 import { bootstrapFlashcardsSync } from './syncFlashcards';
 import { bootstrapVideoHistorySync } from './syncVideoHistory';
 import { prepareUserSession } from './userSession';
@@ -13,6 +14,7 @@ export async function bootstrapUserData(userId: string): Promise<void> {
   await bootstrapFlashcardsSync(userId);
   await Promise.all([
     bootstrapBookmarksSync(userId),
+    bootstrapDecksSync(userId),
     bootstrapVideoHistorySync(userId),
   ]);
   notifyFlashcardsChanged();
