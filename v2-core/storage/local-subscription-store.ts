@@ -32,3 +32,20 @@ export function getUserSubscription(userId: string): UserSubscriptionRecord {
 
   return toRecord(row);
 }
+
+export function upsertUserSubscription(
+  record: UserSubscriptionRecord
+): UserSubscriptionRecord {
+  const db = getLocalDatabase();
+  db.prepare(
+    `INSERT INTO user_subscriptions (userId, plan, status, startDate, endDate)
+     VALUES (@userId, @plan, @status, @startDate, @endDate)
+     ON CONFLICT(userId) DO UPDATE SET
+       plan = excluded.plan,
+       status = excluded.status,
+       startDate = excluded.startDate,
+       endDate = excluded.endDate`
+  ).run(record);
+
+  return record;
+}

@@ -18,6 +18,7 @@ import { isBackendV2Enabled, isEmailVerificationEnabledOnClient } from '../../li
 import {
   clearAuthStorage,
   getAccessToken,
+  getStoredUser,
 } from '../../lib/v2/tokenStorage';
 
 type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
@@ -61,30 +62,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const token = getAccessToken();
+    if (!token) {
+      clearAuthStorage();
+      setUser(null);
+      setReady(true);
+      return;
+    }
+
+    const cachedUser = getStoredUser();
+    if (cachedUser) {
+      setUser(cachedUser);
+      setReady(true);
+    }
+
+    let cancelled = false;
+
     const bootstrap = async () => {
-      const token = getAccessToken();
-
-      if (!token) {
-        clearAuthStorage();
-        setUser(null);
-        setReady(true);
-        return;
-      }
-
       try {
         const currentUser = await authApi.getCurrentUser();
+        if (cancelled) return;
         setUser(currentUser);
+        setReady(true);
         await bootstrapUserData(currentUser.userId);
       } catch {
+        if (cancelled) return;
         clearAuthStorage();
         await clearUserSession();
         setUser(null);
-      } finally {
         setReady(true);
       }
     };
 
     void bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
   }, [enabled]);
 
   const openAuth = useCallback((view: AuthView = 'login') => {
@@ -145,9 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     setError(null);
-    await authApi.logout();
-    await clearUserSession();
+    clearAuthStorage();
     setUser(null);
+    void authApi.logout().catch(() => {});
+    void clearUserSession();
     window.location.reload();
   }, []);
 

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import AppSettingsPanel from './AppSettingsPanel';
 import AuthButton from './auth/AuthButton';
 import AuthPanel from './auth/AuthPanel';
+import PremiumStatus from './premium/PremiumStatus';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import InstallAppButton from './InstallAppButton';
 import { InterfaceLanguageProvider, useI18n } from './InterfaceLanguageProvider';
@@ -64,6 +65,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <InterfaceLanguageProvider>
         <AuthProvider>
           <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
+            <PremiumStatus />
             <AuthButton />
             <InstallAppButton />
             <AppSettingsPanel />

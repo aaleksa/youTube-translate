@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getBearerToken } from './v2-core/auth/context';
 import { verifyAccessTokenEdge } from './v2-core/auth/edge-jwt';
 
-const PUBLIC_API_PREFIXES = ['/api/v2/auth', '/api/v2/status'];
+const PUBLIC_API_PREFIXES = ['/api/v2/auth', '/api/v2/status', '/api/v2/billing/webhook'];
 
 function isPublicApi(pathname: string): boolean {
   return PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));

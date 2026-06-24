@@ -1,55 +1,14 @@
 import { expect, test } from '@playwright/test';
-
-const PASSWORD = 'password123';
+import { signUpAndLogin } from './helpers/auth';
 
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
 }
 
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  idToken: string;
-  expiresIn: number;
-}
-
-interface AuthUser {
-  userId: string;
-  email: string;
-}
-
 interface PaginatedFlashcards {
   items: unknown[];
   total: number;
-}
-
-async function signUpAndLogin(
-  request: import('@playwright/test').APIRequestContext,
-  email: string
-): Promise<{ tokens: AuthTokens; userId: string; email: string }> {
-  await request.post('/api/v2/auth/signup', {
-    data: { email, password: PASSWORD },
-  });
-
-  const loginResponse = await request.post('/api/v2/auth/login', {
-    data: { email, password: PASSWORD },
-  });
-  expect(loginResponse.ok()).toBeTruthy();
-
-  const tokens = (await loginResponse.json()) as ApiEnvelope<AuthTokens>;
-
-  const meResponse = await request.get('/api/v2/me', {
-    headers: { Authorization: `Bearer ${tokens.data.accessToken}` },
-  });
-  expect(meResponse.ok()).toBeTruthy();
-  const me = (await meResponse.json()) as ApiEnvelope<AuthUser>;
-
-  return {
-    tokens: tokens.data,
-    userId: me.data.userId,
-    email: me.data.email,
-  };
 }
 
 test.describe('account isolation', () => {

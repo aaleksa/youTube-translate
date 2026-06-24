@@ -589,6 +589,20 @@ const uk = {
   'auth.errorGeneric': 'Помилка авторизації',
   'auth.googleSignIn': 'Увійти через Google',
   'auth.orContinueWithEmail': 'або email',
+  'premium.aiUsage': 'AI: {used}/{limit}',
+  'premium.aiUnlimited': 'AI: безліміт',
+  'premium.upgrade': 'Upgrade',
+  'premium.upgradeTitle': 'YoyTube Premium',
+  'premium.upgradeBody':
+    'Більше AI-запитів на день для аналізу транскриптів, тестів і пояснень.',
+  'premium.benefitUnlimitedAi': 'Щоденний ліміт AI без обмежень',
+  'premium.benefitPriority': 'Пріоритетна обробка AI-запитів',
+  'premium.benefitSync': 'Синхронізація даних між пристроями',
+  'premium.comingSoon': 'Оплата з’явиться незабаром. Поки що ліміт безкоштовного плану — 20 AI-запитів на день.',
+  'premium.checkout': 'Перейти на Premium',
+  'premium.checkoutLoading': 'Перенаправлення…',
+  'premium.checkoutError': 'Не вдалося відкрити оплату',
+  'premium.close': 'Закрити',
   'playback.resumedFrom': 'Продовжено з {time}',
 } as const;
 
@@ -1173,6 +1187,21 @@ const en: Record<keyof typeof uk, string> = {
   'auth.errorGeneric': 'Authentication error',
   'auth.googleSignIn': 'Sign in with Google',
   'auth.orContinueWithEmail': 'or email',
+  'premium.aiUsage': 'AI: {used}/{limit}',
+  'premium.aiUnlimited': 'AI: unlimited',
+  'premium.upgrade': 'Upgrade',
+  'premium.upgradeTitle': 'YoyTube Premium',
+  'premium.upgradeBody':
+    'More daily AI requests for transcript analysis, quizzes, and explanations.',
+  'premium.benefitUnlimitedAi': 'Unlimited daily AI requests',
+  'premium.benefitPriority': 'Priority AI processing',
+  'premium.benefitSync': 'Sync data across devices',
+  'premium.comingSoon':
+    'Checkout is coming soon. The free plan currently includes 20 AI requests per day.',
+  'premium.checkout': 'Go Premium',
+  'premium.checkoutLoading': 'Redirecting…',
+  'premium.checkoutError': 'Could not open checkout',
+  'premium.close': 'Close',
   'playback.resumedFrom': 'Resumed from {time}',
 };
 
