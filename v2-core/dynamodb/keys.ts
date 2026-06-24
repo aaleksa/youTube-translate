@@ -9,6 +9,7 @@ export const ENTITY = {
   PLAYBACK: 'PLAYBACK',
   BOOKMARK: 'BOOKMARK',
   QUIZ_RESULT: 'QUIZ_RESULT',
+  VOCAB_PROGRESS: 'VOCAB_PROGRESS',
 } as const;
 
 export function userPk(userId: string): string {
@@ -49,4 +50,8 @@ export function bookmarkSk(bookmarkId: string): string {
 
 export function quizResultSk(resultId: string): string {
   return `${ENTITY.QUIZ_RESULT}#${resultId}`;
+}
+
+export function vocabularyProgressSk(progressId: string): string {
+  return `${ENTITY.VOCAB_PROGRESS}#${progressId}`;
 }
