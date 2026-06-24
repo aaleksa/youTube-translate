@@ -16,6 +16,15 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 
 Перезапустіть `npm run dev`.
 
+## Авторизація
+
+Коли `NEXT_PUBLIC_BACKEND_V2_ENABLED=true` (за замовчуванням):
+
+- **UI** — основний контент доступний лише після входу (`RequireAuth`).
+- **API** — усі `/api/*` маршрути (крім `/api/v2/auth/*` та `/api/v2/status`) вимагають `Authorization: Bearer <token>` (`middleware.ts`).
+
+Публічні endpoint'и: реєстрація, вхід, refresh, status.
+
 ## Що зберігається локально
 
 | Файл / таблиця | Дані |

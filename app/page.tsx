@@ -23,6 +23,7 @@ import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
 import { useI18n } from './components/InterfaceLanguageProvider';
 import { useAuth } from './components/auth/AuthProvider';
+import { fetchAuthenticatedApi } from './lib/aiApiClient';
 import { saveTranscriptLanguage } from './lib/languageSettings';
 import {
   type FlashcardDraft,
@@ -394,14 +395,20 @@ export default function Home() {
       return cached.data;
     }
 
-    const response = await fetch('/api/transcript', {
+    const response = await fetchAuthenticatedApi('/api/transcript', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: videoUrl }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = (await response.json()) as {
+        error?: string;
+        code?: string;
+      };
+      if (response.status === 401 || errorData.code === 'UNAUTHORIZED') {
+        throw new Error(t('auth.sessionExpired'));
+      }
       throw new Error(errorData.error || 'Failed to fetch transcript');
     }
 
@@ -528,14 +535,23 @@ export default function Home() {
     setVideoData(null);
     setCacheNotice('');
 
-    const playlistResponse = await fetch('/api/playlist', {
+    const playlistResponse = await fetchAuthenticatedApi('/api/playlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: playlistUrl }),
     });
 
     if (!playlistResponse.ok) {
-      const errorData = await playlistResponse.json();
+      const errorData = (await playlistResponse.json()) as {
+        error?: string;
+        code?: string;
+      };
+      if (
+        playlistResponse.status === 401 ||
+        errorData.code === 'UNAUTHORIZED'
+      ) {
+        throw new Error(t('auth.sessionExpired'));
+      }
       throw new Error(errorData.error || 'Failed to fetch playlist');
     }
 
@@ -667,7 +683,7 @@ export default function Home() {
         return;
       }
 
-      const response = await fetch('/api/transcript', {
+      const response = await fetchAuthenticatedApi('/api/transcript', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -676,7 +692,13 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as {
+          error?: string;
+          code?: string;
+        };
+        if (response.status === 401 || errorData.code === 'UNAUTHORIZED') {
+          throw new Error(t('auth.sessionExpired'));
+        }
         throw new Error(errorData.error || 'Failed to fetch transcript');
       }
 

@@ -41,7 +41,7 @@ async function refreshAccessToken(): Promise<string | null> {
   return payload.data.accessToken;
 }
 
-export async function fetchAiApi(
+export async function fetchAuthenticatedApi(
   path: string,
   options: RequestInit = {},
   retryOnUnauthorized = true
@@ -66,9 +66,12 @@ export async function fetchAiApi(
   if (response.status === 401 && retryOnUnauthorized) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      return fetchAiApi(path, options, false);
+      return fetchAuthenticatedApi(path, options, false);
     }
   }
 
   return response;
 }
+
+/** @deprecated Use fetchAuthenticatedApi */
+export const fetchAiApi = fetchAuthenticatedApi;
