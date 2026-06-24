@@ -30,6 +30,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 | `selection_analyses` | Збережені аналізи виділення (`id`, `userId`, `selectedText`, `analysis`, `createdAt`) |
 | `user_settings` | Налаштування (`userId`, `interfaceLanguage`, `translationLanguage`, `theme`, `autoPause`, `bilingualMode`) |
 | `user_subscriptions` | Підписка (`userId`, `plan`, `status`, `startDate`, `endDate`) |
+| `ai_usage` | Денний лічильник AI-запитів (`userId`, `periodKey`, `requestCount`) |
 | `items` | Video history, playback, decks, progress (V2 single-table entities) |
 
 Файл `data/local.db` **не комітиться** в git (див. `.gitignore`).

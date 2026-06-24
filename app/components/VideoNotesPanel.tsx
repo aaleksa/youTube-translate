@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getNotesCache, setNotesCache } from '../lib/notesCache';
 import type { VideoNotesResult } from '../lib/videoNotes';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface VideoNotesPanelProps {
@@ -63,7 +64,7 @@ export default function VideoNotesPanel({
     setNotes(null);
 
     try {
-      const response = await fetch('/api/generate-notes', {
+      const response = await fetchAiApi('/api/generate-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

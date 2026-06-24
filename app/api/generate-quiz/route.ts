@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { aiAccessErrorResponse, enforceAiAccess } from '../_lib/ai-access';
 import {
   AI_PROVIDER,
   AI_API_URL,
@@ -75,6 +76,14 @@ async function generateQuizFromAi(
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await enforceAiAccess(request);
+  } catch (error) {
+    const accessError = aiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
+
   try {
     const { text, taskLanguage } = await request.json();
     const lang = resolveTaskLanguage(taskLanguage);

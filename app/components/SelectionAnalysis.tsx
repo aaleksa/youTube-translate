@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { fetchAiApi } from '../lib/aiApiClient';
 
 const SELECTION_ANALYSIS_QUERY =
   'Analyze this English excerpt for a Ukrainian learner: explain key vocabulary, grammar points, and overall meaning. Respond in Ukrainian.';
@@ -30,7 +31,7 @@ export default function SelectionAnalysis({ selectedText }: SelectionAnalysisPro
     setTruncated(false);
 
     try {
-      const response = await fetch('/api/process-text', {
+      const response = await fetchAiApi('/api/process-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

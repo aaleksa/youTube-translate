@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { shouldAutoPause } from '../lib/learningSettings';
 import { DEFAULT_TRANSLATION_LANGUAGE } from '../lib/translationLanguages';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface SelectionTranslateProps {
@@ -38,7 +39,7 @@ export default function SelectionTranslate({
     setTranslation(null);
 
     try {
-      const response = await fetch('/api/translate-lines', {
+      const response = await fetchAiApi('/api/translate-lines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

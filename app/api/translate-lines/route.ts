@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { aiAccessErrorResponse, enforceAiAccess } from '../_lib/ai-access';
 import { getAiResponseLanguageName } from '../../lib/aiInterfaceLanguage';
 import {
   isTranslationLanguage,
@@ -71,6 +72,14 @@ Keep the meaning natural. Do not merge or split lines.`,
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await enforceAiAccess(request);
+  } catch (error) {
+    const accessError = aiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
+
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(

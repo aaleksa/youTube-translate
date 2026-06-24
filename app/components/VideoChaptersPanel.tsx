@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getChaptersCache, setChaptersCache } from '../lib/chaptersCache';
 import { findActiveLineIndex } from '../lib/timestamp';
 import type { VideoChaptersResult } from '../lib/videoChapters';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
@@ -73,7 +74,7 @@ export default function VideoChaptersPanel({
     setChapters(null);
 
     try {
-      const response = await fetch('/api/generate-chapters', {
+      const response = await fetchAiApi('/api/generate-chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

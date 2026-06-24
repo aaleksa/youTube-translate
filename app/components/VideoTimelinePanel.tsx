@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getTimelineCache, setTimelineCache } from '../lib/timelineCache';
 import { findActiveLineIndex } from '../lib/timestamp';
 import type { VideoTimelineResult } from '../lib/videoTimeline';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptItem {
@@ -73,7 +74,7 @@ export default function VideoTimelinePanel({
     setTimeline(null);
 
     try {
-      const response = await fetch('/api/generate-timeline', {
+      const response = await fetchAiApi('/api/generate-timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,6 +6,7 @@ import {
   getCefrLevelStyle,
   type VideoDifficultyResult,
 } from '../lib/cefrLevel';
+import { fetchAiApi } from '../lib/aiApiClient';
 import {
   getDifficultyCache,
   setDifficultyCache,
@@ -49,7 +50,7 @@ export default function VideoDifficultyPanel({
       setLoading(true);
 
       try {
-        const response = await fetch('/api/video-difficulty', {
+        const response = await fetchAiApi('/api/video-difficulty', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

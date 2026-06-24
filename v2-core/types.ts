@@ -296,3 +296,19 @@ export interface UserSubscriptionRecord {
   startDate: number | null;
   endDate: number | null;
 }
+
+export interface AiUsageInfo {
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  periodKey: string;
+}
+
+export interface PremiumAccessInfo {
+  userId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  isPremium: boolean;
+  subscription: UserSubscriptionRecord;
+  aiUsage: AiUsageInfo;
+}

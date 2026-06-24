@@ -137,6 +137,16 @@ function ensureSchema(db: Database.Database): void {
       startDate INTEGER,
       endDate INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS ai_usage (
+      userId TEXT NOT NULL,
+      periodKey TEXT NOT NULL,
+      requestCount INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (userId, periodKey)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_user_period
+      ON ai_usage(userId, periodKey);
   `);
 }
 

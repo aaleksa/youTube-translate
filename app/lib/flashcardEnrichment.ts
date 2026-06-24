@@ -8,6 +8,7 @@ import {
   type Flashcard,
 } from './flashcards';
 import type { TranslationLanguageCode } from './translationLanguages';
+import { fetchAiApi } from './aiApiClient';
 
 export type { CefrLevel, EnrichmentStatus } from './flashcards';
 
@@ -102,7 +103,7 @@ export async function enrichCard(
     throw new Error('Word is required');
   }
 
-  const response = await fetch('/api/enrich-flashcard', {
+  const response = await fetchAiApi('/api/enrich-flashcard', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

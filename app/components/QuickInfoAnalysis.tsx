@@ -6,6 +6,7 @@ import { getGrammarCache, setGrammarCache } from '../lib/grammarCache';
 import type { VideoSummaryResult } from '../lib/videoSummary';
 import { getSummaryCache, setSummaryCache } from '../lib/summaryCache';
 import { shouldAutoPause } from '../lib/learningSettings';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 import VideoNotesPanel from './VideoNotesPanel';
 import VideoQuizPanel from './VideoQuizPanel';
@@ -81,7 +82,7 @@ export default function QuickInfoAnalysis({
     setSummaryFromCache(false);
 
     try {
-      const response = await fetch('/api/video-summary', {
+      const response = await fetchAiApi('/api/video-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +129,7 @@ export default function QuickInfoAnalysis({
     setGrammarFromCache(false);
 
     try {
-      const response = await fetch('/api/grammar-highlights', {
+      const response = await fetchAiApi('/api/grammar-highlights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
