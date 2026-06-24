@@ -5,6 +5,7 @@ import type { Bookmark } from '../bookmarks';
 import { isBackendV2Enabled } from './config';
 import * as bookmarksApi from './bookmarksApi';
 import { getAccessToken } from './tokenStorage';
+import { withPendingSync } from './syncStatus';
 
 const SERVER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,24 +74,28 @@ async function replaceLocalBookmarkId(
 export async function syncBookmarkCreate(bookmark: Bookmark): Promise<void> {
   if (!canSync()) return;
 
-  try {
-    const created = await bookmarksApi.createBookmark(toV2Payload(bookmark));
-    if (created.id !== bookmark.id) {
-      await replaceLocalBookmarkId(bookmark.id, created, bookmark);
+  await withPendingSync(async () => {
+    try {
+      const created = await bookmarksApi.createBookmark(toV2Payload(bookmark));
+      if (created.id !== bookmark.id) {
+        await replaceLocalBookmarkId(bookmark.id, created, bookmark);
+      }
+    } catch (error) {
+      console.warn('[bookmarks] Failed to create on server:', error);
     }
-  } catch (error) {
-    console.warn('[bookmarks] Failed to create on server:', error);
-  }
+  });
 }
 
 export async function syncBookmarkDelete(id: string): Promise<void> {
   if (!canSync() || !isServerSyncedBookmarkId(id)) return;
 
-  try {
-    await bookmarksApi.deleteBookmark(id);
-  } catch (error) {
-    console.warn('[bookmarks] Failed to delete on server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      await bookmarksApi.deleteBookmark(id);
+    } catch (error) {
+      console.warn('[bookmarks] Failed to delete on server:', error);
+    }
+  });
 }
 
 export async function bootstrapBookmarksSync(userId: string): Promise<void> {

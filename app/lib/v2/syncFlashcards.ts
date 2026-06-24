@@ -5,7 +5,7 @@ import { normalizeFlashcardWord } from '../flashcards';
 import { isBackendV2Enabled } from './config';
 import * as flashcardsApi from './flashcardsApi';
 import { getAccessToken } from './tokenStorage';
-import { setPendingFlashcardSyncCount } from './syncStatus';
+import { setPendingFlashcardSyncCount, withPendingSync } from './syncStatus';
 
 const SERVER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -126,35 +126,47 @@ async function replaceLocalCardId(
   notifyFlashcardsChanged();
 }
 
+async function syncFlashcardCreateInternal(card: Flashcard): Promise<void> {
+  const created = await flashcardsApi.createFlashcard(toV2Payload(card));
+  if (created.id !== card.id) {
+    await replaceLocalCardId(card.id, created, card);
+  }
+}
+
 export async function syncFlashcardCreate(card: Flashcard): Promise<void> {
   if (!canSync()) return;
 
-  try {
-    const created = await flashcardsApi.createFlashcard(toV2Payload(card));
-    if (created.id !== card.id) {
-      await replaceLocalCardId(card.id, created, card);
+  await withPendingSync(async () => {
+    try {
+      await syncFlashcardCreateInternal(card);
+    } catch (error) {
+      console.warn('[flashcards] Failed to create on server:', error);
     }
-  } catch (error) {
-    console.warn('[flashcards] Failed to create on server:', error);
-  }
+  });
 }
 
 export async function syncFlashcardUpdate(card: Flashcard): Promise<void> {
   if (!canSync()) return;
 
-  try {
-    if (isServerSyncedFlashcardId(card.id)) {
-      await flashcardsApi.updateFlashcard(card.id, toV2Payload(card));
-      return;
-    }
+  await withPendingSync(async () => {
+    try {
+      if (isServerSyncedFlashcardId(card.id)) {
+        await flashcardsApi.updateFlashcard(card.id, toV2Payload(card));
+        return;
+      }
 
-    await syncFlashcardCreate(card);
-  } catch (error) {
-    console.warn('[flashcards] Failed to update on server:', error);
-    if (isServerSyncedFlashcardId(card.id)) {
-      await syncFlashcardCreate(card);
+      await syncFlashcardCreateInternal(card);
+    } catch (error) {
+      console.warn('[flashcards] Failed to update on server:', error);
+      if (isServerSyncedFlashcardId(card.id)) {
+        try {
+          await syncFlashcardCreateInternal(card);
+        } catch (retryError) {
+          console.warn('[flashcards] Failed to recreate on server:', retryError);
+        }
+      }
     }
-  }
+  });
 }
 
 export function scheduleFlashcardSync(card: Flashcard): void {
@@ -177,11 +189,13 @@ export function scheduleFlashcardSync(card: Flashcard): void {
 export async function syncFlashcardDelete(id: string): Promise<void> {
   if (!canSync() || !isServerSyncedFlashcardId(id)) return;
 
-  try {
-    await flashcardsApi.deleteFlashcard(id);
-  } catch (error) {
-    console.warn('[flashcards] Failed to delete on server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      await flashcardsApi.deleteFlashcard(id);
+    } catch (error) {
+      console.warn('[flashcards] Failed to delete on server:', error);
+    }
+  });
 }
 
 export async function bootstrapFlashcardsSync(userId: string): Promise<void> {

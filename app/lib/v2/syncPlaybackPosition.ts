@@ -4,6 +4,7 @@ import {
   savePlaybackPosition,
 } from './playbackPositionApi';
 import { getAccessToken } from './tokenStorage';
+import { withPendingSync } from './syncStatus';
 
 const SAVE_INTERVAL_MS = 3000;
 const MIN_POSITION_SECONDS = 1;
@@ -42,14 +43,16 @@ async function flushPlaybackPosition(
     return;
   }
 
-  try {
-    await savePlaybackPosition({ videoId, lastPosition });
-    lastSavedVideoId = videoId;
-    lastSavedPosition = lastPosition;
-    lastSavedAt = Date.now();
-  } catch (error) {
-    console.warn('[playback-position] Failed to sync to server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      await savePlaybackPosition({ videoId, lastPosition });
+      lastSavedVideoId = videoId;
+      lastSavedPosition = lastPosition;
+      lastSavedAt = Date.now();
+    } catch (error) {
+      console.warn('[playback-position] Failed to sync to server:', error);
+    }
+  });
 }
 
 export function schedulePlaybackPositionSave(

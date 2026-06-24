@@ -22,7 +22,11 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
       },
-      testMatch: '**/account-isolation.spec.ts',
+      testMatch: [
+        '**/account-isolation.spec.ts',
+        '**/billing-api.spec.ts',
+        '**/billing-api.spec.ts',
+      ],
     },
     {
       name: 'auth-ui',
@@ -44,6 +48,7 @@ export default defineConfig({
       },
       testIgnore: [
         '**/account-isolation.spec.ts',
+        '**/billing-api.spec.ts',
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
@@ -58,6 +63,7 @@ export default defineConfig({
       },
       testIgnore: [
         '**/account-isolation.spec.ts',
+        '**/billing-api.spec.ts',
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',
@@ -72,6 +78,7 @@ export default defineConfig({
       },
       testIgnore: [
         '**/account-isolation.spec.ts',
+        '**/billing-api.spec.ts',
         '**/auth-flow.spec.ts',
         '**/auth-multi-user-ui.spec.ts',
         '**/premium-ui.spec.ts',

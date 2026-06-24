@@ -1,5 +1,6 @@
 import type { ApiResponse } from '../../../v2-core/types';
 import { getApiBaseUrl } from './config';
+import { isNetworkRequestError } from './networkError';
 import {
   clearAuthStorage,
   getAccessToken,
@@ -22,30 +23,43 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload.data as T;
 }
 
+function shouldClearAuthOnRefreshFailure(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-  });
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
 
-  if (!response.ok) {
-    clearAuthStorage();
-    return null;
+    if (!response.ok) {
+      if (shouldClearAuthOnRefreshFailure(response.status)) {
+        clearAuthStorage();
+      }
+      return null;
+    }
+
+    const tokens = await parseResponse<{
+      accessToken: string;
+      refreshToken: string;
+      idToken: string;
+      expiresIn: number;
+    }>(response);
+
+    saveTokens(tokens);
+    return tokens.accessToken;
+  } catch (error) {
+    if (isNetworkRequestError(error)) {
+      return null;
+    }
+    throw error;
   }
-
-  const tokens = await parseResponse<{
-    accessToken: string;
-    refreshToken: string;
-    idToken: string;
-    expiresIn: number;
-  }>(response);
-
-  saveTokens(tokens);
-  return tokens.accessToken;
 }
 
 export async function apiRequest<T>(
@@ -66,10 +80,18 @@ export async function apiRequest<T>(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    if (isNetworkRequestError(error)) {
+      throw error;
+    }
+    throw error;
+  }
 
   if (response.status === 401 && retryOnUnauthorized) {
     const refreshed = await refreshAccessToken();

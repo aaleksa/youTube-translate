@@ -4,6 +4,7 @@ import { notifyFlashcardsChanged } from '../dataRefresh';
 import { isBackendV2Enabled } from './config';
 import * as decksApi from './decksApi';
 import { getAccessToken } from './tokenStorage';
+import { withPendingSync } from './syncStatus';
 
 const SERVER_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -78,25 +79,29 @@ async function replaceLocalDeckId(
 export async function syncDeckCreate(deck: Deck): Promise<void> {
   if (!canSync()) return;
 
-  try {
-    const created = await decksApi.createDeck({ name: deck.name });
-    const userId = (await import('./tokenStorage')).getStoredUser()?.userId;
-    if (!userId || created.id === deck.id) return;
-    await replaceLocalDeckId(userId, deck.id, created, deck);
-    notifyFlashcardsChanged();
-  } catch (error) {
-    console.warn('[decks] Failed to create on server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      const created = await decksApi.createDeck({ name: deck.name });
+      const userId = (await import('./tokenStorage')).getStoredUser()?.userId;
+      if (!userId || created.id === deck.id) return;
+      await replaceLocalDeckId(userId, deck.id, created, deck);
+      notifyFlashcardsChanged();
+    } catch (error) {
+      console.warn('[decks] Failed to create on server:', error);
+    }
+  });
 }
 
 export async function syncDeckDelete(deckId: string): Promise<void> {
   if (!canSync() || !isServerSyncedDeckId(deckId)) return;
 
-  try {
-    await decksApi.deleteDeck(deckId);
-  } catch (error) {
-    console.warn('[decks] Failed to delete on server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      await decksApi.deleteDeck(deckId);
+    } catch (error) {
+      console.warn('[decks] Failed to delete on server:', error);
+    }
+  });
 }
 
 export async function bootstrapDecksSync(userId: string): Promise<void> {

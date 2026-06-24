@@ -8,6 +8,7 @@ import {
 import { isBackendV2Enabled } from './config';
 import { getAccessToken } from './tokenStorage';
 import * as videoHistoryApi from './videoHistoryApi';
+import { withPendingSync } from './syncStatus';
 
 export interface SyncVideoHistoryInput {
   videoId: string;
@@ -33,16 +34,18 @@ export async function syncVideoHistoryToServer(
     return;
   }
 
-  try {
-    await videoHistoryApi.recordVideoHistory({
-      videoId: input.videoId,
-      title: input.title,
-      url: input.url,
-      channel: input.channel,
-    });
-  } catch (error) {
-    console.warn('[video-history] Failed to sync to server:', error);
-  }
+  await withPendingSync(async () => {
+    try {
+      await videoHistoryApi.recordVideoHistory({
+        videoId: input.videoId,
+        title: input.title,
+        url: input.url,
+        channel: input.channel,
+      });
+    } catch (error) {
+      console.warn('[video-history] Failed to sync to server:', error);
+    }
+  });
 }
 
 function serverToLocalEntry(record: VideoHistoryRecord): TranscriptHistoryEntry {
