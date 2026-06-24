@@ -406,11 +406,35 @@ Theme toggle in the UI. By default, the theme follows your device system setting
 
 ### Do I need an account?
 
-No. The app works without registration. Data is stored locally in the browser.
+It depends on the mode. **V2** (cloud account) requires sign-in — data syncs across devices after login.
 
 ### Does data sync between devices?
 
-No automatic sync. Use **JSON backup** to move data to another device.
+**Yes**, when signed in (V2):
+
+- flashcards, decks, bookmarks, video history;
+- learning settings, goals, languages, theme;
+- quiz session summaries, daily study log, pronunciation attempts;
+- video playback position.
+
+Top-right **sync indicator**:
+
+| State | Meaning |
+|-------|---------|
+| **Synced** | Data is up to date on the server |
+| **Saving…** | Pushing local changes |
+| **Syncing…** | Loading after sign-in |
+| **Offline** | No network; session is kept, sync resumes when online |
+
+If the same card differed on two devices, a **“Cloud data merged”** banner appears — merge rules apply (higher SRS counts, etc.).
+
+**JSON backup** in settings is still available for manual export.
+
+### Premium and AI
+
+- **Free plan:** ~20 AI requests per day.
+- **Premium:** unlimited AI, priority, **AI coach advice** (Coach tab).
+- After Stripe checkout you return to `?premium=success` — subscription refreshes automatically.
 
 ### Why won’t subtitles load?
 
@@ -432,7 +456,14 @@ Direct `.apkg` import is not supported. Export from Anki to CSV and import via *
 
 ### Does it work offline?
 
-Partially. An installed PWA can show saved cards and cached transcripts. Loading new videos and AI require internet.
+**Partially.** If you are already signed in:
+
+- an **Offline** banner and sync badge appear;
+- your session **stays active** (network error ≠ logout);
+- you can view saved cards and cached transcripts;
+- new videos, AI, and sync require network.
+
+You can install the PWA — the shell is cached locally.
 
 ### How do I delete all data?
 

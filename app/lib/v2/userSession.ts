@@ -34,6 +34,7 @@ export async function resetSyncBootstrapState(): Promise<void> {
       resetPlaybackPositionSyncBootstrap,
       resetPlaybackPositionSyncState,
     },
+    { resetSyncConflicts },
   ] = await Promise.all([
     import('./syncFlashcards'),
     import('./syncBookmarks'),
@@ -44,6 +45,7 @@ export async function resetSyncBootstrapState(): Promise<void> {
     import('./syncDailyStudyLog'),
     import('./syncPronunciationAttempts'),
     import('./syncPlaybackPosition'),
+    import('./syncConflicts'),
   ]);
   cancelPendingFlashcardSyncs();
   cancelPendingUserSettingsSync();
@@ -58,6 +60,7 @@ export async function resetSyncBootstrapState(): Promise<void> {
   resetPronunciationAttemptsSyncBootstrap();
   resetPlaybackPositionSyncBootstrap();
   resetPlaybackPositionSyncState();
+  resetSyncConflicts();
 }
 
 export async function prepareUserSession(userId: string): Promise<void> {

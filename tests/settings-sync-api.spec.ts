@@ -118,10 +118,12 @@ test.describe('V2 sync API', () => {
     const userA = await signUpAndLogin(request, emailA);
     const userB = await signUpAndLogin(request, emailB);
 
+    const attemptId = `attempt_test_${Date.now()}`;
+
     const createResponse = await request.post('/api/v2/pronunciation-attempts', {
       headers: { Authorization: `Bearer ${userA.tokens.accessToken}` },
       data: {
-        id: 'attempt_test_1',
+        id: attemptId,
         videoId: 'dQw4w9WgXcQ',
         expectedText: 'Hello world',
         recognizedText: 'Hello word',
@@ -139,12 +141,37 @@ test.describe('V2 sync API', () => {
       headers: { Authorization: `Bearer ${userA.tokens.accessToken}` },
     });
     const resultsA = (await listA.json()) as ApiEnvelope<PronunciationAttemptRecord[]>;
-    expect(resultsA.data.some((item) => item.id === 'attempt_test_1')).toBeTruthy();
+    expect(resultsA.data.some((item) => item.id === attemptId)).toBeTruthy();
 
     const listB = await request.get('/api/v2/pronunciation-attempts', {
       headers: { Authorization: `Bearer ${userB.tokens.accessToken}` },
     });
     const resultsB = (await listB.json()) as ApiEnvelope<PronunciationAttemptRecord[]>;
-    expect(resultsB.data.some((item) => item.id === 'attempt_test_1')).toBeFalsy();
+    expect(resultsB.data.some((item) => item.id === attemptId)).toBeFalsy();
+  });
+
+  test('coach-advice requires premium', async ({ request }) => {
+    const email = `coach-free-${Date.now()}@example.com`;
+    const { tokens } = await signUpAndLogin(request, email);
+
+    const response = await request.post('/api/coach-advice', {
+      headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      data: {
+        learningLevel: 'intermediate',
+        streak: 3,
+        quizAccuracyPercent: 70,
+        srsSuccessRatePercent: 80,
+        weakWords: ['negotiate'],
+        dueToday: 5,
+        cardsReviewedToday: 2,
+        dailyCardGoal: 30,
+        vocabularySaved: 40,
+        vocabularyGoal: 1000,
+      },
+    });
+
+    expect(response.status()).toBe(403);
+    const body = (await response.json()) as { code?: string };
+    expect(body.code).toBe('PREMIUM_REQUIRED');
   });
 });

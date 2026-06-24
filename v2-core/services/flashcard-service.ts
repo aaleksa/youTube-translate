@@ -40,6 +40,10 @@ interface FlashcardItem extends DynamoItem {
   nextReview?: number;
   knownCount?: number;
   unknownCount?: number;
+  againCount?: number;
+  hardCount?: number;
+  goodCount?: number;
+  easyCount?: number;
 }
 
 function toRecord(item: FlashcardItem): FlashcardRecord {
@@ -58,6 +62,10 @@ function toRecord(item: FlashcardItem): FlashcardRecord {
     nextReview: item.nextReview,
     knownCount: item.knownCount,
     unknownCount: item.unknownCount,
+    againCount: item.againCount,
+    hardCount: item.hardCount,
+    goodCount: item.goodCount,
+    easyCount: item.easyCount,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -145,6 +153,10 @@ export async function createFlashcard(
     nextReview: validated.nextReview,
     knownCount: validated.knownCount ?? 0,
     unknownCount: validated.unknownCount ?? 0,
+    againCount: validated.againCount ?? 0,
+    hardCount: validated.hardCount ?? 0,
+    goodCount: validated.goodCount ?? 0,
+    easyCount: validated.easyCount ?? 0,
     createdAt: now,
     updatedAt: now,
   };

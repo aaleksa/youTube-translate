@@ -164,6 +164,7 @@ export function applySmartReview(
         repetitions: 0,
         interval: 1,
         ease: Math.max(MIN_EASE, ease - 0.2),
+        againCount: (card.againCount ?? 0) + 1,
         unknownCount: card.unknownCount + 1,
         lastReviewedAt: Date.now(),
         nextReview: Date.now() + AGAIN_DELAY_MS,
@@ -205,9 +206,17 @@ export function applySmartReview(
     nextReview = addDays(intervalDays);
   }
 
+  const ratingCountPatch =
+    rating === 'hard'
+      ? { hardCount: (card.hardCount ?? 0) + 1 }
+      : rating === 'easy'
+        ? { easyCount: (card.easyCount ?? 0) + 1 }
+        : { goodCount: (card.goodCount ?? 0) + 1 };
+
   return {
     card: {
       ...card,
+      ...ratingCountPatch,
       repetitions,
       interval: intervalDays,
       ease,
@@ -244,4 +253,23 @@ export function getVocabularyProgress(cards: Flashcard[]) {
     dueTomorrow: countDueOnDay(cards, 1),
     ...states,
   };
+}
+
+export function getReviewRatingTotals(card: Flashcard): {
+  again: number;
+  hard: number;
+  good: number;
+  easy: number;
+} {
+  return {
+    again: card.againCount ?? 0,
+    hard: card.hardCount ?? 0,
+    good: card.goodCount ?? 0,
+    easy: card.easyCount ?? 0,
+  };
+}
+
+export function hasReviewRatingStats(card: Flashcard): boolean {
+  const totals = getReviewRatingTotals(card);
+  return totals.again + totals.hard + totals.good + totals.easy > 0;
 }

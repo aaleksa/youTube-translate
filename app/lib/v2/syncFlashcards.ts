@@ -4,6 +4,7 @@ import type { Flashcard } from '../flashcards';
 import { normalizeFlashcardWord } from '../flashcards';
 import { isBackendV2Enabled } from './config';
 import * as flashcardsApi from './flashcardsApi';
+import { recordSyncConflict } from './syncConflicts';
 import { getAccessToken } from './tokenStorage';
 import { setPendingFlashcardSyncCount, withPendingSync } from './syncStatus';
 
@@ -54,6 +55,10 @@ function toV2Payload(
     nextReview: card.nextReview,
     knownCount: card.knownCount,
     unknownCount: card.unknownCount,
+    againCount: card.againCount,
+    hardCount: card.hardCount,
+    goodCount: card.goodCount,
+    easyCount: card.easyCount,
   };
 }
 
@@ -79,6 +84,10 @@ function mergeServerWithLocal(
     createdAt: server.createdAt,
     knownCount: server.knownCount ?? 0,
     unknownCount: server.unknownCount ?? 0,
+    againCount: server.againCount ?? 0,
+    hardCount: server.hardCount ?? 0,
+    goodCount: server.goodCount ?? 0,
+    easyCount: server.easyCount ?? 0,
     quizCorrectCount: 0,
     quizWrongCount: 0,
     repetitions: server.repetitions ?? 0,
@@ -100,8 +109,12 @@ function mergeServerWithLocal(
     ease: server.ease ?? base.ease,
     interval: server.interval ?? base.interval,
     nextReview: server.nextReview ?? base.nextReview,
-    knownCount: server.knownCount ?? base.knownCount,
-    unknownCount: server.unknownCount ?? base.unknownCount,
+    knownCount: Math.max(server.knownCount ?? 0, base.knownCount ?? 0),
+    unknownCount: Math.max(server.unknownCount ?? 0, base.unknownCount ?? 0),
+    againCount: Math.max(server.againCount ?? 0, base.againCount ?? 0),
+    hardCount: Math.max(server.hardCount ?? 0, base.hardCount ?? 0),
+    goodCount: Math.max(server.goodCount ?? 0, base.goodCount ?? 0),
+    easyCount: Math.max(server.easyCount ?? 0, base.easyCount ?? 0),
     createdAt: server.createdAt,
     updatedAt: server.updatedAt ?? base.updatedAt,
   };
@@ -109,6 +122,18 @@ function mergeServerWithLocal(
 
 function localMatchKey(card: Pick<Flashcard, 'word' | 'videoId'>): string {
   return `${normalizeFlashcardWord(card.word)}|${card.videoId ?? ''}`;
+}
+
+function detectFlashcardConflict(
+  server: FlashcardRecord,
+  local: Flashcard
+): boolean {
+  return (
+    local.translation.trim() !== server.translation.trim() ||
+    (local.repetitions ?? 0) !== (server.repetitions ?? 0) ||
+    (local.interval ?? 0) !== (server.interval ?? 0) ||
+    (local.nextReview ?? 0) !== (server.nextReview ?? 0)
+  );
 }
 
 async function replaceLocalCardId(
@@ -235,6 +260,15 @@ export async function bootstrapFlashcardsSync(userId: string): Promise<void> {
 
       const mergedCard = mergeServerWithLocal(serverCard, local);
       merged.push(mergedCard);
+
+      if (local && detectFlashcardConflict(serverCard, local)) {
+        recordSyncConflict({
+          id: serverCard.id,
+          entityType: 'flashcard',
+          label: serverCard.word,
+          strategy: 'merged',
+        });
+      }
 
       if (local) {
         processedLocalIds.add(local.id);

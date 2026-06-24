@@ -14,9 +14,12 @@ import {
   notifyFlashcardsChanged,
   notifyVideoHistoryChanged,
 } from '../dataRefresh';
+import { markSyncCompleted } from './syncStatus';
+import { resetSyncConflicts } from './syncConflicts';
 
 export async function bootstrapUserData(userId: string): Promise<void> {
   setBootstrapSyncActive(true);
+  resetSyncConflicts();
   try {
     await prepareUserSession(userId);
     await bootstrapFlashcardsSync(userId);
@@ -33,6 +36,7 @@ export async function bootstrapUserData(userId: string): Promise<void> {
     notifyFlashcardsChanged();
     notifyBookmarksChanged();
     notifyVideoHistoryChanged();
+    markSyncCompleted();
   } finally {
     setBootstrapSyncActive(false);
   }

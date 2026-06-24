@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { buildCoachAdviceRequest } from '../lib/coachAdvicePayload';
+import type { CoachAdviceResponse } from '../lib/coachAdviceTypes';
 import { getDecks } from '../lib/decks';
 import { getFlashcards } from '../lib/flashcards';
 import {
@@ -15,6 +17,12 @@ import {
   type LearningPlan,
 } from '../lib/learningPlan';
 import type { TranslationKey } from '../lib/i18n';
+import {
+  CoachAdviceError,
+  fetchCoachAdvice,
+} from '../lib/v2/coachAdviceApi';
+import { getSubscriptionAccess } from '../lib/v2/subscriptionApi';
+import type { PremiumAccessInfo } from '../../v2-core/types';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface LearningCoachPanelProps {
@@ -71,10 +79,28 @@ export default function LearningCoachPanel({
   const [ready, setReady] = useState(false);
   const [goalsVersion, setGoalsVersion] = useState(0);
   const [vocabGoalInput, setVocabGoalInput] = useState('');
+  const [premiumInfo, setPremiumInfo] = useState<PremiumAccessInfo | null>(null);
+  const [llmAdvice, setLlmAdvice] = useState<CoachAdviceResponse | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
+  const [llmError, setLlmError] = useState<string | null>(null);
 
   useEffect(() => {
     setReady(true);
   }, [refreshKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getSubscriptionAccess()
+      .then((access) => {
+        if (!cancelled) setPremiumInfo(access);
+      })
+      .catch(() => {
+        if (!cancelled) setPremiumInfo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey, goalsVersion]);
 
   const plan = useMemo<LearningPlan | null>(() => {
     if (!ready) return null;
@@ -88,6 +114,31 @@ export default function LearningCoachPanel({
   }, [ready, refreshKey, goalsVersion, activeVideoId, activeVideoTitle]);
 
   const goals = useMemo(() => getLearningGoals(), [goalsVersion]);
+
+  const loadLlmAdvice = useCallback(async () => {
+    if (!plan) return;
+
+    setLlmLoading(true);
+    setLlmError(null);
+
+    try {
+      const advice = await fetchCoachAdvice(
+        buildCoachAdviceRequest(getFlashcards(), plan)
+      );
+      setLlmAdvice(advice);
+    } catch (error) {
+      setLlmAdvice(null);
+      if (error instanceof CoachAdviceError && error.code === 'PREMIUM_REQUIRED') {
+        setLlmError(t('coach.llmPremiumRequired'));
+      } else {
+        setLlmError(
+          error instanceof Error ? error.message : t('coach.llmError')
+        );
+      }
+    } finally {
+      setLlmLoading(false);
+    }
+  }, [plan, t]);
 
   if (!ready || !plan) return null;
 
@@ -153,6 +204,72 @@ export default function LearningCoachPanel({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-violet-200 dark:border-violet-900 bg-violet-50/50 dark:bg-violet-950/20 p-4">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <h3 className="text-sm font-semibold text-violet-900 dark:text-violet-200">
+              {t('coach.llmTitle')}
+            </h3>
+            <p className="text-xs text-violet-800/80 dark:text-violet-300/80 mt-1">
+              {t('coach.llmSubtitle')}
+            </p>
+          </div>
+          {premiumInfo?.isPremium && (
+            <button
+              type="button"
+              data-testid="coach-llm-refresh"
+              disabled={llmLoading}
+              onClick={() => void loadLlmAdvice()}
+              className="shrink-0 rounded-lg border border-violet-300 dark:border-violet-700 px-3 py-1.5 text-xs font-medium text-violet-900 dark:text-violet-100 hover:bg-violet-100/70 dark:hover:bg-violet-900/40 disabled:opacity-60"
+            >
+              {llmLoading ? t('coach.llmLoading') : t('coach.llmRefresh')}
+            </button>
+          )}
+        </div>
+
+        {!premiumInfo?.isPremium ? (
+          <p className="text-sm text-violet-900 dark:text-violet-100">
+            {t('coach.llmPremiumRequired')}
+          </p>
+        ) : llmAdvice ? (
+          <div className="space-y-3">
+            <p className="text-sm text-violet-950 dark:text-violet-50">
+              {llmAdvice.summary}
+            </p>
+            <ul className="space-y-1.5 text-sm text-violet-900 dark:text-violet-100">
+              {llmAdvice.focusTips.map((tip) => (
+                <li key={tip}>• {tip}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-violet-900/90 dark:text-violet-100/90">
+              {t('coach.llmEmpty')}
+            </p>
+            {!llmLoading && (
+              <button
+                type="button"
+                data-testid="coach-llm-generate"
+                onClick={() => void loadLlmAdvice()}
+                className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                {t('coach.llmGenerate')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {llmLoading && (
+          <p className="text-sm text-violet-800 dark:text-violet-200 mt-2">
+            {t('coach.llmLoading')}
+          </p>
+        )}
+        {llmError && (
+          <p className="text-sm text-red-700 dark:text-red-300 mt-2">{llmError}</p>
         )}
       </section>
 
