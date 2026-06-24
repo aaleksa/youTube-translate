@@ -177,3 +177,18 @@ export interface SavePlaybackPositionInput {
   videoId: string;
   lastPosition: number;
 }
+
+export interface BookmarkRecord {
+  id: string;
+  userId: string;
+  videoId: string;
+  timestamp: number;
+  note: string;
+  createdAt: number;
+}
+
+export interface CreateBookmarkInput {
+  videoId: string;
+  timestamp: number;
+  note: string;
+}
