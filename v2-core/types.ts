@@ -279,3 +279,20 @@ export interface TodayReviewsResponse {
   total: number;
   items: FlashcardRecord[];
 }
+
+export type SubscriptionPlan = 'free' | 'premium' | 'trial';
+
+export type SubscriptionStatus =
+  | 'active'
+  | 'inactive'
+  | 'cancelled'
+  | 'expired'
+  | 'trialing';
+
+export interface UserSubscriptionRecord {
+  userId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  startDate: number | null;
+  endDate: number | null;
+}

@@ -20,7 +20,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 
 | Файл / таблиця | Дані |
 |----------------|------|
-| `data/local.db` | Користувачі, refresh tokens, flashcards, bookmarks, quiz results, vocabulary progress, sentence explanations, selection analyses, user settings, decks, progress |
+| `data/local.db` | Користувачі, refresh tokens, flashcards, bookmarks, quiz results, vocabulary progress, sentence explanations, selection analyses, user settings, user subscriptions, decks, progress |
 | `users` | Профіль (`id`, `email`, `name`, timestamps) + auth (`passwordHash`, `googleId`, …) |
 | `flashcards` | Картки (`id`, `userId`, `word`, `translation`, `example`, `videoId`, `createdAt`) |
 | `bookmarks` | Закладки (`id`, `userId`, `videoId`, `timestamp`, `note`, `createdAt`) |
@@ -29,6 +29,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 | `sentence_explanations` | Збережені пояснення речень (`id`, `userId`, `sentence`, `explanation`, `translation`, `createdAt`) |
 | `selection_analyses` | Збережені аналізи виділення (`id`, `userId`, `selectedText`, `analysis`, `createdAt`) |
 | `user_settings` | Налаштування (`userId`, `interfaceLanguage`, `translationLanguage`, `theme`, `autoPause`, `bilingualMode`) |
+| `user_subscriptions` | Підписка (`userId`, `plan`, `status`, `startDate`, `endDate`) |
 | `items` | Video history, playback, decks, progress (V2 single-table entities) |
 
 Файл `data/local.db` **не комітиться** в git (див. `.gitignore`).
