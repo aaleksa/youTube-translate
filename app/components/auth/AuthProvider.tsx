@@ -107,8 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await authApi.login({ email, password });
       setUser(currentUser);
       setAuthView(null);
-      const switched = await bootstrapUserData(currentUser.userId);
-      if (switched) window.location.reload();
+      await bootstrapUserData(currentUser.userId);
+      window.location.reload();
       return;
     }
 
@@ -130,8 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.login({ email, password });
     setUser(currentUser);
     setAuthView(null);
-    const switched = await bootstrapUserData(currentUser.userId);
-    if (switched) window.location.reload();
+    await bootstrapUserData(currentUser.userId);
+    window.location.reload();
   }, []);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
@@ -139,8 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.loginWithGoogle(idToken);
     setUser(currentUser);
     setAuthView(null);
-    const switched = await bootstrapUserData(currentUser.userId);
-    if (switched) window.location.reload();
+    await bootstrapUserData(currentUser.userId);
+    window.location.reload();
   }, []);
 
   const logout = useCallback(async () => {
@@ -148,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authApi.logout();
     await clearUserSession();
     setUser(null);
+    window.location.reload();
   }, []);
 
   const forgotPassword = useCallback(async (email: string) => {

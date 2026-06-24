@@ -19,21 +19,22 @@ export interface TranscriptSearchResult {
   snippet?: string;
 }
 
-import { userScopedStorageKey } from './v2/userStorage';
+import { scopedStorageKeyForUser, userScopedStorageKey } from './v2/userStorage';
 
 const STORAGE_BASE_KEY = 'yoytube-transcript-history';
-const MAX_ITEMS = 10;
+export const TRANSCRIPT_HISTORY_MAX_ITEMS = 50;
+const MAX_ITEMS = TRANSCRIPT_HISTORY_MAX_ITEMS;
 const SNIPPET_RADIUS = 60;
 
 function transcriptHistoryStorageKey(): string {
   return userScopedStorageKey(STORAGE_BASE_KEY);
 }
 
-export function getTranscriptHistory(): TranscriptHistoryEntry[] {
+function readTranscriptHistoryFromKey(storageKey: string): TranscriptHistoryEntry[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(transcriptHistoryStorageKey());
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
 
     const parsed = JSON.parse(raw) as TranscriptHistoryEntry[];
@@ -49,6 +50,67 @@ export function getTranscriptHistory(): TranscriptHistoryEntry[] {
   } catch {
     return [];
   }
+}
+
+export function mergeTranscriptHistoryEntries(
+  ...groups: TranscriptHistoryEntry[][]
+): TranscriptHistoryEntry[] {
+  const byVideoId = new Map<string, TranscriptHistoryEntry>();
+
+  for (const entries of groups) {
+    for (const entry of entries) {
+      if (!entry.videoId || !entry.url) continue;
+
+      const existing = byVideoId.get(entry.videoId);
+      if (!existing) {
+        byVideoId.set(entry.videoId, entry);
+        continue;
+      }
+
+      byVideoId.set(entry.videoId, {
+        ...existing,
+        title: entry.title || existing.title,
+        url: entry.url || existing.url,
+        text: entry.text || existing.text,
+        transcript:
+          entry.transcript.length > 0 ? entry.transcript : existing.transcript,
+        savedAt: Math.max(existing.savedAt, entry.savedAt),
+      });
+    }
+  }
+
+  return [...byVideoId.values()].sort((left, right) => right.savedAt - left.savedAt);
+}
+
+export function getTranscriptHistoryForUser(userId: string): TranscriptHistoryEntry[] {
+  return readTranscriptHistoryFromKey(
+    scopedStorageKeyForUser(STORAGE_BASE_KEY, userId)
+  );
+}
+
+export function replaceTranscriptHistoryForUser(
+  userId: string,
+  entries: TranscriptHistoryEntry[]
+): void {
+  const valid = entries
+    .filter(
+      (entry) =>
+        entry.videoId &&
+        entry.url &&
+        typeof entry.text === 'string' &&
+        Array.isArray(entry.transcript)
+    )
+    .sort((left, right) => right.savedAt - left.savedAt)
+    .slice(0, MAX_ITEMS);
+
+  localStorage.setItem(
+    scopedStorageKeyForUser(STORAGE_BASE_KEY, userId),
+    JSON.stringify(valid)
+  );
+}
+
+export function getTranscriptHistory(): TranscriptHistoryEntry[] {
+  return readTranscriptHistoryFromKey(transcriptHistoryStorageKey());
 }
 
 function saveTranscriptHistory(entries: TranscriptHistoryEntry[]): void {
@@ -119,8 +181,11 @@ function buildTextSnippet(text: string, query: string): string {
   return `${prefix}${text.slice(start, end).replace(/\s+/g, ' ').trim()}${suffix}`;
 }
 
-export function searchTranscriptHistory(query: string): TranscriptSearchResult[] {
-  const entries = getTranscriptHistory();
+export function searchTranscriptHistory(
+  query: string,
+  sourceEntries?: TranscriptHistoryEntry[]
+): TranscriptSearchResult[] {
+  const entries = sourceEntries ?? getTranscriptHistory();
   const normalizedQuery = query.trim().toLowerCase();
 
   if (!normalizedQuery) {

@@ -19,12 +19,54 @@ import type { Sentence } from './transcriptTypes';
 import { parseTimestampToSeconds } from './timestamp';
 import { getSavedTranslationLanguage } from './languageSettings';
 import type { TranslationLanguageCode } from './translationLanguages';
-import { userScopedStorageKey } from './v2/userStorage';
+import { getActiveUserId, scopedStorageKeyForUser, userScopedStorageKey } from './v2/userStorage';
 
 const STORAGE_BASE_KEY = 'yoytube-flashcards';
 
 function flashcardsStorageKey(): string {
   return userScopedStorageKey(STORAGE_BASE_KEY);
+}
+
+function readFlashcardsFromKey(storageKey: string): Flashcard[] {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Partial<Flashcard>[];
+    if (!Array.isArray(parsed)) return [];
+    const migrated = parsed
+      .map((card) => migrateFlashcard(card))
+      .filter((card): card is Flashcard => card !== null);
+
+    const migratedById = new Map(migrated.map((card) => [card.id, card]));
+    const needsPersist = parsed.some((card) => {
+      if (!card.id) return false;
+      const next = migratedById.get(card.id);
+      return Boolean(
+        next &&
+          (card.sentenceId !== next.sentenceId ||
+            card.translations !== next.translations ||
+            card.translationLanguage !== next.translationLanguage)
+      );
+    });
+    if (needsPersist) {
+      localStorage.setItem(storageKey, JSON.stringify(migrated));
+    }
+
+    return migrated;
+  } catch {
+    return [];
+  }
+}
+
+function queueFlashcardsBootstrap(): void {
+  const userId = getActiveUserId();
+  if (!userId) return;
+
+  void import('./v2/syncFlashcards').then((mod) =>
+    mod.bootstrapFlashcardsSync(userId)
+  );
 }
 
 function queueFlashcardCreate(card: Flashcard): void {
@@ -285,37 +327,19 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
   };
 }
 
+export function getFlashcardsForUser(userId: string): Flashcard[] {
+  return readFlashcardsFromKey(scopedStorageKeyForUser(STORAGE_BASE_KEY, userId));
+}
+
+export function saveFlashcardsForUser(userId: string, cards: Flashcard[]): void {
+  localStorage.setItem(
+    scopedStorageKeyForUser(STORAGE_BASE_KEY, userId),
+    JSON.stringify(cards)
+  );
+}
+
 export function getFlashcards(): Flashcard[] {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const raw = localStorage.getItem(flashcardsStorageKey());
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<Flashcard>[];
-    if (!Array.isArray(parsed)) return [];
-    const migrated = parsed
-      .map((card) => migrateFlashcard(card))
-      .filter((card): card is Flashcard => card !== null);
-
-    const migratedById = new Map(migrated.map((card) => [card.id, card]));
-    const needsPersist = parsed.some((card) => {
-      if (!card.id) return false;
-      const next = migratedById.get(card.id);
-      return Boolean(
-        next &&
-          (card.sentenceId !== next.sentenceId ||
-            card.translations !== next.translations ||
-            card.translationLanguage !== next.translationLanguage)
-      );
-    });
-    if (needsPersist) {
-      saveFlashcards(migrated);
-    }
-
-    return migrated;
-  } catch {
-    return [];
-  }
+  return readFlashcardsFromKey(flashcardsStorageKey());
 }
 
 export function saveFlashcards(cards: Flashcard[]): void {
@@ -997,13 +1021,13 @@ export function importFlashcardRows(
   });
 
   saveFlashcards(cards);
-  void import('./v2/syncFlashcards').then((mod) => mod.bootstrapFlashcardsSync());
+  queueFlashcardsBootstrap();
   return result;
 }
 
 export function restoreFlashcards(cards: Flashcard[]): void {
   saveFlashcards(cards);
-  void import('./v2/syncFlashcards').then((mod) => mod.bootstrapFlashcardsSync());
+  queueFlashcardsBootstrap();
 }
 
 export function findExampleLine(

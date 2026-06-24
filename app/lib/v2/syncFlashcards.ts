@@ -176,12 +176,14 @@ export async function syncFlashcardDelete(id: string): Promise<void> {
   }
 }
 
-export async function bootstrapFlashcardsSync(): Promise<void> {
+export async function bootstrapFlashcardsSync(userId: string): Promise<void> {
   if (!canSync()) return;
   if (bootstrapPromise) return bootstrapPromise;
 
   bootstrapPromise = (async () => {
-    const { getFlashcards, saveFlashcards } = await import('../flashcards');
+    const { getFlashcardsForUser, saveFlashcardsForUser } = await import(
+      '../flashcards'
+    );
 
     let serverCards: FlashcardRecord[] = [];
     try {
@@ -191,7 +193,7 @@ export async function bootstrapFlashcardsSync(): Promise<void> {
       return;
     }
 
-    const localCards = getFlashcards();
+    const localCards = getFlashcardsForUser(userId);
     const localById = new Map(localCards.map((card) => [card.id, card]));
     const localByKey = new Map(
       localCards.map((card) => [localMatchKey(card), card])
@@ -227,6 +229,11 @@ export async function bootstrapFlashcardsSync(): Promise<void> {
 
     for (const localCard of localCards) {
       if (processedLocalIds.has(localCard.id)) continue;
+      if (serverCards.length === 0) continue;
+
+      if (isServerSyncedFlashcardId(localCard.id)) {
+        continue;
+      }
 
       try {
         const created = await flashcardsApi.createFlashcard(toV2Payload(localCard));
@@ -237,7 +244,11 @@ export async function bootstrapFlashcardsSync(): Promise<void> {
       }
     }
 
-    saveFlashcards(merged);
+    saveFlashcardsForUser(userId, merged);
+
+    const { pruneDecksForUser } = await import('../decks');
+    pruneDecksForUser(userId, merged);
+
     notifyFlashcardsChanged();
   })().finally(() => {
     bootstrapPromise = null;

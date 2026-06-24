@@ -1,8 +1,8 @@
 import type { VideoHistoryRecord } from '../../../v2-core/types';
 import { notifyVideoHistoryChanged } from '../dataRefresh';
 import {
-  getTranscriptHistory,
-  replaceTranscriptHistory,
+  getTranscriptHistoryForUser,
+  replaceTranscriptHistoryForUser,
   type TranscriptHistoryEntry,
 } from '../transcriptHistory';
 import { isBackendV2Enabled } from './config';
@@ -56,39 +56,32 @@ function serverToLocalEntry(record: VideoHistoryRecord): TranscriptHistoryEntry 
   };
 }
 
-function mergeVideoHistory(
+function mergeVideoHistoryFromServer(
   serverRecords: VideoHistoryRecord[],
   localEntries: TranscriptHistoryEntry[]
 ): TranscriptHistoryEntry[] {
   const localByVideoId = new Map(
     localEntries.map((entry) => [entry.videoId, entry])
   );
-  const merged: TranscriptHistoryEntry[] = [];
 
-  for (const record of serverRecords) {
-    const local = localByVideoId.get(record.videoId);
-    if (local) {
-      merged.push({
+  return serverRecords
+    .map((record) => {
+      const local = localByVideoId.get(record.videoId);
+      if (!local) {
+        return serverToLocalEntry(record);
+      }
+
+      return {
         ...local,
         title: record.title || local.title,
         url: record.url || local.url,
         savedAt: Math.max(local.savedAt, record.createdAt),
-      });
-      localByVideoId.delete(record.videoId);
-      continue;
-    }
-
-    merged.push(serverToLocalEntry(record));
-  }
-
-  for (const entry of localByVideoId.values()) {
-    merged.push(entry);
-  }
-
-  return merged.sort((left, right) => right.savedAt - left.savedAt);
+      };
+    })
+    .sort((left, right) => right.savedAt - left.savedAt);
 }
 
-export async function bootstrapVideoHistorySync(): Promise<void> {
+export async function bootstrapVideoHistorySync(userId: string): Promise<void> {
   if (!canSync()) return;
   if (bootstrapPromise) return bootstrapPromise;
 
@@ -102,30 +95,10 @@ export async function bootstrapVideoHistorySync(): Promise<void> {
       return;
     }
 
-    const localEntries = getTranscriptHistory();
-    const merged = mergeVideoHistory(serverRecords, localEntries);
-    const processedVideoIds = new Set<string>();
+    const localEntries = getTranscriptHistoryForUser(userId);
+    const merged = mergeVideoHistoryFromServer(serverRecords, localEntries);
 
-    for (const record of serverRecords) {
-      processedVideoIds.add(record.videoId);
-    }
-
-    for (const entry of localEntries) {
-      if (processedVideoIds.has(entry.videoId)) continue;
-
-      try {
-        await videoHistoryApi.recordVideoHistory({
-          videoId: entry.videoId,
-          title: entry.title,
-          url: entry.url,
-          channel: '',
-        });
-      } catch (error) {
-        console.warn('[video-history] Failed to upload local entry:', error);
-      }
-    }
-
-    replaceTranscriptHistory(merged);
+    replaceTranscriptHistoryForUser(userId, merged);
     notifyVideoHistoryChanged();
   })().finally(() => {
     bootstrapPromise = null;

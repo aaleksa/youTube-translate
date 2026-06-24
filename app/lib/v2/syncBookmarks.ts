@@ -93,12 +93,14 @@ export async function syncBookmarkDelete(id: string): Promise<void> {
   }
 }
 
-export async function bootstrapBookmarksSync(): Promise<void> {
+export async function bootstrapBookmarksSync(userId: string): Promise<void> {
   if (!canSync()) return;
   if (bootstrapPromise) return bootstrapPromise;
 
   bootstrapPromise = (async () => {
-    const { getBookmarks, replaceBookmarks } = await import('../bookmarks');
+    const { getBookmarksForUser, replaceBookmarksForUser } = await import(
+      '../bookmarks'
+    );
 
     let serverBookmarks: BookmarkRecord[] = [];
     try {
@@ -108,7 +110,7 @@ export async function bootstrapBookmarksSync(): Promise<void> {
       return;
     }
 
-    const localBookmarks = getBookmarks();
+    const localBookmarks = getBookmarksForUser(userId);
     const localById = new Map(localBookmarks.map((bookmark) => [bookmark.id, bookmark]));
     const processedLocalIds = new Set<string>();
     const merged: Bookmark[] = [];
@@ -124,6 +126,11 @@ export async function bootstrapBookmarksSync(): Promise<void> {
 
     for (const localBookmark of localBookmarks) {
       if (processedLocalIds.has(localBookmark.id)) continue;
+      if (serverBookmarks.length === 0) continue;
+
+      if (isServerSyncedBookmarkId(localBookmark.id)) {
+        continue;
+      }
 
       try {
         const created = await bookmarksApi.createBookmark(toV2Payload(localBookmark));
@@ -134,7 +141,7 @@ export async function bootstrapBookmarksSync(): Promise<void> {
       }
     }
 
-    replaceBookmarks(merged);
+    replaceBookmarksForUser(userId, merged);
     notifyBookmarksChanged();
   })().finally(() => {
     bootstrapPromise = null;

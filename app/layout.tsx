@@ -1,12 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import dynamic from "next/dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
+import AppShell from "./components/AppShell";
 import PwaProvider from "./components/PwaProvider";
 import "./globals.css";
-
-const AppShell = dynamic(() => import("./components/AppShell"), {
-  ssr: true,
-});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
