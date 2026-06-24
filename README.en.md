@@ -1,12 +1,18 @@
-# YouTube Translaty
+# YouTube Translator
+
+> **Product name:** YouTube Translator · **Short name:** Translaty
 
 **A platform for learning English from YouTube videos** — subtitle extraction, AI content analysis, flashcards, spaced repetition (SRS), quizzes, shadowing, pronunciation practice, and progress analytics.
 
-The app runs as a **PWA** (Progressive Web App): data is stored locally in the browser, with no separate backend server for user data.
+The app runs as a **PWA** (Progressive Web App). Data can live **locally in the browser** (localStorage) or in **backend V2** — SQLite + JWT on a developer machine (no AWS). The same API can run on AWS (Cognito + DynamoDB) after deploy.
 
 📖 **User guides:** [USER_GUIDE.en.md](./USER_GUIDE.en.md) (English) · [USER_GUIDE.md](./USER_GUIDE.md) (Ukrainian) — step-by-step feature overview without technical details.
 
 🇺🇦 **Ukrainian README:** [README.md](./README.md)
+
+🗄️ **Local backend (no AWS):** [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md)
+
+☁️ **AWS preparation:** [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)
 
 ---
 
@@ -64,8 +70,20 @@ Help users **learn English from real video content** — not just watch subtitle
 | Tool | Purpose |
 |------|---------|
 | **ESLint** + `eslint-config-next` | Linting |
-| **Playwright** | Responsive E2E tests (`npm run test:responsive`) |
+| **Playwright** | Responsive + auth E2E tests |
 | **sharp** | PWA icon generation |
+
+### Backend V2 (optional)
+
+| Technology | Purpose |
+|------------|---------|
+| **SQLite** (`better-sqlite3`) | Local DB (`data/local.db`) when `STORAGE_BACKEND=local` |
+| **JWT** | Local auth (`LOCAL_AUTH_SECRET`) |
+| **v2-core/** | Shared business logic for Next.js API and AWS Lambda |
+| **proxy.ts** | Protects `/api/*` with JWT (except auth/status/webhook); Next.js 16 `proxy` replaces deprecated `middleware` |
+| **AWS SAM** (`infra/template.yaml`) | DynamoDB, Cognito, API Gateway, Lambda template |
+
+Details: [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md), [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)
 
 ### External services
 
@@ -77,20 +95,40 @@ Help users **learn English from real video content** — not just watch subtitle
 
 ### Data storage
 
-All user data lives in browser **localStorage** (no server database):
+**Mode 1 — browser only (classic PWA):** all data in **localStorage** under global keys (see table below).
 
-| Key | Data |
-|-----|------|
-| `yoytube-flashcards` | Flashcards |
-| `yoytube-decks` | Decks |
-| `yoytube-quiz-attempts` | Quiz attempts |
-| `yoytube-pronunciation-attempts` | Pronunciation / shadowing attempts |
-| `yoytube-daily-study-log` | Daily study log |
-| `yoytube-learning-goals` | Goals (daily goal, vocabulary goal, level) |
-| `yoytube-learning-settings` | Learning settings |
-| `yoytube-transcript-cache-*` | Transcript cache |
-| `yoytube-transcript-history` | Watched video history |
-| AI caches (`*-cache-*`) | Cached AI analysis results per videoId |
+**Mode 2 — backend V2** (`NEXT_PUBLIC_BACKEND_V2_ENABLED=true`):
+
+- User data keys in the browser: **`baseKey::userId`** (e.g. `yoytube-flashcards::abc-123`). Without an active userId, `::__anonymous__` is used.
+- On the server (SQLite `data/local.db`): flashcards, bookmarks, decks, video history, subscriptions, AI limits.
+- Tokens: `yoytube-v2-access-token`, `yoytube-v2-refresh-token`, `yoytube-v2-user` (cached profile for instant UI).
+
+| Base key | Data | V2 sync |
+|----------|------|---------|
+| `yoytube-flashcards` | Flashcards | ✅ two-way (bootstrap + debounced push) |
+| `yoytube-decks` | Decks | ✅ bootstrap merge + create/delete via API |
+| `yoytube-bookmarks` | Transcript bookmarks | ✅ bootstrap + push |
+| `yoytube-transcript-history` | Video history | ✅ server authoritative on bootstrap |
+| `yoytube-transcript-cache-*` | Transcript cache (IndexedDB + prefix) | 🔶 local only, per-user prefix |
+| `yoytube-quiz-attempts` | Quiz attempts | 🔶 local only (scoped) |
+| `yoytube-pronunciation-attempts` | Pronunciation / shadowing | 🔶 local only (scoped) |
+| `yoytube-daily-study-log` | Daily study log | 🔶 local only (scoped) |
+| `yoytube-learning-goals` | Learning goals | 🔶 local only (scoped) |
+| `yoytube-learning-settings` | Learning settings | 🔶 local only (scoped) |
+| AI caches (`*-cache-*`) | AI results per `videoId` | 🔶 per-user scoped locally; network required to refresh |
+
+**Account switch:** signing in as another user runs `clearUserScopedLocalData` for the previous userId; bootstrap loads the new account from the server.
+
+**Offline with V2 auth** (see also §6.3):
+
+| Scenario | Behavior |
+|----------|----------|
+| Already signed in, network lost | Offline banner + sync badge; session is kept (network error ≠ logout) |
+| Sign-in while offline | Not possible without network (JWT from server) |
+| AI / transcripts / sync | Require network |
+| PWA shell | Serwist caches static assets; SW disabled in dev |
+
+**Files:** `app/lib/v2/userStorage.ts`, `app/lib/v2/authBootstrap.ts`, `app/lib/v2/sync*.ts`, `app/lib/aiCacheStorage.ts`
 
 ---
 
@@ -100,6 +138,7 @@ All user data lives in browser **localStorage** (no server database):
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Browser (PWA)                            │
 ├─────────────────────────────────────────────────────────────────┤
+│  AppShell (chrome) + AppProviders (auth, theme, i18n)           │
 │  page.tsx                                                       │
 │    ├── URLInput / VideoPlayer / TranscriptDisplay               │
 │    ├── QuickInfoAnalysis (AI panels)                            │
@@ -110,18 +149,22 @@ All user data lives in browser **localStorage** (no server database):
 │    │     └── Analytics (LearningAnalyticsPanel)                 │
 │    └── AppSettingsPanel (languages, import/export, goals)       │
 ├─────────────────────────────────────────────────────────────────┤
-│  lib/ — business logic (flashcards, SRS, quiz, analytics…)    │
-│  localStorage — persistence                                     │
+│  lib/ — business logic (flashcards, SRS, quiz, analytics…)     │
+│  localStorage + syncFlashcards.ts (V2)                          │
 └──────────────────────────┬──────────────────────────────────────┘
-                           │ HTTP
+                           │ HTTP + JWT (when V2 enabled)
 ┌──────────────────────────▼──────────────────────────────────────┐
 │  app/api/ — Next.js API Routes                                  │
+│    ├── v2/auth/*, v2/flashcards, v2/decks, v2/reviews/today…    │
 │    ├── transcript/        — subtitles (yt-dlp)                  │
 │    ├── process-text/      — general AI chat                     │
 │    ├── enrich-flashcard/  — AI card enrichment                  │
 │    ├── find-phrasal-verbs/, find-idioms/, find-slang/…          │
 │    ├── generate-quiz/, generate-chapters/, video-summary/…      │
 │    └── translate-lines/, explain-sentence/…                     │
+├─────────────────────────────────────────────────────────────────┤
+│  v2-core/ — services, SRS, premium, SQLite/DynamoDB stores      │
+│  data/local.db (STORAGE_BACKEND=local)                          │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
               ┌────────────┴────────────┐
@@ -290,6 +333,36 @@ Instead of simple Know / Don't know — **4-level grading** (Anki-like SM-2):
 - Affects Smart Review (interval modifiers)
 
 **Component:** `FlashcardQuizMode`
+
+---
+
+### 6.1. Auth and Premium (V2)
+
+**Files:** `app/components/AppShell.tsx`, `app/components/AppProviders.tsx`, `app/components/auth/`, `proxy.ts`, `v2-core/premium/`
+
+| Feature | Description |
+|---------|-------------|
+| Sign up / sign in | Email + password, JWT access/refresh tokens |
+| UI gate | `AppShell` → `AppProviders` + auth gate when V2 is enabled |
+| API protection | `proxy.ts` — Bearer token on `/api/*` (except auth/status/webhook) |
+| Premium | free/premium plans, AI limits (`FREE_AI_DAILY_LIMIT`), optional Stripe Checkout |
+| Subscriptions | `GET /api/v2/subscription`, `POST /api/v2/billing/checkout`, webhook |
+| Offline banner | `OfflineStatusBanner` when `navigator.onLine === false` |
+| Sync badge | `SyncStatusBadge` — syncing / saving / offline |
+
+### 6.3. User-scoped storage, sync, and offline
+
+**Data isolation:** `userScopedStorageKey(baseKey)` → `baseKey::userId`. Transcript IndexedDB cache also uses a per-user prefix. AI analysis caches use `app/lib/aiCacheStorage.ts`.
+
+**Bootstrap after sign-in** (`bootstrapUserData`):
+
+1. `prepareUserSession` — legacy key migration, clear previous user scoped data
+2. `bootstrapFlashcardsSync` — merge local ↔ server
+3. In parallel: bookmarks, decks, video history
+
+**Push to server:** flashcards (debounced), bookmarks, deck create/delete. Quiz, analytics, pronunciation, learning goals — **not synced**.
+
+**Dev / HMR:** providers live in `AppProviders.tsx` for stabler hot reload. If the UI sticks on “Loading…” or auth looks wrong — **hard refresh** (`Cmd+Shift+R`).
 
 ---
 
@@ -475,7 +548,11 @@ yoytube-translaty/
 │   ├── generate-pwa-icons.mjs
 │   └── check-changes.sh
 ├── tests/
-│   └── responsive.spec.ts
+│   ├── responsive.spec.ts
+│   ├── auth-flow.spec.ts
+│   ├── offline-v2.spec.ts
+│   └── …
+├── proxy.ts                        # JWT for /api/* (Next.js 16)
 ├── package.json
 ├── next.config.ts
 ├── tsconfig.json
@@ -507,14 +584,22 @@ sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### 3. OpenAI API
+### 3. OpenAI API and Backend V2
 
-1. Create a key at https://platform.openai.com/api-keys
-2. Add to `.env.local`:
+Copy `.env.example` → `.env.local` and configure:
 
 ```env
 OPENAI_API_KEY=sk-...
+
+# Backend V2 (local mode)
+STORAGE_BACKEND=local
+LOCAL_DB_PATH=data/local.db
+LOCAL_AUTH_SECRET=change-me-in-production
+NEXT_PUBLIC_BACKEND_V2_ENABLED=true
+NEXT_PUBLIC_STORAGE_BACKEND=local
 ```
+
+Restart `npm run dev` after changing `.env.local`. With V2 enabled, **sign up / sign in** is required (button top-right).
 
 ### 4. Run
 
@@ -542,7 +627,13 @@ npm start
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
 | `npm run test:responsive` | Playwright responsive tests |
+| `npm run test:auth` | Auth API + UI E2E (account isolation, login/logout) |
+| `npm run test:auth-isolation` | API isolation only (`account-isolation.spec.ts`) |
+| `npm run test:auth-ui` | UI auth only (`auth-flow`, multi-user, premium, offline) |
+| `npm run db:cleanup-test-users` | Remove test accounts from `local.db` |
 | `npm run generate:icons` | Generate PWA icons |
+| `npm run backend:build` | Build Lambda handler for AWS |
+| `npm run infra:validate` | Validate SAM template (`infra/template.yaml`) |
 
 ---
 
@@ -559,6 +650,8 @@ npm start
 6. **Shadowing** — repeat phrases along with the video
 7. **Settings** — languages, goals, import/export
 
+With **Backend V2** enabled, sign up or sign in first (button top-right).
+
 ---
 
 ## Roadmap / not implemented
@@ -570,7 +663,9 @@ npm start
 | Automatic goal adaptation (TASK-036.5) | ❌ |
 | Separate shadowing score on card (besides pronunciation) | ❌ |
 | Full Anki SM-2 learning steps in minutes | partial (Again = 10 min) |
-| Server sync / accounts | ❌ |
+| Server sync / accounts | ✅ partial (V2: flashcards, decks, bookmarks, video history) |
+| AWS production deploy | 🚧 template ready (`infra/template.yaml`), deploy not automated |
+| Google login (local V2) | ❌ (AWS Cognito only) |
 | Detailed session stats (Hard/Good/Easy separately) | ❌ |
 
 ---

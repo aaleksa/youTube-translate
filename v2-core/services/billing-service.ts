@@ -87,15 +87,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
   activatePremium(userId, null);
 }
 
+function getSubscriptionPeriodEndMs(subscription: Stripe.Subscription): number | null {
+  if (subscription.cancel_at) {
+    return subscription.cancel_at * 1000;
+  }
+
+  const itemEnds = subscription.items?.data
+    ?.map((item) => item.current_period_end)
+    .filter((value): value is number => typeof value === 'number');
+
+  if (!itemEnds?.length) {
+    return null;
+  }
+
+  return Math.max(...itemEnds) * 1000;
+}
+
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
   const userId = resolveUserIdFromMetadata(subscription.metadata);
   if (!userId) return;
 
-  const endDate = subscription.cancel_at
-    ? subscription.cancel_at * 1000
-    : subscription.current_period_end
-      ? subscription.current_period_end * 1000
-      : null;
+  const endDate = getSubscriptionPeriodEndMs(subscription);
 
   if (subscription.status === 'active' || subscription.status === 'trialing') {
     activatePremium(userId, endDate);

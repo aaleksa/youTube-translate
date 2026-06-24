@@ -1,5 +1,12 @@
 import type { VideoChaptersResult } from './videoChapters';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-chapters-';
 
 export interface ChaptersCacheEntry extends VideoChaptersResult {
@@ -27,7 +34,7 @@ export function getChaptersCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(videoId, taskLanguage));
+    const raw = getAiCacheRaw(cacheKey(videoId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as ChaptersCacheEntry;
@@ -60,5 +67,5 @@ export function setChaptersCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
+  setAiCacheRaw(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
 }

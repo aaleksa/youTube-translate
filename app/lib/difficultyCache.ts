@@ -1,5 +1,12 @@
 import type { VideoDifficultyResult } from './cefrLevel';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-difficulty-';
 
 export interface DifficultyCacheEntry extends VideoDifficultyResult {
@@ -27,7 +34,7 @@ export function getDifficultyCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(videoId, taskLanguage));
+    const raw = getAiCacheRaw(cacheKey(videoId, taskLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as DifficultyCacheEntry;
@@ -64,15 +71,9 @@ export function setDifficultyCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
+  setAiCacheRaw(cacheKey(videoId, taskLanguage), JSON.stringify(entry));
 }
 
 export function clearDifficultyCache(videoId: string): void {
-  const prefix = `${STORAGE_PREFIX}${videoId}`;
-  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) {
-      localStorage.removeItem(key);
-    }
-  }
+  removeAiCacheKeysWithLogicalPrefix(`${STORAGE_PREFIX}${videoId}`);
 }

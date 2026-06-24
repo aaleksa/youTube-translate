@@ -1,6 +1,5 @@
 'use client';
 
-import { isBackendV2Enabled } from '../lib/v2/config';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useAuth } from './auth/AuthProvider';
 import { useI18n } from './InterfaceLanguageProvider';
@@ -10,7 +9,7 @@ export default function OfflineStatusBanner() {
   const { enabled, ready, isAuthenticated } = useAuth();
   const { t } = useI18n();
 
-  if (online || !enabled || !ready || !isAuthenticated || !isBackendV2Enabled()) {
+  if (online || !enabled || !ready || !isAuthenticated) {
     return null;
   }
 

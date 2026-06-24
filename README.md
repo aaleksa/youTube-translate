@@ -1,4 +1,6 @@
-# YouTube Translaty
+# YouTube Translator
+
+> **Назва продукту:** YouTube Translator · **Коротко:** Translaty
 
 **Платформа для вивчення англійської мови з YouTube-відео** — екстракція субтитрів, AI-аналіз контенту, флешкартки, інтервальне повторення (SRS), квізи, shadowing, вимова та аналітика прогресу.
 
@@ -113,7 +115,7 @@
 | `yoytube-daily-study-log` | Щоденний журнал | 🔶 лише локально (scoped) |
 | `yoytube-learning-goals` | Цілі навчання | 🔶 лише локально (scoped) |
 | `yoytube-learning-settings` | Налаштування навчання | 🔶 лише локально (scoped) |
-| AI-кеші (`*-cache-*`) | Результати AI по `videoId` | 🔶 глобальні (не per-user), потребують мережі для оновлення |
+| AI-кеші (`*-cache-*`) | Результати AI по `videoId` | 🔶 per-user scoped локально, потребують мережі для оновлення |
 
 **Перемикання акаунта:** при вході іншого користувача `clearUserScopedLocalData` очищає scoped-ключі попереднього userId; bootstrap завантажує дані нового акаунта з сервера.
 
@@ -121,7 +123,7 @@
 
 | Сценарій | Поведінка |
 |----------|-----------|
-| Вже увійшли, мережа зникла | Банер «Офлайн»; доступні локальні flashcards/decks/bookmarks/історія після останньої sync |
+| Вже увійшли, мережа зникла | Банер «Офлайн» + sync badge; сесія зберігається (мережева помилка ≠ logout) |
 | Спроба увійти офлайн | Неможливо без мережі (JWT з сервера) |
 | AI / субтитри / sync | Потребують мережі |
 | PWA shell | Serwist кешує статику; у dev SW вимкнено |
@@ -346,6 +348,7 @@
 | Premium | Плани free/premium, ліміти AI (`FREE_AI_DAILY_LIMIT`), Stripe Checkout (опційно) |
 | Підписки | `GET /api/v2/subscription`, `POST /api/v2/billing/checkout`, webhook |
 | Офлайн-банер | `OfflineStatusBanner` — попередження при `navigator.onLine === false` |
+| Sync badge | `SyncStatusBadge` — syncing / saving / offline |
 
 ### 6.3. User-scoped storage, sync та офлайн
 
@@ -584,7 +587,7 @@ npm start
 | `npm run test:responsive` | Playwright responsive tests |
 | `npm run test:auth` | Auth API + UI E2E (ізоляція акаунтів, login/logout) |
 | `npm run test:auth-isolation` | Лише API-ізоляція (`account-isolation.spec.ts`) |
-| `npm run test:auth-ui` | Лише UI auth (`auth-flow`, multi-user, premium) |
+| `npm run test:auth-ui` | Лише UI auth (`auth-flow`, multi-user, premium, offline) |
 | `npm run db:cleanup-test-users` | Видалити тестові акаунти з `local.db` |
 | `npm run generate:icons` | Генерація PWA-іконок |
 | `npm run backend:build` | Збірка Lambda handler для AWS |

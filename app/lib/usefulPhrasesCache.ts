@@ -1,5 +1,12 @@
 import type { UsefulPhraseItem } from './usefulPhrases';
 
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-useful-phrases-';
 
 export interface UsefulPhrasesCacheEntry {
@@ -16,7 +23,7 @@ export function getUsefulPhrasesCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${videoId}`);
+    const raw = getAiCacheRaw(`${STORAGE_PREFIX}${videoId}`);
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as UsefulPhrasesCacheEntry;
@@ -42,9 +49,9 @@ export function setUsefulPhrasesCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
+  setAiCacheRaw(`${STORAGE_PREFIX}${videoId}`, JSON.stringify(entry));
 }
 
 export function clearUsefulPhrasesCache(videoId: string): void {
-  localStorage.removeItem(`${STORAGE_PREFIX}${videoId}`);
+  removeAiCacheRaw(`${STORAGE_PREFIX}${videoId}`);
 }

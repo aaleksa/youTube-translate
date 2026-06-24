@@ -89,6 +89,17 @@ export async function waitForAuthenticatedApp(page: Page): Promise<void> {
   });
 }
 
+export async function setBrowserOffline(page: Page, offline: boolean): Promise<void> {
+  await page.context().setOffline(offline);
+  await page.evaluate((isOffline) => {
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      get: () => !isOffline,
+    });
+    window.dispatchEvent(new Event(isOffline ? 'offline' : 'online'));
+  }, offline);
+}
+
 export async function openLoginDialog(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog');
 

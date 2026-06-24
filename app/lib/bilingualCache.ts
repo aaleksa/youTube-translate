@@ -1,3 +1,10 @@
+import {
+  getAiCacheRaw,
+  removeAiCacheKeysWithLogicalPrefix,
+  removeAiCacheRaw,
+  setAiCacheRaw,
+} from './aiCacheStorage';
+
 const STORAGE_PREFIX = 'yoytube-bilingual-';
 
 export interface BilingualCacheEntry {
@@ -20,7 +27,7 @@ export function getBilingualCache(
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(cacheKey(videoId, targetLanguage));
+    const raw = getAiCacheRaw(cacheKey(videoId, targetLanguage));
     if (!raw) return null;
 
     const entry = JSON.parse(raw) as BilingualCacheEntry;
@@ -52,7 +59,7 @@ export function setBilingualCache(
     savedAt: Date.now(),
   };
 
-  localStorage.setItem(
+  setAiCacheRaw(
     cacheKey(videoId, targetLanguage),
     JSON.stringify(entry)
   );
@@ -63,15 +70,9 @@ export function clearBilingualCache(
   targetLanguage?: string
 ): void {
   if (targetLanguage) {
-    localStorage.removeItem(cacheKey(videoId, targetLanguage));
+    removeAiCacheRaw(cacheKey(videoId, targetLanguage));
     return;
   }
 
-  const prefix = `${STORAGE_PREFIX}${videoId}`;
-  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) {
-      localStorage.removeItem(key);
-    }
-  }
+  removeAiCacheKeysWithLogicalPrefix(`${STORAGE_PREFIX}${videoId}`);
 }
