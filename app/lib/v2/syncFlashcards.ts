@@ -167,7 +167,7 @@ export async function bootstrapFlashcardsSync(): Promise<void> {
 
     let serverCards: FlashcardRecord[] = [];
     try {
-      serverCards = await flashcardsApi.listFlashcards();
+      serverCards = await flashcardsApi.listAllFlashcards();
     } catch (error) {
       console.warn('[flashcards] Failed to load from server:', error);
       return;

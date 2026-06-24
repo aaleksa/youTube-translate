@@ -76,6 +76,30 @@ export function listFlashcards(userId: string): FlashcardRecord[] {
   return rows.map(toRecord);
 }
 
+export function listFlashcardsPaginated(
+  userId: string,
+  params: { limit: number; offset: number }
+): { items: FlashcardRecord[]; total: number } {
+  const db = getLocalDatabase();
+  const totalRow = db
+    .prepare(`SELECT COUNT(*) as count FROM flashcards WHERE userId = ?`)
+    .get(userId) as { count: number };
+
+  const rows = db
+    .prepare(
+      `SELECT * FROM flashcards
+       WHERE userId = ?
+       ORDER BY createdAt ASC
+       LIMIT ? OFFSET ?`
+    )
+    .all(userId, params.limit, params.offset) as FlashcardRow[];
+
+  return {
+    items: rows.map(toRecord),
+    total: totalRow.count,
+  };
+}
+
 function getRow(userId: string, cardId: string): FlashcardRow | null {
   const db = getLocalDatabase();
   return (
