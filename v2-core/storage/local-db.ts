@@ -57,6 +57,18 @@ function ensureSchema(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_flashcards_user ON flashcards(userId);
     CREATE INDEX IF NOT EXISTS idx_flashcards_user_video ON flashcards(userId, videoId);
+
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      timestamp REAL NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(userId);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_user_video ON bookmarks(userId, videoId);
   `);
 }
 
