@@ -2,13 +2,15 @@
 
 **Платформа для вивчення англійської мови з YouTube-відео** — екстракція субтитрів, AI-аналіз контенту, флешкартки, інтервальне повторення (SRS), квізи, shadowing, вимова та аналітика прогресу.
 
-Додаток працює як **PWA** (Progressive Web App): дані зберігаються локально в браузері, без окремого бекенд-сервера для користувацьких даних.
+Додаток працює як **PWA** (Progressive Web App). Дані можуть зберігатися **локально в браузері** (localStorage) або в **backend V2** — SQLite + JWT на машині розробника (без AWS). Після деплою той самий API працює на AWS (Cognito + DynamoDB).
 
 📖 **Посібник для користувачів:** [USER_GUIDE.md](./USER_GUIDE.md) (українською) · [USER_GUIDE.en.md](./USER_GUIDE.en.md) (English) — покроковий опис усіх функцій без технічних деталей.
 
 🇬🇧 **English README:** [README.en.md](./README.en.md)
 
 🗄️ **Локальний backend (без AWS):** [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md)
+
+☁️ **Підготовка до AWS:** [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)
 
 ---
 
@@ -26,7 +28,7 @@
 | **AI-підсилення** | Аналіз транскрипту: фразові дієслова, ідіоми, сленг, граматика, ключова лексика, резюме, тести |
 | **Активне навчання** | Флешкартки з контекстом відео, SRS-повторення, квізи, shadowing, перевірка вимови |
 | **Персоналізація** | План навчання (Coach), слабкі слова, адаптивні інтервали, цілі за рівнем |
-| **Автономність** | Локальне зберігання, офлайн-режим (PWA), імпорт/експорт даних |
+| **Автономність** | Локальне зберігання, офлайн-режим (PWA), імпорт/експорт даних; опційна синхронізація через backend V2 |
 | **Багатомовність** | Інтерфейс і переклади: uk, en, pl, es, de, fr |
 
 ### Цільова аудиторія
@@ -69,6 +71,18 @@
 | **Playwright** | Responsive E2E тести (`npm run test:responsive`) |
 | **sharp** | Генерація PWA-іконок |
 
+### Backend V2 (опційно)
+
+| Технологія | Призначення |
+|------------|-------------|
+| **SQLite** (`better-sqlite3`) | Локальна БД (`data/local.db`) при `STORAGE_BACKEND=local` |
+| **JWT** | Локальна авторизація (`LOCAL_AUTH_SECRET`) |
+| **v2-core/** | Спільна бізнес-логіка для Next.js API та AWS Lambda |
+| **middleware.ts** | Захист `/api/*` JWT-токеном (крім auth/status) |
+| **AWS SAM** (`infra/template.yaml`) | Шаблон для DynamoDB, Cognito, API Gateway, Lambda |
+
+Деталі: [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md), [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)
+
 ### Зовнішні сервіси
 
 | Сервіс | Використання |
@@ -79,7 +93,7 @@
 
 ### Зберігання даних
 
-Усі користувацькі дані — **localStorage** у браузері (без серверної БД):
+**Режим 1 — лише браузер (класичний PWA):** усі дані в **localStorage**:
 
 | Ключ | Дані |
 |------|------|
@@ -94,6 +108,10 @@
 | `yoytube-transcript-history` | Історія переглянутих відео |
 | AI-кеші (`*-cache-*`) | Кеш результатів AI-аналізу по videoId |
 
+**Режим 2 — backend V2** (`NEXT_PUBLIC_BACKEND_V2_ENABLED=true`): картки, закладки, історія відео, налаштування, підписки та AI-ліміти — у **SQLite** (`data/local.db`). Колоди та частина UI-стану лишаються в localStorage; при синхронізації `deckIds` об’єднуються між браузером і сервером.
+
+Токени авторизації: `localStorage` (`yoytube-access-token`, `yoytube-refresh-token`).
+
 ---
 
 ## Архітектура
@@ -102,6 +120,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Браузер (PWA)                            │
 ├─────────────────────────────────────────────────────────────────┤
+│  AppShell (auth gate, theme, i18n)                              │
 │  page.tsx                                                       │
 │    ├── URLInput / VideoPlayer / TranscriptDisplay               │
 │    ├── QuickInfoAnalysis (AI-панелі)                            │
@@ -113,17 +132,19 @@
 │    └── AppSettingsPanel (мови, імпорт/експорт, цілі)            │
 ├─────────────────────────────────────────────────────────────────┤
 │  lib/ — бізнес-логіка (flashcards, SRS, quiz, analytics…)     │
-│  localStorage — персистентність                                 │
+│  localStorage + syncFlashcards.ts (V2)                          │
 └──────────────────────────┬──────────────────────────────────────┘
-                           │ HTTP
+                           │ HTTP + JWT (якщо V2 увімкнено)
 ┌──────────────────────────▼──────────────────────────────────────┐
 │  app/api/ — Next.js API Routes                                  │
+│    ├── v2/auth/*, v2/flashcards, v2/decks, v2/reviews/today…    │
 │    ├── transcript/        — субтитри (yt-dlp)                   │
 │    ├── process-text/      — загальний AI-чат                    │
 │    ├── enrich-flashcard/  — AI-збагачення карток                │
-│    ├── find-phrasal-verbs/, find-idioms/, find-slang/…          │
-│    ├── generate-quiz/, generate-chapters/, video-summary/…      │
-│    └── translate-lines/, explain-sentence/…                     │
+│    └── find-phrasal-verbs/, generate-quiz/, video-summary/…     │
+├─────────────────────────────────────────────────────────────────┤
+│  v2-core/ — сервіси, SRS, premium, SQLite/DynamoDB stores      │
+│  data/local.db (STORAGE_BACKEND=local)                          │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
               ┌────────────┴────────────┐
@@ -204,6 +225,7 @@
 - Збереження слова з виділення в транскрипті або AI-списків
 - Прив'язка до відео, речення, таймкоду
 - Колоди (decks) та фільтри: all / due / video / deck
+- **Вибір колоди:** назва колоди над списком карток; випадаючий список при джерелі квізу «Колода»
 - Bulk save з AI-списків vocabulary
 - Редагування, теги, багатомовні переклади
 - Дії на картці: слухати, дивитись у відео, повторити, shadowing
@@ -287,11 +309,35 @@
 | Тип питання | en→translation MC, translation→en MC, typing EN, typing translation |
 | Джерело | due, video, deck, weak, all |
 
+- Джерело **Колода** вимагає вибору колоди (список або розділ «За колодою»)
 - Оновлює `quizCorrectCount` / `quizWrongCount` на картці
 - Спроби зберігаються в `yoytube-quiz-attempts`
 - Впливає на Smart Review (модифікатори інтервалу)
 
-**Компонент:** `FlashcardQuizMode`
+**Компонент:** `FlashcardQuizMode` (показує назву колоди/відео під час тесту)
+
+---
+
+### 6.1. Авторизація та Premium (V2)
+
+**Файли:** `app/components/AppShell.tsx`, `app/components/auth/`, `middleware.ts`, `v2-core/premium/`
+
+| Функція | Опис |
+|---------|------|
+| Реєстрація / вхід | Email + пароль, JWT access/refresh tokens |
+| Захист UI | `AppShell` — контент лише для авторизованих (якщо V2 увімкнено) |
+| Захист API | `middleware.ts` — Bearer token на всі `/api/*` (крім auth/status) |
+| Premium | Плани free/premium, ліміти AI-запитів (`FREE_AI_DAILY_LIMIT`) |
+| Підписки | `GET /api/v2/subscription`, таблиця `user_subscriptions` |
+
+---
+
+### 6.2. SRS API (V2)
+
+**Файли:** `v2-core/srs/`, `v2-core/services/review-service.ts`
+
+- `GET /api/v2/reviews/today` — картки на повторення сьогодні (SM-2, сортування за слабкістю)
+- Алгоритм: Easy / Medium / Hard → інтервали та `nextReview`
 
 ---
 
@@ -412,78 +458,29 @@ Rule-based план навчання (без LLM):
 yoytube-translaty/
 ├── app/
 │   ├── page.tsx                    # Головна сторінка
-│   ├── layout.tsx                  # Root layout, providers
-│   ├── globals.css                 # Tailwind + theme
-│   ├── manifest.ts                 # PWA manifest
-│   ├── sw.ts                       # Service Worker (Serwist)
-│   ├── ~offline/page.tsx           # Офлайн-сторінка
-│   │
-│   ├── api/                        # 21 API route
-│   │   ├── transcript/
-│   │   ├── enrich-flashcard/
-│   │   ├── process-text/
-│   │   ├── find-phrasal-verbs/
-│   │   ├── find-idioms/
-│   │   ├── find-slang/
-│   │   ├── find-key-vocabulary/
-│   │   ├── find-frequent-words/
-│   │   ├── find-collocations/
-│   │   ├── find-useful-phrases/
-│   │   ├── grammar-highlights/
-│   │   ├── video-summary/
-│   │   ├── video-difficulty/
-│   │   ├── generate-chapters/
-│   │   ├── generate-timeline/
-│   │   ├── generate-notes/
-│   │   ├── generate-quiz/
-│   │   ├── translate-lines/
-│   │   ├── explain-sentence/
-│   │   └── playlist/
-│   │
-│   ├── components/                 # 46 React-компонентів
-│   │   ├── LearningHubSection.tsx
+│   ├── layout.tsx                  # Root layout
+│   ├── components/
+│   │   ├── AppShell.tsx            # Auth gate, providers
+│   │   ├── auth/                   # AuthProvider, AuthPanel, AuthButton
 │   │   ├── FlashcardsPanel.tsx
-│   │   ├── FlashcardStudyMode.tsx
-│   │   ├── FlashcardQuizMode.tsx
-│   │   ├── LearningAnalyticsPanel.tsx
-│   │   ├── LearningCoachPanel.tsx
-│   │   ├── ShadowingPanel.tsx
-│   │   ├── PronunciationChecker.tsx
 │   │   └── …
-│   │
-│   ├── hooks/
-│   │   └── useDebouncedCardEnrichment.ts
-│   │
-│   └── lib/                        # Бізнес-логіка (~80 модулів)
-│       ├── flashcards.ts
-│       ├── flashcardSrs.ts         # Basic SRS + Smart Review Engine
-│       ├── flashcardQuiz.ts
-│       ├── flashcardEnrichment.ts
-│       ├── flashcardImportExport.ts
-│       ├── flashcardBackup.ts
-│       ├── learningAnalytics.ts
-│       ├── learningPlan.ts
-│       ├── learningGoals.ts
-│       ├── dailyStudyLog.ts
-│       ├── pronunciationAttempts.ts
-│       ├── aiPrompts.ts
-│       ├── normalizeCaptions.ts
-│       ├── transcriptPipeline.ts
-│       └── i18n/
-│
-├── public/
-│   └── icons/                      # PWA icons
-├── scripts/
-│   ├── generate-pwa-icons.mjs
-│   └── check-changes.sh
-├── tests/
-│   └── responsive.spec.ts
-├── package.json
-├── next.config.ts
-├── tsconfig.json
-├── tailwind.config.ts
-├── playwright.config.ts
-└── .env.local                      # OPENAI_API_KEY (не в git)
+│   ├── api/
+│   │   ├── v2/                     # Backend V2 (auth, flashcards, decks, …)
+│   │   ├── transcript/
+│   │   └── …                       # AI та субтитри
+│   └── lib/
+│       ├── v2/                     # API client, syncFlashcards, authApi
+│       └── …
+├── v2-core/                        # Спільна логіка (SRS, premium, stores)
+├── infra/
+│   └── template.yaml               # AWS SAM (DynamoDB, Cognito, Lambda)
+├── data/
+│   └── local.db                    # SQLite (не в git)
+├── middleware.ts                   # JWT для /api/*
+├── docs/
+│   ├── LOCAL_BACKEND.md
+│   └── INFRASTRUCTURE.md
+└── …
 ```
 
 ---
@@ -509,14 +506,22 @@ sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### 3. OpenAI API
+### 3. OpenAI API та Backend V2
 
-1. Створи ключ на https://platform.openai.com/api-keys
-2. Додай у `.env.local`:
+Скопіюй `.env.example` → `.env.local` і налаштуй:
 
 ```env
 OPENAI_API_KEY=sk-...
+
+# Backend V2 (локальний режим)
+STORAGE_BACKEND=local
+LOCAL_DB_PATH=data/local.db
+LOCAL_AUTH_SECRET=change-me-in-production
+NEXT_PUBLIC_BACKEND_V2_ENABLED=true
+NEXT_PUBLIC_STORAGE_BACKEND=local
 ```
+
+Після зміни `.env.local` перезапусти `npm run dev`. При увімкненому V2 потрібна **реєстрація / вхід** (кнопка вгорі справа).
 
 ### 4. Запуск
 
@@ -545,6 +550,8 @@ npm start
 | `npm run lint` | ESLint |
 | `npm run test:responsive` | Playwright responsive tests |
 | `npm run generate:icons` | Генерація PWA-іконок |
+| `npm run backend:build` | Збірка Lambda handler для AWS |
+| `npm run infra:validate` | Валідація SAM-шаблону (`infra/template.yaml`) |
 
 ---
 
@@ -556,10 +563,12 @@ npm start
 4. **Збережи слова** — виділи текст або збережи з AI-списку
 5. **Навчання** — Learning Hub:
    - **Coach** — денний план
-   - **Flashcards** — повторення (SRS) та квізи
+   - **Flashcards** — повторення (SRS), квізи, колоди з видимою назвою обраної колоди
    - **Analytics** — прогрес і слабкі місця
 6. **Shadowing** — повторюй фрази вслід за відео
 7. **Налаштування** — мови, цілі, імпорт/експорт
+
+При увімкненому **Backend V2** спочатку увійди або зареєструйся (кнопка вгорі справа).
 
 ---
 
@@ -572,7 +581,9 @@ npm start
 | Автоматична адаптація цілей (TASK-036.5) | ❌ |
 | Окремий shadowing score на картці (окрім pronunciation) | ❌ |
 | Повний Anki SM-2 learning steps у хвилинах | частково (Again = 10 хв) |
-| Серверна синхронізація / акаунти | ❌ |
+| Серверна синхронізація / акаунти | ✅ частково (V2 local; flashcards sync; decks — localStorage) |
+| AWS production deploy | 🚧 шаблон готовий (`infra/template.yaml`), deploy не автоматизовано |
+| Google login (local V2) | ❌ (лише AWS Cognito) |
 | Детальна статистика сесії (Hard/Good/Easy окремо) | ❌ |
 
 ---
