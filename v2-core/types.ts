@@ -273,3 +273,9 @@ export interface UpdateUserSettingsInput {
   autoPause?: Partial<UserSettingsAutoPause>;
   bilingualMode?: boolean;
 }
+
+export interface TodayReviewsResponse {
+  date: number;
+  total: number;
+  items: FlashcardRecord[];
+}
