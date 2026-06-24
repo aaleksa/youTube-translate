@@ -19,7 +19,7 @@ export interface VideoPlayerState {
 }
 
 export interface VideoPlayerHandle {
-  seekTo: (seconds: number) => void;
+  seekTo: (seconds: number, autoplay?: boolean) => void;
   pause: () => void;
   play: () => void;
   stop: () => void;
@@ -133,11 +133,13 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     }, [isPlaying, isReady]);
 
     useImperativeHandle(ref, () => ({
-      seekTo(seconds: number) {
+      seekTo(seconds: number, autoplay = true) {
         clearSegmentPlayback();
         if (!playerRef.current) return;
         playerRef.current.seekTo(seconds, true);
-        playerRef.current.playVideo();
+        if (autoplay) {
+          playerRef.current.playVideo();
+        }
         onTimeUpdateRef.current?.(seconds);
       },
       pause() {
