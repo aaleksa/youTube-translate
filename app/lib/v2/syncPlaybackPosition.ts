@@ -5,8 +5,8 @@ import {
 } from './playbackPositionApi';
 import { getAccessToken } from './tokenStorage';
 
-const SAVE_INTERVAL_MS = 5000;
-const MIN_POSITION_SECONDS = 3;
+const SAVE_INTERVAL_MS = 3000;
+const MIN_POSITION_SECONDS = 1;
 
 let pendingTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSavedAt = 0;
@@ -36,7 +36,7 @@ async function flushPlaybackPosition(
 
   if (
     lastSavedVideoId === videoId &&
-    Math.abs(lastSavedPosition - lastPosition) < 1 &&
+    Math.abs(lastSavedPosition - lastPosition) < 0.5 &&
     Date.now() - lastSavedAt < SAVE_INTERVAL_MS
   ) {
     return;
@@ -78,12 +78,24 @@ export function schedulePlaybackPositionSave(
   }, SAVE_INTERVAL_MS - elapsed);
 }
 
-export async function flushPendingPlaybackPosition(): Promise<void> {
+export async function savePlaybackPositionNow(
+  videoId: string,
+  lastPosition: number
+): Promise<void> {
   clearPendingTimer();
-  if (!pendingVideoId) return;
-  await flushPlaybackPosition(pendingVideoId, pendingPosition);
   pendingVideoId = null;
   pendingPosition = 0;
+  await flushPlaybackPosition(videoId, lastPosition);
+}
+
+export async function flushPendingPlaybackPosition(): Promise<void> {
+  clearPendingTimer();
+  const videoId = pendingVideoId;
+  const position = pendingPosition;
+  pendingVideoId = null;
+  pendingPosition = 0;
+  if (!videoId) return;
+  await flushPlaybackPosition(videoId, position);
 }
 
 export async function loadPlaybackPosition(

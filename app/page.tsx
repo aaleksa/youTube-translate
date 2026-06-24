@@ -35,7 +35,7 @@ import { syncVideoHistoryToServer } from './lib/v2/syncVideoHistory';
 import {
   flushPendingPlaybackPosition,
   loadPlaybackPosition,
-  resetPlaybackPositionSyncState,
+  savePlaybackPositionNow,
   schedulePlaybackPositionSave,
 } from './lib/v2/syncPlaybackPosition';
 import { formatSecondsToTimestamp } from './lib/timestamp';
@@ -90,7 +90,7 @@ interface TranscriptResponse {
 
 export default function Home() {
   const { t } = useI18n();
-  const { isAuthenticated } = useAuth();
+  const { ready: authReady } = useAuth();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const videoSectionRef = useRef<HTMLDivElement>(null);
   const shadowingPanelRef = useRef<HTMLDivElement>(null);
@@ -129,6 +129,8 @@ export default function Home() {
     key: number;
   } | null>(null);
   const resumePositionRef = useRef<number | null>(null);
+  const currentPlaybackTimeRef = useRef(0);
+  const wasPlayingRef = useRef(false);
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
@@ -173,7 +175,11 @@ export default function Home() {
   }, [currentPlaybackTime, videoData, visibleTranscript]);
 
   useEffect(() => {
-    if (!videoData?.videoId || !isAuthenticated) {
+    currentPlaybackTimeRef.current = currentPlaybackTime;
+  }, [currentPlaybackTime]);
+
+  useEffect(() => {
+    if (!videoData?.videoId || !authReady) {
       resumePositionRef.current = null;
       return;
     }
@@ -188,7 +194,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [videoData?.videoId, isAuthenticated]);
+  }, [videoData?.videoId, authReady]);
 
   useEffect(() => {
     if (!playerState.isReady || resumePositionRef.current == null) {
@@ -207,27 +213,57 @@ export default function Home() {
   }, [playerState.isReady, videoData?.videoId, t]);
 
   useEffect(() => {
-    if (!videoData?.videoId || !isAuthenticated) {
+    if (!videoData?.videoId || !authReady) {
       return;
     }
 
     schedulePlaybackPositionSave(videoData.videoId, currentPlaybackTime);
-  }, [currentPlaybackTime, videoData?.videoId, isAuthenticated]);
+  }, [currentPlaybackTime, videoData?.videoId, authReady]);
 
   useEffect(() => {
-    if (!videoData?.videoId || !isAuthenticated || playerState.isPlaying) {
+    if (!videoData?.videoId || !authReady) {
       return;
     }
 
-    void flushPendingPlaybackPosition();
-  }, [playerState.isPlaying, videoData?.videoId, isAuthenticated]);
+    if (wasPlayingRef.current && !playerState.isPlaying) {
+      void savePlaybackPositionNow(
+        videoData.videoId,
+        currentPlaybackTimeRef.current
+      );
+    }
+
+    wasPlayingRef.current = playerState.isPlaying;
+  }, [playerState.isPlaying, videoData?.videoId, authReady]);
 
   useEffect(() => {
-    return () => {
-      void flushPendingPlaybackPosition();
-      resetPlaybackPositionSyncState();
+    if (!videoData?.videoId || !authReady) {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'hidden') return;
+      void savePlaybackPositionNow(
+        videoData.videoId,
+        currentPlaybackTimeRef.current
+      );
     };
-  }, []);
+
+    const handlePageHide = () => {
+      void savePlaybackPositionNow(
+        videoData.videoId,
+        currentPlaybackTimeRef.current
+      );
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      void flushPendingPlaybackPosition();
+    };
+  }, [videoData?.videoId, authReady]);
 
   const handleShadowingCaptionIndexes = useCallback(
     (rawIndexes: number[]) => {
