@@ -52,6 +52,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 | `GET /api/v2/bookmarks` | Список закладок (`?videoId=` опційно) |
 | `DELETE /api/v2/bookmarks/:id` | Видалити закладку |
 | `GET /api/v2/quiz-results` | Історія результатів quiz (`?videoId=` опційно) |
+| `PUT /api/v2/vocabulary-progress` | Оновити / створити прогрес слова |
 | `GET /api/v2/playback-position/:videoId` | Остання позиція відтворення |
 | `PUT /api/v2/playback-position` | Зберегти позицію |
 | `GET /api/v2/status` | Режим: `local` або `dynamodb` |
