@@ -1,13 +1,26 @@
 import { enrichTranscriptData } from './transcriptPipeline';
 import type { PhraseChunk, RawCaption, Sentence } from './transcriptTypes';
 import { extractVideoId } from './youtubeUrl';
+import { getActiveUserId } from './v2/userStorage';
 
 export const TRANSCRIPT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-const DB_NAME = 'yoytube-transcript-cache';
+const LEGACY_DB_NAME = 'yoytube-transcript-cache';
 const STORE_NAME = 'transcripts';
 const DB_VERSION = 1;
-const LOCAL_STORAGE_PREFIX = 'yoytube-transcript-cache-';
+
+function getCacheScope(): string {
+  if (typeof window === 'undefined') return '__ssr__';
+  return getActiveUserId() ?? '__anonymous__';
+}
+
+function getDatabaseName(): string {
+  return `${LEGACY_DB_NAME}::${getCacheScope()}`;
+}
+
+function getLocalStoragePrefix(): string {
+  return `${LEGACY_DB_NAME}::${getCacheScope()}-`;
+}
 
 export interface TranscriptCacheLine {
   text: string;
@@ -61,7 +74,7 @@ function openDatabase(): Promise<IDBDatabase> {
       return;
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(getDatabaseName(), DB_VERSION);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -129,7 +142,7 @@ function readFromLocalStorage(cacheKey: string): TranscriptCacheRecord | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${cacheKey}`);
+    const raw = localStorage.getItem(`${getLocalStoragePrefix()}${cacheKey}`);
     if (!raw) return null;
     return JSON.parse(raw) as TranscriptCacheRecord;
   } catch {
@@ -139,13 +152,13 @@ function readFromLocalStorage(cacheKey: string): TranscriptCacheRecord | null {
 
 function writeToLocalStorage(record: TranscriptCacheRecord): void {
   localStorage.setItem(
-    `${LOCAL_STORAGE_PREFIX}${record.cacheKey}`,
+    `${getLocalStoragePrefix()}${record.cacheKey}`,
     JSON.stringify(record)
   );
 }
 
 function deleteFromLocalStorage(cacheKey: string): void {
-  localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}${cacheKey}`);
+  localStorage.removeItem(`${getLocalStoragePrefix()}${cacheKey}`);
 }
 
 function isExpired(record: TranscriptCacheRecord): boolean {
@@ -213,7 +226,7 @@ function listAllFromLocalStorage(): TranscriptCacheRecord[] {
 
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index);
-    if (!key?.startsWith(LOCAL_STORAGE_PREFIX)) continue;
+    if (!key?.startsWith(getLocalStoragePrefix())) continue;
 
     const raw = localStorage.getItem(key);
     if (!raw) continue;

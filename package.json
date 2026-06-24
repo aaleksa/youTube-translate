@@ -10,6 +10,7 @@
     "lint": "eslint",
     "check:changes": "bash scripts/check-changes.sh",
     "test:responsive": "playwright test",
+    "test:auth-isolation": "playwright test tests/account-isolation.spec.ts --project=auth-isolation",
     "test:responsive:ui": "playwright test --ui",
     "backend:build": "cd backend && npm run build",
     "infra:validate": "sam validate --template-file infra/template.yaml"

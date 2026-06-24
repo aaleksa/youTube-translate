@@ -140,6 +140,10 @@ export interface DeckRecord {
   updatedAt?: number;
 }
 
+export interface CreateDeckInput {
+  name: string;
+}
+
 export interface UserProgressRecord {
   userId: string;
   cardsTotal: number;

@@ -246,9 +246,6 @@ export async function bootstrapFlashcardsSync(userId: string): Promise<void> {
 
     saveFlashcardsForUser(userId, merged);
 
-    const { pruneDecksForUser } = await import('../decks');
-    pruneDecksForUser(userId, merged);
-
     notifyFlashcardsChanged();
   })().finally(() => {
     bootstrapPromise = null;

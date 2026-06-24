@@ -7,6 +7,14 @@ import { scopedStorageKeyForUser, userScopedStorageKey } from './v2/userStorage'
 
 const STORAGE_BASE_KEY = 'yoytube-decks';
 
+function queueDeckCreate(deck: Deck): void {
+  void import('./v2/syncDecks').then((mod) => mod.syncDeckCreate(deck));
+}
+
+function queueDeckDelete(deckId: string): void {
+  void import('./v2/syncDecks').then((mod) => mod.syncDeckDelete(deckId));
+}
+
 export interface Deck {
   id: string;
   name: string;
@@ -85,12 +93,14 @@ export function createDeck(name: string): Deck | null {
   };
 
   saveDecks([deck, ...getDecks()]);
+  queueDeckCreate(deck);
   return deck;
 }
 
 export function deleteDeck(deckId: string): void {
   saveDecks(getDecks().filter((deck) => deck.id !== deckId));
   removeDeckFromCards(deckId);
+  queueDeckDelete(deckId);
 }
 
 export function getDeckById(deckId: string): Deck | undefined {

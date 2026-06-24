@@ -24,15 +24,18 @@ export async function resetSyncBootstrapState(): Promise<void> {
   const [
     { resetFlashcardsSyncBootstrap, cancelPendingFlashcardSyncs },
     { resetBookmarksSyncBootstrap },
+    { resetDecksSyncBootstrap },
     { resetVideoHistorySyncBootstrap },
   ] = await Promise.all([
     import('./syncFlashcards'),
     import('./syncBookmarks'),
+    import('./syncDecks'),
     import('./syncVideoHistory'),
   ]);
   cancelPendingFlashcardSyncs();
   resetFlashcardsSyncBootstrap();
   resetBookmarksSyncBootstrap();
+  resetDecksSyncBootstrap();
   resetVideoHistorySyncBootstrap();
 }
 
