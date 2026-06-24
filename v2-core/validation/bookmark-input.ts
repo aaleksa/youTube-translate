@@ -7,14 +7,7 @@ const MAX_VIDEO_ID_LENGTH = 20;
 const MAX_NOTE_LENGTH = 500;
 const VIDEO_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
-export function validateCreateBookmarkInput(
-  input: CreateBookmarkInput
-): Required<CreateBookmarkInput> {
-  if (!input || typeof input !== 'object') {
-    throw new ApiError('Request body is required', 400, 'INVALID_BOOKMARK');
-  }
-
-  const videoId = String(input.videoId ?? '').trim();
+function validateVideoId(videoId: string): string {
   if (!videoId) {
     throw new ApiError('videoId is required', 400, 'INVALID_BOOKMARK');
   }
@@ -30,6 +23,33 @@ export function validateCreateBookmarkInput(
   if (!VIDEO_ID_PATTERN.test(videoId)) {
     throw new ApiError('videoId has an invalid format', 400, 'INVALID_BOOKMARK');
   }
+
+  return videoId;
+}
+
+export function normalizeBookmarkVideoIdFilter(
+  videoId?: string | null
+): string | undefined {
+  if (videoId === undefined || videoId === null) {
+    return undefined;
+  }
+
+  const trimmed = videoId.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return validateVideoId(trimmed);
+}
+
+export function validateCreateBookmarkInput(
+  input: CreateBookmarkInput
+): Required<CreateBookmarkInput> {
+  if (!input || typeof input !== 'object') {
+    throw new ApiError('Request body is required', 400, 'INVALID_BOOKMARK');
+  }
+
+  const videoId = validateVideoId(String(input.videoId ?? '').trim());
 
   const timestamp = input.timestamp;
   if (

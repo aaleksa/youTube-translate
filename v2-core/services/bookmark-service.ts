@@ -8,6 +8,7 @@ import { isLocalBackend } from '../storage/config';
 import * as localBookmarks from '../storage/local-bookmark-store';
 import {
   BOOKMARK_DUPLICATE_TOLERANCE_SECONDS,
+  normalizeBookmarkVideoIdFilter,
   validateCreateBookmarkInput,
 } from '../validation/bookmark-input';
 import { normalizeBookmarkId } from '../validation/bookmark-id';
@@ -54,8 +55,7 @@ function hasBookmarkNearTime(
 }
 
 function normalizeVideoIdFilter(videoId: string | null): string | undefined {
-  const trimmed = videoId?.trim();
-  return trimmed || undefined;
+  return normalizeBookmarkVideoIdFilter(videoId);
 }
 
 export async function listBookmarks(
