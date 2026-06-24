@@ -108,6 +108,18 @@ function ensureSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_sentence_explanations_user ON sentence_explanations(userId);
     CREATE INDEX IF NOT EXISTS idx_sentence_explanations_user_created
       ON sentence_explanations(userId, createdAt);
+
+    CREATE TABLE IF NOT EXISTS selection_analyses (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      selectedText TEXT NOT NULL,
+      analysis TEXT NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_selection_analyses_user ON selection_analyses(userId);
+    CREATE INDEX IF NOT EXISTS idx_selection_analyses_user_created
+      ON selection_analyses(userId, createdAt);
   `);
 }
 
