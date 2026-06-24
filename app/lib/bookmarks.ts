@@ -1,4 +1,4 @@
-import { userScopedStorageKey } from './v2/userStorage';
+import { scopedStorageKeyForUser, userScopedStorageKey } from './v2/userStorage';
 
 const STORAGE_BASE_KEY = 'yoytube-bookmarks';
 const DUPLICATE_TOLERANCE_SECONDS = 0.5;
@@ -27,6 +27,28 @@ export interface BookmarkDraft {
   videoId: string;
   seconds: number;
   label: string;
+}
+
+export function getBookmarksForUser(userId: string): Bookmark[] {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const raw = localStorage.getItem(
+      scopedStorageKeyForUser(STORAGE_BASE_KEY, userId)
+    );
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Bookmark[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function replaceBookmarksForUser(userId: string, bookmarks: Bookmark[]): void {
+  localStorage.setItem(
+    scopedStorageKeyForUser(STORAGE_BASE_KEY, userId),
+    JSON.stringify(bookmarks)
+  );
 }
 
 export function getBookmarks(): Bookmark[] {

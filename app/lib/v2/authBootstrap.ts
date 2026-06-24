@@ -2,13 +2,20 @@ import { bootstrapBookmarksSync } from './syncBookmarks';
 import { bootstrapFlashcardsSync } from './syncFlashcards';
 import { bootstrapVideoHistorySync } from './syncVideoHistory';
 import { prepareUserSession } from './userSession';
+import {
+  notifyBookmarksChanged,
+  notifyFlashcardsChanged,
+  notifyVideoHistoryChanged,
+} from '../dataRefresh';
 
-export async function bootstrapUserData(userId: string): Promise<boolean> {
-  const switched = await prepareUserSession(userId);
+export async function bootstrapUserData(userId: string): Promise<void> {
+  await prepareUserSession(userId);
+  await bootstrapFlashcardsSync(userId);
   await Promise.all([
-    bootstrapFlashcardsSync(),
-    bootstrapBookmarksSync(),
-    bootstrapVideoHistorySync(),
+    bootstrapBookmarksSync(userId),
+    bootstrapVideoHistorySync(userId),
   ]);
-  return switched;
+  notifyFlashcardsChanged();
+  notifyBookmarksChanged();
+  notifyVideoHistoryChanged();
 }

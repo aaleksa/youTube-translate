@@ -1,8 +1,13 @@
 import {
   notifyBookmarksChanged,
   notifyFlashcardsChanged,
+  notifyVideoHistoryChanged,
 } from '../dataRefresh';
-import { clearLegacyGlobalUserData } from './userStorage';
+import {
+  clearLegacyGlobalUserData,
+  clearUserScopedLocalData,
+  migrateLegacyUserDataToScoped,
+} from './userStorage';
 
 const LAST_USER_ID_KEY = 'yoytube-v2-last-user-id';
 
@@ -31,9 +36,17 @@ export async function resetSyncBootstrapState(): Promise<void> {
   resetVideoHistorySyncBootstrap();
 }
 
-export async function prepareUserSession(userId: string): Promise<boolean> {
+export async function prepareUserSession(userId: string): Promise<void> {
   const previousUserId = getLastUserId();
-  const switched = previousUserId !== null && previousUserId !== userId;
+  const accountSwitched =
+    previousUserId !== null && previousUserId !== userId;
+  const firstSessionOnBrowser = previousUserId === null;
+
+  if (accountSwitched) {
+    clearUserScopedLocalData(userId);
+  } else if (firstSessionOnBrowser) {
+    migrateLegacyUserDataToScoped(userId, { firstSessionOnBrowser: true });
+  }
 
   clearLegacyGlobalUserData();
   await resetSyncBootstrapState();
@@ -41,21 +54,14 @@ export async function prepareUserSession(userId: string): Promise<boolean> {
   if (canUseStorage()) {
     localStorage.setItem(LAST_USER_ID_KEY, userId);
   }
-
-  notifyFlashcardsChanged();
-  notifyBookmarksChanged();
-
-  return switched;
 }
 
 export async function clearUserSession(): Promise<void> {
   clearLegacyGlobalUserData();
+  clearUserScopedLocalData('__anonymous__');
   await resetSyncBootstrapState();
-
-  if (canUseStorage()) {
-    localStorage.removeItem(LAST_USER_ID_KEY);
-  }
 
   notifyFlashcardsChanged();
   notifyBookmarksChanged();
+  notifyVideoHistoryChanged();
 }

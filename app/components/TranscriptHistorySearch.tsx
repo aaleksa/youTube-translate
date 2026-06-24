@@ -6,6 +6,7 @@ import {
   clearTranscriptHistory,
   formatHistoryDate,
   getTranscriptHistory,
+  getTranscriptHistoryForUser,
   removeFromTranscriptHistory,
   searchTranscriptHistory,
   type TranscriptHistoryEntry,
@@ -15,7 +16,15 @@ import { deleteVideoHistory } from '../lib/v2/videoHistoryApi';
 import { VIDEO_HISTORY_CHANGED_EVENT } from '../lib/dataRefresh';
 import { getAccessToken } from '../lib/v2/tokenStorage';
 import { isBackendV2Enabled } from '../lib/v2/config';
+import { useAuth } from './auth/AuthProvider';
 import { useI18n } from './InterfaceLanguageProvider';
+
+function readHistoryEntries(userId: string | undefined): TranscriptHistoryEntry[] {
+  if (isBackendV2Enabled() && userId) {
+    return getTranscriptHistoryForUser(userId);
+  }
+  return getTranscriptHistory();
+}
 
 interface TranscriptHistorySearchProps {
   isLoading: boolean;
@@ -28,18 +37,20 @@ export default function TranscriptHistorySearch({
   refreshKey = 0,
   onLoad,
 }: TranscriptHistorySearchProps) {
+  const { user } = useAuth();
   const { language, t } = useI18n();
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<TranscriptHistoryEntry[]>([]);
   const locale = getInterfaceLocale(language);
+  const userId = user?.userId;
 
   useEffect(() => {
-    setEntries(getTranscriptHistory());
-  }, [refreshKey]);
+    setEntries(readHistoryEntries(userId));
+  }, [refreshKey, userId]);
 
   useEffect(() => {
     const handleHistoryChanged = () => {
-      setEntries(getTranscriptHistory());
+      setEntries(readHistoryEntries(userId));
     };
 
     window.addEventListener(VIDEO_HISTORY_CHANGED_EVENT, handleHistoryChanged);
@@ -49,11 +60,11 @@ export default function TranscriptHistorySearch({
         handleHistoryChanged
       );
     };
-  }, []);
+  }, [userId]);
 
   const results = useMemo<TranscriptSearchResult[]>(() => {
     if (query.trim()) {
-      return searchTranscriptHistory(query);
+      return searchTranscriptHistory(query, entries);
     }
     return entries.map((entry) => ({ entry, matchedIn: [] }));
   }, [query, entries]);
@@ -68,9 +79,20 @@ export default function TranscriptHistorySearch({
   };
 
   const handleClear = () => {
+    const videoIds = entries.map((entry) => entry.videoId);
     clearTranscriptHistory();
     setEntries([]);
     setQuery('');
+
+    if (isBackendV2Enabled() && getAccessToken()) {
+      void Promise.all(
+        videoIds.map((videoId) =>
+          deleteVideoHistory(videoId).catch((error) => {
+            console.warn('[video-history] Failed to delete from server:', error);
+          })
+        )
+      );
+    }
   };
 
   if (entries.length === 0 && !query.trim()) {

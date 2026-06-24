@@ -3,13 +3,9 @@ import {
   getDueFlashcards,
   removeDeckFromCards,
 } from './flashcards';
-import { userScopedStorageKey } from './v2/userStorage';
+import { scopedStorageKeyForUser, userScopedStorageKey } from './v2/userStorage';
 
 const STORAGE_BASE_KEY = 'yoytube-decks';
-
-function decksStorageKey(): string {
-  return userScopedStorageKey(STORAGE_BASE_KEY);
-}
 
 export interface Deck {
   id: string;
@@ -23,11 +19,15 @@ export interface DeckSummary {
   dueCount: number;
 }
 
-export function getDecks(): Deck[] {
+function decksStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
+
+function readDecksFromKey(storageKey: string): Deck[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(decksStorageKey());
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<Deck>[];
     if (!Array.isArray(parsed)) return [];
@@ -43,6 +43,31 @@ export function getDecks(): Deck[] {
   } catch {
     return [];
   }
+}
+
+export function getDecksForUser(userId: string): Deck[] {
+  return readDecksFromKey(scopedStorageKeyForUser(STORAGE_BASE_KEY, userId));
+}
+
+export function saveDecksForUser(userId: string, decks: Deck[]): void {
+  localStorage.setItem(
+    scopedStorageKeyForUser(STORAGE_BASE_KEY, userId),
+    JSON.stringify(decks)
+  );
+}
+
+export function pruneDecksForUser(userId: string, cards: Flashcard[]): void {
+  const referencedDeckIds = new Set(
+    cards.flatMap((card) => card.deckIds ?? [])
+  );
+  const decks = getDecksForUser(userId).filter((deck) =>
+    referencedDeckIds.has(deck.id)
+  );
+  saveDecksForUser(userId, decks);
+}
+
+export function getDecks(): Deck[] {
+  return readDecksFromKey(decksStorageKey());
 }
 
 function saveDecks(decks: Deck[]): void {

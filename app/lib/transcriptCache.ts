@@ -180,6 +180,92 @@ async function removeCachedRecord(
   }
 }
 
+export interface CachedTranscriptSummary {
+  videoId: string;
+  url: string;
+  title: string;
+  text: string;
+  savedAt: number;
+}
+
+function listAllFromIndexedDB(): Promise<TranscriptCacheRecord[]> {
+  return openDatabase().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+          resolve((request.result as TranscriptCacheRecord[] | undefined) ?? []);
+        };
+        request.onerror = () => reject(request.error ?? new Error('IndexedDB read failed'));
+        transaction.oncomplete = () => db.close();
+        transaction.onerror = () => db.close();
+      })
+  );
+}
+
+function listAllFromLocalStorage(): TranscriptCacheRecord[] {
+  if (typeof window === 'undefined') return [];
+
+  const records: TranscriptCacheRecord[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key?.startsWith(LOCAL_STORAGE_PREFIX)) continue;
+
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+
+    try {
+      records.push(JSON.parse(raw) as TranscriptCacheRecord);
+    } catch {
+      // ignore malformed cache entries
+    }
+  }
+
+  return records;
+}
+
+export async function listCachedTranscriptSummaries(): Promise<
+  CachedTranscriptSummary[]
+> {
+  const byVideoId = new Map<string, CachedTranscriptSummary>();
+
+  const addRecord = (record: TranscriptCacheRecord) => {
+    if (!record.videoId || isExpired(record)) return;
+
+    const existing = byVideoId.get(record.videoId);
+    const summary: CachedTranscriptSummary = {
+      videoId: record.videoId,
+      url: record.url,
+      title: record.data.title?.trim() || record.videoId,
+      text: record.data.text ?? '',
+      savedAt: record.savedAt,
+    };
+
+    if (!existing || summary.savedAt > existing.savedAt) {
+      byVideoId.set(record.videoId, summary);
+    }
+  };
+
+  try {
+    const indexedRecords = await listAllFromIndexedDB();
+    for (const record of indexedRecords) {
+      addRecord(record);
+    }
+  } catch {
+    // fall through to localStorage scan
+  }
+
+  for (const record of listAllFromLocalStorage()) {
+    addRecord(record);
+  }
+
+  return [...byVideoId.values()].sort((left, right) => right.savedAt - left.savedAt);
+}
+
 export async function getCachedTranscript(
   videoId: string,
   subtitleLanguage?: string
