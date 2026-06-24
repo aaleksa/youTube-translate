@@ -46,6 +46,9 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 | `GET /api/v2/video-history` | Історія переглянутих відео |
 | `POST /api/v2/video-history` | Зберегти / оновити перегляд |
 | `DELETE /api/v2/video-history/:videoId` | Видалити з історії |
+| `POST /api/v2/bookmarks` | Створити закладку |
+| `GET /api/v2/bookmarks` | Список закладок (`?videoId=` опційно) |
+| `DELETE /api/v2/bookmarks/:id` | Видалити закладку |
 | `GET /api/v2/playback-position/:videoId` | Остання позиція відтворення |
 | `PUT /api/v2/playback-position` | Зберегти позицію |
 | `GET /api/v2/status` | Режим: `local` або `dynamodb` |

@@ -1,6 +1,14 @@
 const STORAGE_KEY = 'yoytube-bookmarks';
 const DUPLICATE_TOLERANCE_SECONDS = 0.5;
 
+function queueBookmarkCreate(bookmark: Bookmark): void {
+  void import('./v2/syncBookmarks').then((mod) => mod.syncBookmarkCreate(bookmark));
+}
+
+function queueBookmarkDelete(id: string): void {
+  void import('./v2/syncBookmarks').then((mod) => mod.syncBookmarkDelete(id));
+}
+
 export interface Bookmark {
   id: string;
   videoId: string;
@@ -38,6 +46,10 @@ function saveBookmarks(bookmarks: Bookmark[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
 }
 
+export function replaceBookmarks(bookmarks: Bookmark[]): void {
+  saveBookmarks(bookmarks);
+}
+
 function createBookmark(draft: BookmarkDraft): Bookmark {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -65,15 +77,21 @@ export function addBookmark(draft: BookmarkDraft): Bookmark | null {
 
   const bookmark = createBookmark(draft);
   saveBookmarks([bookmark, ...getBookmarks()]);
+  queueBookmarkCreate(bookmark);
   return bookmark;
 }
 
 export function removeBookmark(id: string): Bookmark[] {
   const updated = getBookmarks().filter((bookmark) => bookmark.id !== id);
   saveBookmarks(updated);
+  queueBookmarkDelete(id);
   return updated;
 }
 
 export function clearBookmarksForVideo(videoId: string): void {
+  const removed = getBookmarksForVideo(videoId);
   saveBookmarks(getBookmarks().filter((bookmark) => bookmark.videoId !== videoId));
+  for (const bookmark of removed) {
+    queueBookmarkDelete(bookmark.id);
+  }
 }
