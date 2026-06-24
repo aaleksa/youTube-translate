@@ -32,6 +32,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<void>;
   confirmSignUp: (code: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   confirmForgotPassword: (
@@ -123,6 +124,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthView(null);
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    setError(null);
+    const currentUser = await authApi.loginWithGoogle(idToken);
+    setUser(currentUser);
+    setAuthView(null);
+  }, []);
+
   const logout = useCallback(async () => {
     setError(null);
     await authApi.logout();
@@ -163,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       confirmSignUp,
       login,
+      loginWithGoogle,
       logout,
       forgotPassword,
       confirmForgotPassword,
@@ -180,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       confirmSignUp,
       login,
+      loginWithGoogle,
       logout,
       forgotPassword,
       confirmForgotPassword,

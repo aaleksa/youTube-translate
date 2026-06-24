@@ -21,6 +21,10 @@ export interface LoginInput {
   password: string;
 }
 
+export interface GoogleLoginInput {
+  idToken: string;
+}
+
 export interface ConfirmSignUpInput {
   email: string;
   code: string;

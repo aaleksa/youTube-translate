@@ -23,10 +23,12 @@ function ensureSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
-      passwordHash TEXT NOT NULL,
+      passwordHash TEXT NOT NULL DEFAULT '',
       emailVerified INTEGER NOT NULL DEFAULT 1,
       resetCode TEXT,
       resetCodeExpiresAt INTEGER,
+      googleId TEXT,
+      authProvider TEXT NOT NULL DEFAULT 'local',
       createdAt INTEGER NOT NULL
     );
 
@@ -50,6 +52,28 @@ export function getLocalDatabase(): Database.Database {
   database.pragma('journal_mode = WAL');
   database.pragma('foreign_keys = ON');
   ensureSchema(database);
+  migrateUsersTable(database);
 
   return database;
+}
+
+function migrateUsersTable(db: Database.Database): void {
+  const columns = db
+    .prepare(`PRAGMA table_info(users)`)
+    .all() as Array<{ name: string }>;
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has('googleId')) {
+    db.exec(`ALTER TABLE users ADD COLUMN googleId TEXT`);
+  }
+  if (!names.has('authProvider')) {
+    db.exec(
+      `ALTER TABLE users ADD COLUMN authProvider TEXT NOT NULL DEFAULT 'local'`
+    );
+  }
+
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id
+      ON users(googleId) WHERE googleId IS NOT NULL
+  `);
 }

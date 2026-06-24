@@ -21,6 +21,8 @@ interface LocalUserRow {
   emailVerified: number;
   resetCode: string | null;
   resetCodeExpiresAt: number | null;
+  googleId: string | null;
+  authProvider: string;
   createdAt: number;
 }
 
@@ -34,6 +36,15 @@ function getUserByEmail(email: string): LocalUserRow | null {
     (db
       .prepare(`SELECT * FROM users WHERE email = ?`)
       .get(normalizeEmail(email)) as LocalUserRow | undefined) ?? null
+  );
+}
+
+function getUserByGoogleId(googleId: string): LocalUserRow | null {
+  const db = getLocalDatabase();
+  return (
+    (db
+      .prepare(`SELECT * FROM users WHERE googleId = ?`)
+      .get(googleId) as LocalUserRow | undefined) ?? null
   );
 }
 
@@ -127,9 +138,52 @@ export async function login(input: LoginInput): Promise<AuthTokens> {
     throw new UnauthorizedError('Invalid email or password');
   }
 
+  if (!user.passwordHash) {
+    throw new UnauthorizedError('This account uses Google sign-in');
+  }
+
   const valid = await bcrypt.compare(input.password, user.passwordHash);
   if (!valid) {
     throw new UnauthorizedError('Invalid email or password');
+  }
+
+  return issueLocalTokens({ userId: user.id, email: user.email });
+}
+
+export async function loginWithGoogle(input: {
+  idToken: string;
+}): Promise<AuthTokens> {
+  const { verifyGoogleIdToken } = await import('../auth/google-verify');
+  const profile = await verifyGoogleIdToken(input.idToken);
+  const email = normalizeEmail(profile.email);
+  const db = getLocalDatabase();
+
+  let user = getUserByGoogleId(profile.googleId);
+
+  if (!user) {
+    const existingByEmail = getUserByEmail(email);
+
+    if (existingByEmail) {
+      const authProvider = existingByEmail.passwordHash ? 'both' : 'google';
+      db.prepare(
+        `UPDATE users
+         SET googleId = ?, authProvider = ?, emailVerified = 1
+         WHERE id = ?`
+      ).run(profile.googleId, authProvider, existingByEmail.id);
+      user = getUserById(existingByEmail.id);
+    } else {
+      const id = randomUUID();
+      db.prepare(
+        `INSERT INTO users (
+          id, email, passwordHash, emailVerified, googleId, authProvider, createdAt
+        ) VALUES (?, ?, '', 1, ?, 'google', ?)`
+      ).run(id, email, profile.googleId, Date.now());
+      user = getUserById(id);
+    }
+  }
+
+  if (!user) {
+    throw new ApiError('Failed to create Google user', 500, 'GOOGLE_LOGIN_FAILED');
   }
 
   return issueLocalTokens({ userId: user.id, email: user.email });

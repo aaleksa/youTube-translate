@@ -1,7 +1,12 @@
 'use client';
 
-import { isEmailVerificationEnabledOnClient } from '../../lib/v2/config';
+import { useState } from 'react';
+import {
+  isEmailVerificationEnabledOnClient,
+  isGoogleAuthConfiguredOnClient,
+} from '../../lib/v2/config';
 import { useAuth } from './AuthProvider';
+import GoogleSignInButton from './GoogleSignInButton';
 import { useI18n } from '../InterfaceLanguageProvider';
 
 export default function AuthPanel() {
@@ -13,6 +18,7 @@ export default function AuthPanel() {
     signUp,
     confirmSignUp,
     login,
+    loginWithGoogle,
     forgotPassword,
     confirmForgotPassword,
     openAuth,
@@ -159,6 +165,32 @@ export default function AuthPanel() {
         </div>
 
         <div className="mt-6 space-y-3">
+          {(authView === 'login' || authView === 'signup') &&
+            isGoogleAuthConfiguredOnClient() && (
+              <>
+                <GoogleSignInButton
+                  disabled={submitting}
+                  onSuccess={async (idToken) => {
+                    setSubmitting(true);
+                    setLocalError(null);
+                    try {
+                      await loginWithGoogle(idToken);
+                    } catch (error) {
+                      handleError(error);
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  onError={setLocalError}
+                />
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                  <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                  <span>{t('auth.orContinueWithEmail')}</span>
+                  <span className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                </div>
+              </>
+            )}
+
           {authView === 'login' && (
             <button
               type="button"

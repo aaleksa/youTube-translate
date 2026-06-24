@@ -579,6 +579,8 @@ const uk = {
   'auth.forgotPassword': 'Забули пароль?',
   'auth.backToLogin': 'Назад до входу',
   'auth.errorGeneric': 'Помилка авторизації',
+  'auth.googleSignIn': 'Увійти через Google',
+  'auth.orContinueWithEmail': 'або email',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -1152,6 +1154,8 @@ const en: Record<keyof typeof uk, string> = {
   'auth.forgotPassword': 'Forgot password?',
   'auth.backToLogin': 'Back to sign in',
   'auth.errorGeneric': 'Authentication error',
+  'auth.googleSignIn': 'Sign in with Google',
+  'auth.orContinueWithEmail': 'or email',
 };
 
 const pl: Record<keyof typeof uk, string> = {
