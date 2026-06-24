@@ -30,6 +30,7 @@ import {
 } from './lib/flashcards';
 import type { StoredSentence } from './lib/sentenceStore';
 import { getTranscriptHistory } from './lib/transcriptHistory';
+import { syncVideoHistoryToServer } from './lib/v2/syncVideoHistory';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
 import {
@@ -264,6 +265,12 @@ export default function Home() {
       title: enriched.title || enriched.videoId,
       text: enriched.text,
       transcript: enriched.transcript,
+    });
+    void syncVideoHistoryToServer({
+      videoId: enriched.videoId,
+      url: url || `https://www.youtube.com/watch?v=${enriched.videoId}`,
+      title: enriched.title || enriched.videoId,
+      channel: enriched.channelName || '',
     });
     if (enriched.selectedLanguage) {
       saveTranscriptLanguage(enriched.selectedLanguage);

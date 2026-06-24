@@ -11,6 +11,9 @@ import {
   type TranscriptHistoryEntry,
   type TranscriptSearchResult,
 } from '../lib/transcriptHistory';
+import { deleteVideoHistory } from '../lib/v2/videoHistoryApi';
+import { getAccessToken } from '../lib/v2/tokenStorage';
+import { isBackendV2Enabled } from '../lib/v2/config';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface TranscriptHistorySearchProps {
@@ -42,6 +45,11 @@ export default function TranscriptHistorySearch({
 
   const handleRemove = (videoId: string) => {
     setEntries(removeFromTranscriptHistory(videoId));
+    if (isBackendV2Enabled() && getAccessToken()) {
+      void deleteVideoHistory(videoId).catch((error) => {
+        console.warn('[video-history] Failed to delete from server:', error);
+      });
+    }
   };
 
   const handleClear = () => {
