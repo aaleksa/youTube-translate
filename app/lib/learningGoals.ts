@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'yoytube-learning-goals';
+import { userScopedStorageKey } from './v2/userStorage';
+
+const STORAGE_BASE_KEY = 'yoytube-learning-goals';
 const DEFAULT_DAILY_GOAL = 30;
 const DEFAULT_VOCABULARY_GOAL = 1000;
 
@@ -20,11 +22,15 @@ function defaultGoals(): LearningGoals {
 
 const LEVELS = new Set<LearningLevel>(['beginner', 'intermediate', 'advanced']);
 
+function learningGoalsStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
+
 export function getLearningGoals(): LearningGoals {
   if (typeof window === 'undefined') return defaultGoals();
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(learningGoalsStorageKey());
     if (!raw) return defaultGoals();
 
     const parsed = JSON.parse(raw) as Partial<LearningGoals>;
@@ -47,7 +53,7 @@ export function getLearningGoals(): LearningGoals {
 }
 
 function saveGoals(goals: LearningGoals): LearningGoals {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+  localStorage.setItem(learningGoalsStorageKey(), JSON.stringify(goals));
   return goals;
 }
 

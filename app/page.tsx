@@ -58,7 +58,7 @@ import PlaylistPanel, {
   type PlaylistSession,
 } from './components/PlaylistPanel';
 import ShadowingPanel from './components/ShadowingPanel';
-import { FLASHCARDS_CHANGED_EVENT } from './lib/dataRefresh';
+import { FLASHCARDS_CHANGED_EVENT, VIDEO_HISTORY_CHANGED_EVENT } from './lib/dataRefresh';
 import {
   enrichTranscriptData,
   mapRawCaptionIndexesToDisplayIndexes,
@@ -91,7 +91,8 @@ interface TranscriptResponse {
 
 export default function Home() {
   const { t } = useI18n();
-  const { ready: authReady } = useAuth();
+  const { user, ready: authReady } = useAuth();
+  const activeUserIdRef = useRef<string | null | undefined>(undefined);
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const videoSectionRef = useRef<HTMLDivElement>(null);
   const shadowingPanelRef = useRef<HTMLDivElement>(null);
@@ -133,6 +134,21 @@ export default function Home() {
   const currentPlaybackTimeRef = useRef(0);
   const wasPlayingRef = useRef(false);
   useEffect(() => {
+    if (!authReady) return;
+
+    const nextUserId = user?.userId ?? null;
+    if (
+      activeUserIdRef.current !== undefined &&
+      activeUserIdRef.current !== nextUserId
+    ) {
+      window.location.reload();
+      return;
+    }
+
+    activeUserIdRef.current = nextUserId;
+  }, [authReady, user?.userId]);
+
+  useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
   }, []);
@@ -141,12 +157,20 @@ export default function Home() {
     const handleFlashcardsChanged = () => {
       setFlashcardsRefreshKey((key) => key + 1);
     };
+    const handleVideoHistoryChanged = () => {
+      setHistoryRefreshKey((key) => key + 1);
+    };
 
     window.addEventListener(FLASHCARDS_CHANGED_EVENT, handleFlashcardsChanged);
+    window.addEventListener(VIDEO_HISTORY_CHANGED_EVENT, handleVideoHistoryChanged);
     return () => {
       window.removeEventListener(
         FLASHCARDS_CHANGED_EVENT,
         handleFlashcardsChanged
+      );
+      window.removeEventListener(
+        VIDEO_HISTORY_CHANGED_EVENT,
+        handleVideoHistoryChanged
       );
     };
   }, []);
@@ -648,6 +672,11 @@ export default function Home() {
     const cached = await getCachedTranscript(entry.videoId);
     if (cached) {
       loadVideoData(cached.data, cached.url || entry.url, { fromCache: true });
+      return;
+    }
+
+    if (!entry.text.trim() && entry.transcript.length === 0) {
+      await handleURLSubmit(entry.url);
       return;
     }
 
