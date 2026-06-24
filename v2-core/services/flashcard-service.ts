@@ -9,6 +9,7 @@ import type {
 import { isLocalBackend } from '../storage/config';
 import * as localFlashcards from '../storage/local-flashcard-store';
 import { validateCreateFlashcardInput, normalizeFlashcardWord } from '../validation/flashcard-input';
+import { normalizeFlashcardId } from '../validation/flashcard-id';
 import {
   parsePaginationParams,
   toPaginatedResponse,
@@ -157,12 +158,14 @@ export async function updateFlashcard(
   cardId: string,
   input: Partial<Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt'>>
 ): Promise<FlashcardRecord> {
+  const normalizedId = normalizeFlashcardId(cardId);
+
   if (isLocalBackend()) {
-    return localFlashcards.updateFlashcard(auth.userId, cardId, input);
+    return localFlashcards.updateFlashcard(auth.userId, normalizedId, input);
   }
 
   const pk = userPk(auth.userId);
-  const sk = cardSk(cardId);
+  const sk = cardSk(normalizedId);
   const existing = await getItem<FlashcardItem>(pk, sk);
 
   if (!existing || existing.userId !== auth.userId) {
@@ -184,14 +187,17 @@ export async function deleteFlashcard(
   auth: AuthenticatedContext,
   cardId: string
 ): Promise<{ success: true }> {
+  const normalizedId = normalizeFlashcardId(cardId);
+
   if (isLocalBackend()) {
-    return localFlashcards.deleteFlashcard(auth.userId, cardId);
+    return localFlashcards.deleteFlashcard(auth.userId, normalizedId);
   }
 
   const pk = userPk(auth.userId);
-  const sk = cardSk(cardId);
+  const sk = cardSk(normalizedId);
   const existing = await getItem<FlashcardItem>(pk, sk);
 
+  // Ownership: PK is scoped to auth.userId — another user's card is not found (404).
   if (!existing || existing.userId !== auth.userId) {
     throw new NotFoundError('Flashcard not found');
   }

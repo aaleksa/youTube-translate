@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { ApiError, ConflictError, NotFoundError } from '../errors';
 import type { CreateFlashcardInput, Flashcard, FlashcardRecord } from '../types';
-import { validateCreateFlashcardInput, normalizeFlashcardWord } from '../validation/flashcard-input';
+import { normalizeFlashcardId } from '../validation/flashcard-id';
+import {
+  normalizeFlashcardWord,
+  validateCreateFlashcardInput,
+} from '../validation/flashcard-input';
 import { getLocalDatabase } from './local-db';
 
 interface FlashcardMeta {
@@ -224,14 +228,15 @@ export function deleteFlashcard(
   userId: string,
   cardId: string
 ): { success: true } {
-  const existing = getRow(userId, cardId);
+  const normalizedId = normalizeFlashcardId(cardId);
+  const existing = getRow(userId, normalizedId);
   if (!existing) {
     throw new NotFoundError('Flashcard not found');
   }
 
   const db = getLocalDatabase();
   db.prepare(`DELETE FROM flashcards WHERE id = ? AND userId = ?`).run(
-    cardId,
+    normalizedId,
     userId
   );
 

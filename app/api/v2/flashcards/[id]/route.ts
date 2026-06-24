@@ -14,7 +14,7 @@ export async function PUT(
     const body = (await request.json()) as Partial<
       Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt'>
     >;
-    return flashcardService.updateFlashcard(auth, id, body);
+    return flashcardService.updateFlashcard(auth, decodeURIComponent(id), body);
   });
 }
 
@@ -26,6 +26,6 @@ export async function DELETE(
 
   return handleRoute(async () => {
     const auth = await requireAuth(request);
-    return flashcardService.deleteFlashcard(auth, id);
+    return flashcardService.deleteFlashcard(auth, decodeURIComponent(id));
   });
 }
