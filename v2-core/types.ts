@@ -100,6 +100,10 @@ export interface FlashcardRecord {
   nextReview?: number;
   knownCount?: number;
   unknownCount?: number;
+  againCount?: number;
+  hardCount?: number;
+  goodCount?: number;
+  easyCount?: number;
   createdAt: number;
   updatedAt?: number;
 }
@@ -117,6 +121,10 @@ export interface CreateFlashcardInput {
   nextReview?: number;
   knownCount?: number;
   unknownCount?: number;
+  againCount?: number;
+  hardCount?: number;
+  goodCount?: number;
+  easyCount?: number;
 }
 
 export interface FlashcardListParams {

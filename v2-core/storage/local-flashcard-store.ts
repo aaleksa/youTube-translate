@@ -17,6 +17,10 @@ interface FlashcardMeta {
   nextReview?: number;
   knownCount?: number;
   unknownCount?: number;
+  againCount?: number;
+  hardCount?: number;
+  goodCount?: number;
+  easyCount?: number;
   updatedAt?: number;
 }
 
@@ -65,6 +69,10 @@ function toRecord(row: FlashcardRow): FlashcardRecord {
     nextReview: meta.nextReview,
     knownCount: meta.knownCount,
     unknownCount: meta.unknownCount,
+    againCount: meta.againCount,
+    hardCount: meta.hardCount,
+    goodCount: meta.goodCount,
+    easyCount: meta.easyCount,
     updatedAt: meta.updatedAt,
   };
 }
@@ -147,6 +155,10 @@ export function createFlashcard(
     nextReview: validated.nextReview,
     knownCount: validated.knownCount ?? 0,
     unknownCount: validated.unknownCount ?? 0,
+    againCount: validated.againCount ?? 0,
+    hardCount: validated.hardCount ?? 0,
+    goodCount: validated.goodCount ?? 0,
+    easyCount: validated.easyCount ?? 0,
     updatedAt: now,
   };
 
@@ -196,6 +208,10 @@ export function updateFlashcard(
     nextReview: input.nextReview ?? meta.nextReview,
     knownCount: input.knownCount ?? meta.knownCount,
     unknownCount: input.unknownCount ?? meta.unknownCount,
+    againCount: input.againCount ?? meta.againCount,
+    hardCount: input.hardCount ?? meta.hardCount,
+    goodCount: input.goodCount ?? meta.goodCount,
+    easyCount: input.easyCount ?? meta.easyCount,
     updatedAt,
   };
 

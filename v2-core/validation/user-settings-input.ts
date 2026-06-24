@@ -119,8 +119,7 @@ function validateAutoPausePatch(
 
 function validatePositiveInteger(
   value: unknown,
-  field: string,
-  fallback: number
+  field: string
 ): number | undefined {
   if (value === undefined || value === null) {
     return undefined;
@@ -184,13 +183,11 @@ export function validateUpdateUserSettingsInput(
   const autoPause = validateAutoPausePatch(input.autoPause);
   const dailyCardGoal = validatePositiveInteger(
     input.dailyCardGoal,
-    'dailyCardGoal',
-    DEFAULT_DAILY_CARD_GOAL
+    'dailyCardGoal'
   );
   const vocabularyGoal = validatePositiveInteger(
     input.vocabularyGoal,
-    'vocabularyGoal',
-    DEFAULT_VOCABULARY_GOAL
+    'vocabularyGoal'
   );
   const learningLevel = validateLearningLevel(input.learningLevel);
 

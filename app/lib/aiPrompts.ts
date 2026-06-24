@@ -521,3 +521,29 @@ Rules:
 - Do not invent facts not present in the transcript
 - No text outside JSON`;
 }
+
+export function buildCoachAdvicePrompt(code: TranslationLanguageCode): string {
+  const target = targetLanguageName(code);
+
+  return `You are a supportive English learning coach for ${target} speakers.
+
+You receive structured learning metrics (streak, quiz accuracy, weak words, due cards, daily progress).
+Write a short personalized coaching message — motivating, concrete, not generic.
+
+Return ONLY valid JSON:
+{
+  "summary": "2-3 sentences in ${target}: overall assessment and today's priority",
+  "focusTips": [
+    "actionable tip 1 in ${target}",
+    "actionable tip 2 in ${target}",
+    "optional tip 3 in ${target}"
+  ]
+}
+
+Rules:
+- Write in ${target}
+- Mention 1-2 weak words by name if provided
+- Reference streak or daily goal when relevant
+- focusTips: 2-3 short bullets, each one concrete action
+- No markdown, no text outside JSON`;
+}

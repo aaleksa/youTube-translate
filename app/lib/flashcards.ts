@@ -138,6 +138,10 @@ export interface Flashcard {
   updatedAt?: number;
   knownCount: number;
   unknownCount: number;
+  againCount: number;
+  hardCount: number;
+  goodCount: number;
+  easyCount: number;
   quizCorrectCount: number;
   quizWrongCount: number;
   lastReviewedAt?: number;
@@ -317,6 +321,10 @@ function migrateFlashcard(card: Partial<Flashcard> & { deckId?: string }): Flash
     updatedAt: card.updatedAt,
     knownCount: card.knownCount ?? 0,
     unknownCount: card.unknownCount ?? 0,
+    againCount: card.againCount ?? 0,
+    hardCount: card.hardCount ?? 0,
+    goodCount: card.goodCount ?? 0,
+    easyCount: card.easyCount ?? 0,
     quizCorrectCount: card.quizCorrectCount ?? 0,
     quizWrongCount: card.quizWrongCount ?? 0,
     lastReviewedAt: card.lastReviewedAt,
@@ -440,6 +448,10 @@ function createFlashcard(
     createdAt: Date.now(),
     knownCount: 0,
     unknownCount: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
     quizCorrectCount: 0,
     quizWrongCount: 0,
     repetitions: 0,

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ApiError, NotFoundError } from '../errors';
+import { NotFoundError } from '../errors';
 import type {
   AuthenticatedContext,
   CreateDeckInput,

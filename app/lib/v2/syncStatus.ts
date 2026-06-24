@@ -46,6 +46,10 @@ export async function withPendingSync<T>(operation: () => Promise<T>): Promise<T
   }
 }
 
+export function markSyncCompleted(): void {
+  notify();
+}
+
 export function getSyncStatusState(online: boolean): SyncStatusState {
   if (!online) return 'offline';
   if (bootstrapActive) return 'syncing';

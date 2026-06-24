@@ -99,7 +99,7 @@ export async function callOpenAi(
 export async function callLmStudio(
   systemPrompt: string,
   input: string,
-  options?: { temperature?: number }
+  options?: { json?: boolean; temperature?: number }
 ): Promise<{ result: string; model: string; errorText?: string }> {
   const model = process.env.AI_MODEL ?? 'gpt-oss-20b-turboquant-mlx';
 

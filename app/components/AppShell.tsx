@@ -10,7 +10,9 @@ import PremiumStatus from './premium/PremiumStatus';
 import { useAuth } from './auth/AuthProvider';
 import InstallAppButton from './InstallAppButton';
 import OfflineStatusBanner from './OfflineStatusBanner';
+import SyncConflictBanner from './SyncConflictBanner';
 import SyncStatusBadge from './SyncStatusBadge';
+import PremiumCheckoutReturn from './premium/PremiumCheckoutReturn';
 import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
 
@@ -73,6 +75,8 @@ function AppShellChrome({ children }: { children: ReactNode }) {
         <ThemeToggle />
       </div>
       <OfflineStatusBanner />
+      <SyncConflictBanner />
+      <PremiumCheckoutReturn />
       <AuthPanel />
       <AuthenticatedMain>{children}</AuthenticatedMain>
     </>

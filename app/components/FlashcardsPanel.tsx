@@ -25,6 +25,11 @@ import {
   type FlashcardView,
 } from '../lib/flashcards';
 import {
+  getReviewRatingTotals,
+  hasReviewRatingStats,
+} from '../lib/flashcardSrs';
+import { getCardPronunciationScore } from '../lib/pronunciationAttempts';
+import {
   ensureFlashcardTranslations,
   getFlashcardTranslation,
 } from '../lib/flashcardTranslations';
@@ -727,6 +732,8 @@ export default function FlashcardsPanel({
                 card.deckIds.includes(deck.id)
               );
 
+              const pronunciationScore = getCardPronunciationScore(card);
+
               return (
                 <div
                   key={card.id}
@@ -799,11 +806,25 @@ export default function FlashcardsPanel({
                     {card.repetitions > 0 &&
                       ` · ${t('flashcards.repetitions', { count: card.repetitions })}`}
                   </p>
-                  {(card.knownCount > 0 || card.unknownCount > 0) && (
+                  {(hasReviewRatingStats(card) ||
+                    card.knownCount > 0 ||
+                    card.unknownCount > 0) && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      {t('flashcards.stats', {
-                        known: card.knownCount,
-                        unknown: card.unknownCount,
+                      {hasReviewRatingStats(card)
+                        ? (() => {
+                            const ratings = getReviewRatingTotals(card);
+                            return t('flashcards.ratingStats', ratings);
+                          })()
+                        : t('flashcards.stats', {
+                            known: card.knownCount,
+                            unknown: card.unknownCount,
+                          })}
+                    </p>
+                  )}
+                  {pronunciationScore !== null && (
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-2">
+                      {t('flashcards.pronunciationScore', {
+                        score: pronunciationScore,
                       })}
                     </p>
                   )}

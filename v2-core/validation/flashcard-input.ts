@@ -179,6 +179,10 @@ export function validateCreateFlashcardInput(
     nextReview: readOptionalNonNegativeNumber(input.nextReview, 'nextReview'),
     knownCount: readOptionalNonNegativeNumber(input.knownCount, 'knownCount'),
     unknownCount: readOptionalNonNegativeNumber(input.unknownCount, 'unknownCount'),
+    againCount: readOptionalNonNegativeNumber(input.againCount, 'againCount'),
+    hardCount: readOptionalNonNegativeNumber(input.hardCount, 'hardCount'),
+    goodCount: readOptionalNonNegativeNumber(input.goodCount, 'goodCount'),
+    easyCount: readOptionalNonNegativeNumber(input.easyCount, 'easyCount'),
   };
 }
 

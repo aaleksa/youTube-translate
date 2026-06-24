@@ -60,3 +60,15 @@ export function getBestScoreForPhrase(
   if (attempts.length === 0) return null;
   return Math.max(...attempts.map((attempt) => attempt.score));
 }
+
+export function getCardPronunciationScore(card: {
+  videoId?: string;
+  sentenceId?: string;
+  example: string;
+}): number | null {
+  if (!card.videoId || !card.example.trim()) {
+    return null;
+  }
+
+  return getBestScoreForPhrase(card.videoId, card.sentenceId, card.example);
+}

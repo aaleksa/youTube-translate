@@ -19,6 +19,12 @@ import {
   type SubtitleLanguage,
 } from '../../lib/youtubeSubtitles';
 
+interface TranscriptEntry {
+  text: string;
+  start?: string;
+  duration?: string;
+}
+
 export async function POST(request: NextRequest) {
   let tempDir: string | null = null;
   
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
     
     try {
       // First, try to download automatic captions
-      let command = `yt-dlp --write-auto-subs --sub-format "vtt/srt" --skip-download -o "${transcriptPath}" "${url}" 2>&1`;
+      const command = `yt-dlp --write-auto-subs --sub-format "vtt/srt" --skip-download -o "${transcriptPath}" "${url}" 2>&1`;
       
       try {
         const output = execSync(command, { 
@@ -95,12 +101,13 @@ export async function POST(request: NextRequest) {
           encoding: 'utf-8'
         }).toString();
         console.log('yt-dlp output:', output);
-      } catch (e: any) {
-        console.log('yt-dlp stderr/output:', e.stdout || e.stderr || e.message);
+      } catch (e: unknown) {
+        const err = e as { stdout?: string; stderr?: string; message?: string };
+        console.log('yt-dlp stderr/output:', err.stdout || err.stderr || err.message);
       }
       
       // Look for the downloaded subtitle file (any format)
-      let files = fs.readdirSync(tempDir);
+      const files = fs.readdirSync(tempDir);
       console.log('Files in temp dir:', files);
       
       // Try automatic captions first (contain 'en' and subtitle format)
@@ -155,7 +162,7 @@ export async function POST(request: NextRequest) {
       const subtitlePath = path.join(tempDir, subtitleFile);
       const subtitleContent = fs.readFileSync(subtitlePath, 'utf-8');
       
-      let transcript: any[] = [];
+      let transcript: TranscriptEntry[] = [];
       
       if (subtitleFile.endsWith('.json')) {
         // Parse JSON format
@@ -277,7 +284,7 @@ interface TranscriptSuccessOptions {
 
 function formatSuccessResponse(
   videoId: string,
-  transcript: any[],
+  transcript: TranscriptEntry[],
   options: TranscriptSuccessOptions = {}
 ) {
   const {
@@ -290,7 +297,7 @@ function formatSuccessResponse(
 
   const normalizedTranscript = ensureTranscriptTimestamps(
     transcript
-      .map((item: any) => ({
+      .map((item) => ({
         text: cleanTranscriptText(String(item.text || item)),
         start: item.start?.toString() || '',
         duration: item.duration?.toString() || '',
@@ -329,12 +336,6 @@ function formatSuccessResponse(
         ? { subtitleLanguageName: selectedLanguage }
         : {}),
   });
-}
-
-interface TranscriptEntry {
-  text: string;
-  start?: string;
-  duration?: string;
 }
 
 async function fetchTranscriptMethod1(videoId: string): Promise<TranscriptEntry[]> {
@@ -560,7 +561,7 @@ function parseXmlTranscript(xml: string): TranscriptEntry[] {
   }
 }
 
-async function fetchTranscriptFallback(videoId: string): Promise<any[]> {
+async function fetchTranscriptFallback(videoId: string): Promise<TranscriptEntry[]> {
   try {
     // Try method 1: Direct YouTube API with language parameter
     let transcript = await fetchTranscriptMethod1(videoId);

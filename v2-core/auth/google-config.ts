@@ -1,5 +1,3 @@
-import { ApiError } from '../errors';
-
 export function getGoogleClientId(): string {
   return (
     process.env.GOOGLE_CLIENT_ID?.trim() ||

@@ -1,4 +1,4 @@
-// @ts-nocheck — AWS Cognito; enable when STORAGE_BACKEND=dynamodb
+// @ts-nocheck — optional AWS Cognito JWT; excluded from tsc, lint ignored
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { UnauthorizedError } from '../errors';
 import type { AuthenticatedContext } from '../types';

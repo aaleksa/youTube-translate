@@ -456,7 +456,9 @@ Rule-based план навчання (без LLM):
 
 **Компонент:** `LearningCoachPanel` (вкладка Coach у Learning Hub)
 
-**Не реалізовано:** LLM-generated advice (`/api/coach-advice`), автоматична адаптація цілей
+**Реалізовано:** LLM-generated advice (`POST /api/coach-advice`, Premium + AI quota)
+
+**Не реалізовано:** автоматична адаптація цілей
 
 ---
 
@@ -621,7 +623,7 @@ npm start
 | Функція | Статус |
 |---------|--------|
 | Anki `.apkg` імпорт | ❌ |
-| LLM Coach advice (`/api/coach-advice`) | ❌ |
+| LLM Coach advice (`/api/coach-advice`) | ✅ Premium |
 | Автоматична адаптація цілей (TASK-036.5) | ❌ |
 | Окремий shadowing score на картці (окрім pronunciation) | ❌ |
 | Повний Anki SM-2 learning steps у хвилинах | частково (Again = 10 хв) |

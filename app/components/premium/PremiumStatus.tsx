@@ -43,16 +43,22 @@ export default function PremiumStatus() {
 
     let cancelled = false;
 
-    void getSubscriptionAccess()
-      .then((access) => {
-        if (!cancelled) setInfo(access);
-      })
-      .catch(() => {
-        if (!cancelled) setInfo(null);
-      });
+    const load = () => {
+      void getSubscriptionAccess()
+        .then((access) => {
+          if (!cancelled) setInfo(access);
+        })
+        .catch(() => {
+          if (!cancelled) setInfo(null);
+        });
+    };
+
+    load();
+    window.addEventListener('yoytube-premium-refresh', load);
 
     return () => {
       cancelled = true;
+      window.removeEventListener('yoytube-premium-refresh', load);
     };
   }, [enabled, ready, isAuthenticated]);
 

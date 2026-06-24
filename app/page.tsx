@@ -301,7 +301,7 @@ export default function Home() {
         mapRawCaptionIndexesToDisplayIndexes(videoData.displayLines, rawIndexes)
       );
     },
-    [videoData?.displayLines]
+    [videoData]
   );
 
   const handleSeek = useCallback((seconds: number, lineIndex: number) => {

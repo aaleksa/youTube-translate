@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getBearerToken } from './v2-core/auth/context';
+import { getBearerToken } from './v2-core/auth/bearer-token';
 import { verifyAccessToken } from './v2-core/auth/jwt-verifier';
 
 const PUBLIC_API_PREFIXES = [
