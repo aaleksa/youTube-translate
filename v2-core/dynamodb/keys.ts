@@ -12,6 +12,7 @@ export const ENTITY = {
   VOCAB_PROGRESS: 'VOCAB_PROGRESS',
   EXPLAIN_SENTENCE: 'EXPLAIN_SENTENCE',
   SELECTION_ANALYSIS: 'SELECTION_ANALYSIS',
+  USER_SETTINGS: 'USER_SETTINGS',
 } as const;
 
 export function userPk(userId: string): string {
@@ -64,4 +65,8 @@ export function explainSentenceSk(recordId: string): string {
 
 export function selectionAnalysisSk(recordId: string): string {
   return `${ENTITY.SELECTION_ANALYSIS}#${recordId}`;
+}
+
+export function userSettingsSk(): string {
+  return ENTITY.USER_SETTINGS;
 }
