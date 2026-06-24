@@ -3,13 +3,14 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import AppSettingsPanel from './AppSettingsPanel';
+import { AppProviders } from './AppProviders';
 import AuthButton from './auth/AuthButton';
 import AuthPanel from './auth/AuthPanel';
 import PremiumStatus from './premium/PremiumStatus';
-import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { useAuth } from './auth/AuthProvider';
 import InstallAppButton from './InstallAppButton';
-import { InterfaceLanguageProvider, useI18n } from './InterfaceLanguageProvider';
-import { ThemeProvider } from './ThemeProvider';
+import OfflineStatusBanner from './OfflineStatusBanner';
+import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
 
 function AuthenticatedMain({ children }: { children: ReactNode }) {
@@ -59,22 +60,27 @@ function AuthenticatedMain({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function AppShellChrome({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
+        <PremiumStatus />
+        <AuthButton />
+        <InstallAppButton />
+        <AppSettingsPanel />
+        <ThemeToggle />
+      </div>
+      <OfflineStatusBanner />
+      <AuthPanel />
+      <AuthenticatedMain>{children}</AuthenticatedMain>
+    </>
+  );
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider>
-      <InterfaceLanguageProvider>
-        <AuthProvider>
-          <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
-            <PremiumStatus />
-            <AuthButton />
-            <InstallAppButton />
-            <AppSettingsPanel />
-            <ThemeToggle />
-          </div>
-          <AuthPanel />
-          <AuthenticatedMain>{children}</AuthenticatedMain>
-        </AuthProvider>
-      </InterfaceLanguageProvider>
-    </ThemeProvider>
+    <AppProviders>
+      <AppShellChrome>{children}</AppShellChrome>
+    </AppProviders>
   );
 }

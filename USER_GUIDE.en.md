@@ -1,4 +1,4 @@
-# User Guide — YoyTube Translaty
+# User Guide — YouTube Translaty
 
 This document explains **how to use the app** to learn English from YouTube videos. Technical details for developers are in [README.md](./README.md).
 
@@ -8,7 +8,7 @@ This document explains **how to use the app** to learn English from YouTube vide
 
 ## What is this app?
 
-**YoyTube Translaty** helps you turn any YouTube video with subtitles into study material:
+**YouTube Translaty** helps you turn any YouTube video with subtitles into study material:
 
 - read and listen to the transcript in sync with the video;
 - find useful vocabulary with AI;
@@ -455,4 +455,4 @@ Clear site data in browser settings (Application / Storage → Clear site data).
 
 ---
 
-*This guide matches the current YoyTube Translaty feature set. If you spot an inaccuracy, please let the developer know.*
+*This guide matches the current YouTube Translaty feature set. If you spot an inaccuracy, please let the developer know.*

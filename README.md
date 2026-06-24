@@ -1,4 +1,4 @@
-# YoyTube Translaty
+# YouTube Translaty
 
 **Платформа для вивчення англійської мови з YouTube-відео** — екстракція субтитрів, AI-аналіз контенту, флешкартки, інтервальне повторення (SRS), квізи, shadowing, вимова та аналітика прогресу.
 
@@ -78,7 +78,7 @@
 | **SQLite** (`better-sqlite3`) | Локальна БД (`data/local.db`) при `STORAGE_BACKEND=local` |
 | **JWT** | Локальна авторизація (`LOCAL_AUTH_SECRET`) |
 | **v2-core/** | Спільна бізнес-логіка для Next.js API та AWS Lambda |
-| **middleware.ts** | Захист `/api/*` JWT-токеном (крім auth/status) |
+| **proxy.ts** | Захист `/api/*` JWT-токеном (крім auth/status/webhook); Next.js 16 `proxy` замість deprecated `middleware` |
 | **AWS SAM** (`infra/template.yaml`) | Шаблон для DynamoDB, Cognito, API Gateway, Lambda |
 
 Деталі: [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md), [docs/INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)
@@ -93,24 +93,40 @@
 
 ### Зберігання даних
 
-**Режим 1 — лише браузер (класичний PWA):** усі дані в **localStorage**:
+**Режим 1 — лише браузер (класичний PWA):** усі дані в **localStorage** під глобальними ключами (див. таблицю нижче).
 
-| Ключ | Дані |
-|------|------|
-| `yoytube-flashcards` | Флешкартки |
-| `yoytube-decks` | Колоди |
-| `yoytube-quiz-attempts` | Спроби квізів |
-| `yoytube-pronunciation-attempts` | Спроби вимови / shadowing |
-| `yoytube-daily-study-log` | Щоденний журнал навчання |
-| `yoytube-learning-goals` | Цілі (daily goal, vocabulary goal, рівень) |
-| `yoytube-learning-settings` | Налаштування навчання |
-| `yoytube-transcript-cache-*` | Кеш транскриптів |
-| `yoytube-transcript-history` | Історія переглянутих відео |
-| AI-кеші (`*-cache-*`) | Кеш результатів AI-аналізу по videoId |
+**Режим 2 — backend V2** (`NEXT_PUBLIC_BACKEND_V2_ENABLED=true`):
 
-**Режим 2 — backend V2** (`NEXT_PUBLIC_BACKEND_V2_ENABLED=true`): картки, закладки, історія відео, налаштування, підписки та AI-ліміти — у **SQLite** (`data/local.db`). Колоди та частина UI-стану лишаються в localStorage; при синхронізації `deckIds` об’єднуються між браузером і сервером.
+- Ключі користувацьких даних у браузері: **`baseKey::userId`** (наприклад `yoytube-flashcards::abc-123`). Без активного userId використовується `::__anonymous__`.
+- На сервері (SQLite `data/local.db`): flashcards, bookmarks, decks, video history, підписки, AI-ліміти.
+- Токени: `yoytube-v2-access-token`, `yoytube-v2-refresh-token`, `yoytube-v2-user` (кеш профілю для миттєвого UI).
 
-Токени авторизації: `localStorage` (`yoytube-access-token`, `yoytube-refresh-token`).
+| Базовий ключ | Дані | Синхронізація V2 |
+|--------------|------|------------------|
+| `yoytube-flashcards` | Флешкартки | ✅ двостороння (bootstrap + debounced push) |
+| `yoytube-decks` | Колоди | ✅ bootstrap merge + create/delete через API |
+| `yoytube-bookmarks` | Закладки в транскрипті | ✅ bootstrap + push |
+| `yoytube-transcript-history` | Історія відео | ✅ сервер авторитетний при bootstrap |
+| `yoytube-transcript-cache-*` | Кеш транскриптів (IndexedDB + prefix) | 🔶 лише локально, per-user prefix |
+| `yoytube-quiz-attempts` | Спроби квізів | 🔶 лише локально (scoped) |
+| `yoytube-pronunciation-attempts` | Спроби вимови / shadowing | 🔶 лише локально (scoped) |
+| `yoytube-daily-study-log` | Щоденний журнал | 🔶 лише локально (scoped) |
+| `yoytube-learning-goals` | Цілі навчання | 🔶 лише локально (scoped) |
+| `yoytube-learning-settings` | Налаштування навчання | 🔶 лише локально (scoped) |
+| AI-кеші (`*-cache-*`) | Результати AI по `videoId` | 🔶 глобальні (не per-user), потребують мережі для оновлення |
+
+**Перемикання акаунта:** при вході іншого користувача `clearUserScopedLocalData` очищає scoped-ключі попереднього userId; bootstrap завантажує дані нового акаунта з сервера.
+
+**Офлайн з V2 auth** (див. також §6.3):
+
+| Сценарій | Поведінка |
+|----------|-----------|
+| Вже увійшли, мережа зникла | Банер «Офлайн»; доступні локальні flashcards/decks/bookmarks/історія після останньої sync |
+| Спроба увійти офлайн | Неможливо без мережі (JWT з сервера) |
+| AI / субтитри / sync | Потребують мережі |
+| PWA shell | Serwist кешує статику; у dev SW вимкнено |
+
+**Файли:** `app/lib/v2/userStorage.ts`, `app/lib/v2/authBootstrap.ts`, `app/lib/v2/sync*.ts`
 
 ---
 
@@ -120,7 +136,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Браузер (PWA)                            │
 ├─────────────────────────────────────────────────────────────────┤
-│  AppShell (auth gate, theme, i18n)                              │
+│  AppShell (chrome) + AppProviders (auth, theme, i18n)           │
 │  page.tsx                                                       │
 │    ├── URLInput / VideoPlayer / TranscriptDisplay               │
 │    ├── QuickInfoAnalysis (AI-панелі)                            │
@@ -320,15 +336,30 @@
 
 ### 6.1. Авторизація та Premium (V2)
 
-**Файли:** `app/components/AppShell.tsx`, `app/components/auth/`, `middleware.ts`, `v2-core/premium/`
+**Файли:** `app/components/AppShell.tsx`, `app/components/AppProviders.tsx`, `app/components/auth/`, `proxy.ts`, `v2-core/premium/`
 
 | Функція | Опис |
 |---------|------|
 | Реєстрація / вхід | Email + пароль, JWT access/refresh tokens |
-| Захист UI | `AppShell` — контент лише для авторизованих (якщо V2 увімкнено) |
-| Захист API | `middleware.ts` — Bearer token на всі `/api/*` (крім auth/status) |
-| Premium | Плани free/premium, ліміти AI-запитів (`FREE_AI_DAILY_LIMIT`) |
-| Підписки | `GET /api/v2/subscription`, таблиця `user_subscriptions` |
+| Захист UI | `AppShell` → `AppProviders` + auth gate (контент лише для авторизованих, якщо V2 увімкнено) |
+| Захист API | `proxy.ts` — Bearer token на `/api/*` (крім auth/status/webhook) |
+| Premium | Плани free/premium, ліміти AI (`FREE_AI_DAILY_LIMIT`), Stripe Checkout (опційно) |
+| Підписки | `GET /api/v2/subscription`, `POST /api/v2/billing/checkout`, webhook |
+| Офлайн-банер | `OfflineStatusBanner` — попередження при `navigator.onLine === false` |
+
+### 6.3. User-scoped storage, sync та офлайн
+
+**Ізоляція даних:** `userScopedStorageKey(baseKey)` → `baseKey::userId`. IndexedDB-кеш транскриптів також має user prefix.
+
+**Bootstrap після входу** (`bootstrapUserData`):
+
+1. `prepareUserSession` — міграція legacy ключів, очистка scoped-даних попереднього userId
+2. `bootstrapFlashcardsSync` — merge local ↔ server
+3. Паралельно: bookmarks, decks, video history
+
+**Push на сервер:** flashcards (debounced), bookmarks, deck create/delete. Quiz, analytics, pronunciation, learning goals — **не синхронізуються**.
+
+**Dev / HMR:** провайдери винесено в `AppProviders.tsx`, щоб зменшити перезавантаження при hot reload. Якщо UI «зависає» на «Завантаження…» або auth не відповідає — **hard refresh** (`Cmd+Shift+R`).
 
 ---
 
@@ -460,7 +491,9 @@ yoytube-translaty/
 │   ├── page.tsx                    # Головна сторінка
 │   ├── layout.tsx                  # Root layout
 │   ├── components/
-│   │   ├── AppShell.tsx            # Auth gate, providers
+│   │   ├── AppShell.tsx            # Auth gate, chrome (theme/i18n у AppProviders)
+│   │   ├── AppProviders.tsx        # Theme, i18n, AuthProvider (стабільніший HMR)
+│   │   ├── OfflineStatusBanner.tsx # Офлайн-попередження для V2
 │   │   ├── auth/                   # AuthProvider, AuthPanel, AuthButton
 │   │   ├── FlashcardsPanel.tsx
 │   │   └── …
@@ -476,7 +509,7 @@ yoytube-translaty/
 │   └── template.yaml               # AWS SAM (DynamoDB, Cognito, Lambda)
 ├── data/
 │   └── local.db                    # SQLite (не в git)
-├── middleware.ts                   # JWT для /api/*
+├── proxy.ts                        # JWT для /api/* (Next.js 16)
 ├── docs/
 │   ├── LOCAL_BACKEND.md
 │   └── INFRASTRUCTURE.md
@@ -549,6 +582,10 @@ npm start
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
 | `npm run test:responsive` | Playwright responsive tests |
+| `npm run test:auth` | Auth API + UI E2E (ізоляція акаунтів, login/logout) |
+| `npm run test:auth-isolation` | Лише API-ізоляція (`account-isolation.spec.ts`) |
+| `npm run test:auth-ui` | Лише UI auth (`auth-flow`, multi-user, premium) |
+| `npm run db:cleanup-test-users` | Видалити тестові акаунти з `local.db` |
 | `npm run generate:icons` | Генерація PWA-іконок |
 | `npm run backend:build` | Збірка Lambda handler для AWS |
 | `npm run infra:validate` | Валідація SAM-шаблону (`infra/template.yaml`) |
@@ -581,7 +618,7 @@ npm start
 | Автоматична адаптація цілей (TASK-036.5) | ❌ |
 | Окремий shadowing score на картці (окрім pronunciation) | ❌ |
 | Повний Anki SM-2 learning steps у хвилинах | частково (Again = 10 хв) |
-| Серверна синхронізація / акаунти | ✅ частково (V2 local; flashcards sync; decks — localStorage) |
+| Серверна синхронізація / акаунти | ✅ частково (V2: flashcards, decks, bookmarks, video history) |
 | AWS production deploy | 🚧 шаблон готовий (`infra/template.yaml`), deploy не автоматизовано |
 | Google login (local V2) | ❌ (лише AWS Cognito) |
 | Детальна статистика сесії (Hard/Good/Easy окремо) | ❌ |
