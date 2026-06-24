@@ -31,6 +31,20 @@ export class ConflictError extends ApiError {
   }
 }
 
+export class ForbiddenError extends ApiError {
+  constructor(message = 'Forbidden', code = 'FORBIDDEN') {
+    super(message, 403, code);
+    this.name = 'ForbiddenError';
+  }
+}
+
+export class QuotaExceededError extends ApiError {
+  constructor(message = 'AI request limit reached') {
+    super(message, 429, 'AI_QUOTA_EXCEEDED');
+    this.name = 'QuotaExceededError';
+  }
+}
+
 export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }

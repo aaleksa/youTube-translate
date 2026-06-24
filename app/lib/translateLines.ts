@@ -1,4 +1,5 @@
 import type { TranslationLanguageCode } from './translationLanguages';
+import { fetchAiApi } from './aiApiClient';
 
 const CHUNK_SIZE = 40;
 
@@ -27,7 +28,7 @@ export async function translateAllLines(
     throwIfAborted(signal);
 
     const chunk = lines.slice(i, i + CHUNK_SIZE);
-    const response = await fetch('/api/translate-lines', {
+    const response = await fetchAiApi('/api/translate-lines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lines: chunk, targetLanguage }),

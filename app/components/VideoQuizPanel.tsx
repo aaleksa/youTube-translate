@@ -8,6 +8,7 @@ import {
   type QuizResult,
   type VideoQuiz,
 } from '../lib/videoQuiz';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface VideoQuizPanelProps {
@@ -101,7 +102,7 @@ export default function VideoQuizPanel({
     setPhase('idle');
 
     try {
-      const response = await fetch('/api/generate-quiz', {
+      const response = await fetchAiApi('/api/generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: transcriptText, taskLanguage }),

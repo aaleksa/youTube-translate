@@ -14,6 +14,7 @@ export const ENTITY = {
   SELECTION_ANALYSIS: 'SELECTION_ANALYSIS',
   USER_SETTINGS: 'USER_SETTINGS',
   USER_SUBSCRIPTION: 'USER_SUBSCRIPTION',
+  AI_USAGE: 'AI_USAGE',
 } as const;
 
 export function userPk(userId: string): string {
@@ -74,4 +75,8 @@ export function userSettingsSk(): string {
 
 export function userSubscriptionSk(): string {
   return ENTITY.USER_SUBSCRIPTION;
+}
+
+export function aiUsageSk(periodKey: string): string {
+  return `${ENTITY.AI_USAGE}#${periodKey}`;
 }

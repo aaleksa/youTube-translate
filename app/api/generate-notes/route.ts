@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { aiAccessErrorResponse, enforceAiAccess } from '../_lib/ai-access';
 import { buildNotesPrompt, buildPlaylistNotesPrompt } from '../../lib/aiPrompts';
 import { resolveTaskLanguage } from '../../lib/aiInterfaceLanguage';
 import { parseNotesResponse } from '../../lib/videoNotes';
@@ -34,6 +35,14 @@ function truncateText(text: string, maxChars: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await enforceAiAccess(request);
+  } catch (error) {
+    const accessError = aiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
+
   try {
     const { text, taskLanguage, interfaceLanguage, mode, playlistTitle } =
       await request.json();

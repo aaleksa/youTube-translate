@@ -1,5 +1,6 @@
 import { getSavedTranslationLanguage } from './languageSettings';
 import type { TranslationLanguageCode } from './translationLanguages';
+import { fetchAiApi } from './aiApiClient';
 import type { ParsedFlashcardItem } from './parseFlashcardList';
 import { parseFlashcardList } from './parseFlashcardList';
 
@@ -18,7 +19,7 @@ export async function enrichWordsForFlashcards(
   for (let index = 0; index < uniqueWords.length; index += BATCH_SIZE) {
     const batch = uniqueWords.slice(index, index + BATCH_SIZE);
 
-    const response = await fetch('/api/process-text', {
+    const response = await fetchAiApi('/api/process-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

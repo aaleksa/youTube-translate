@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getFlashcardWordSet } from '../lib/flashcards';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { getIdiomsCache, setIdiomsCache } from '../lib/idiomsCache';
 import type { IdiomItem } from '../lib/idioms';
 import {
@@ -245,7 +246,7 @@ export default function VocabularyAnalysis({
     setKeyVocabularyFromCache(false);
 
     try {
-      const response = await fetch('/api/find-key-vocabulary', {
+      const response = await fetchAiApi('/api/find-key-vocabulary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -299,7 +300,7 @@ export default function VocabularyAnalysis({
     setFrequentWordsFromCache(false);
 
     try {
-      const response = await fetch('/api/find-frequent-words', {
+      const response = await fetchAiApi('/api/find-frequent-words', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -353,7 +354,7 @@ export default function VocabularyAnalysis({
     setIdiomsFromCache(false);
 
     try {
-      const response = await fetch('/api/find-idioms', {
+      const response = await fetchAiApi('/api/find-idioms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -405,7 +406,7 @@ export default function VocabularyAnalysis({
     setPhrasalVerbsFromCache(false);
 
     try {
-      const response = await fetch('/api/find-phrasal-verbs', {
+      const response = await fetchAiApi('/api/find-phrasal-verbs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -459,7 +460,7 @@ export default function VocabularyAnalysis({
     setUsefulPhrasesFromCache(false);
 
     try {
-      const response = await fetch('/api/find-useful-phrases', {
+      const response = await fetchAiApi('/api/find-useful-phrases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -513,7 +514,7 @@ export default function VocabularyAnalysis({
     setCollocationsFromCache(false);
 
     try {
-      const response = await fetch('/api/find-collocations', {
+      const response = await fetchAiApi('/api/find-collocations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),
@@ -565,7 +566,7 @@ export default function VocabularyAnalysis({
     setSlangFromCache(false);
 
     try {
-      const response = await fetch('/api/find-slang', {
+      const response = await fetchAiApi('/api/find-slang', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, translationLanguage }),

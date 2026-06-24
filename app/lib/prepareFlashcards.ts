@@ -4,6 +4,7 @@ import { getFlashcardCandidatesFromResponse } from './flashcardCandidates';
 import { enrichWordsForFlashcards } from './enrichFlashcards';
 import type { ParsedFlashcardItem } from './parseFlashcardList';
 import { parseFlashcardList } from './parseFlashcardList';
+import { fetchAiApi } from './aiApiClient';
 
 function normalizeItem(item: {
   word?: string;
@@ -46,7 +47,7 @@ async function prepareViaAi(
   transcript: string,
   translationLanguage: TranslationLanguageCode
 ): Promise<ParsedFlashcardItem[]> {
-  const response = await fetch('/api/process-text', {
+  const response = await fetchAiApi('/api/process-text', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

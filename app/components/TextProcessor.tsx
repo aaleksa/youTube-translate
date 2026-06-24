@@ -5,6 +5,7 @@ import { getFlashcardWordSet } from '../lib/flashcards';
 import type { ParsedFlashcardItem } from '../lib/parseFlashcardList';
 import { prepareFlashcardsFromAiResponse } from '../lib/prepareFlashcards';
 import { useI18n } from './InterfaceLanguageProvider';
+import { fetchAiApi } from '../lib/aiApiClient';
 import VocabularyAnalysis from './VocabularyAnalysis';
 
 interface TextProcessorProps {
@@ -51,7 +52,7 @@ export default function TextProcessor({
     setError('');
 
     try {
-      const response = await fetch('/api/process-text', {
+      const response = await fetchAiApi('/api/process-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

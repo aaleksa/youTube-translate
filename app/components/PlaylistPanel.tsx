@@ -10,6 +10,7 @@ import {
   type PlaylistVideoWithTranscript,
 } from '../lib/playlistTranscript';
 import type { VideoNotesResult } from '../lib/videoNotes';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 export interface PlaylistLoadProgress {
@@ -122,7 +123,7 @@ export default function PlaylistPanel({
     setCombinedNotes(null);
 
     try {
-      const response = await fetch('/api/generate-notes', {
+      const response = await fetchAiApi('/api/generate-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

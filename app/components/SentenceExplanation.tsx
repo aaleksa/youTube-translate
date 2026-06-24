@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { shouldAutoPause } from '../lib/learningSettings';
 import type { SentenceExplanationResult } from '../lib/sentenceExplanation';
+import { fetchAiApi } from '../lib/aiApiClient';
 import { useI18n } from './InterfaceLanguageProvider';
 
 interface SentenceExplanationProps {
@@ -36,7 +37,7 @@ export default function SentenceExplanation({
     setResult(null);
 
     try {
-      const response = await fetch('/api/explain-sentence', {
+      const response = await fetchAiApi('/api/explain-sentence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, taskLanguage }),

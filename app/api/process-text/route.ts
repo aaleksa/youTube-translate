@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { aiAccessErrorResponse, enforceAiAccess } from '../_lib/ai-access';
 import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
 import {
   buildEnrichFlashcardsPrompt,
@@ -197,6 +198,14 @@ async function callLmStudio(
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await enforceAiAccess(request);
+  } catch (error) {
+    const accessError = aiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
+
   try {
     const { text, query, enrichWords, prepareFromResponse, translationLanguage } =
       await request.json();

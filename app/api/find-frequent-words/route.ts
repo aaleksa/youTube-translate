@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { aiAccessErrorResponse, enforceAiAccess } from '../_lib/ai-access';
 import { resolveTranslationLanguage } from '../../lib/aiInterfaceLanguage';
 import { buildFrequentWordsPrompt } from '../../lib/aiPrompts';
 import {
@@ -23,6 +24,14 @@ function sanitizeText(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    await enforceAiAccess(request);
+  } catch (error) {
+    const accessError = aiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
+
   try {
     const { text, translationLanguage } = await request.json();
     const lang = resolveTranslationLanguage(translationLanguage);
