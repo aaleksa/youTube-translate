@@ -22,7 +22,8 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 |----------------|------|
 | `data/local.db` | Користувачі, refresh tokens, flashcards, decks, progress |
 | `users` | Профіль (`id`, `email`, `name`, timestamps) + auth (`passwordHash`, `googleId`, …) |
-| `items` | Усі сутності V2 (картки, колоди тощо) |
+| `flashcards` | Картки (`id`, `userId`, `word`, `translation`, `example`, `videoId`, `createdAt`) |
+| `items` | Video history, playback, decks, progress (V2 single-table entities) |
 
 Файл `data/local.db` **не комітиться** в git (див. `.gitignore`).
 

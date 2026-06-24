@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto';
 import { NotFoundError } from '../errors';
 import type { AuthenticatedContext, FlashcardRecord } from '../types';
+import { isLocalBackend } from '../storage/config';
+import * as localFlashcards from '../storage/local-flashcard-store';
 import { cardSk, userPk } from '../dynamodb/keys';
 import {
   deleteItem,
@@ -10,6 +11,7 @@ import {
   updateItem,
   type DynamoItem,
 } from '../dynamodb/repository';
+import { randomUUID } from 'node:crypto';
 
 interface FlashcardItem extends DynamoItem {
   entityType: 'CARD';
@@ -52,6 +54,10 @@ function toRecord(item: FlashcardItem): FlashcardRecord {
 export async function listFlashcards(
   auth: AuthenticatedContext
 ): Promise<FlashcardRecord[]> {
+  if (isLocalBackend()) {
+    return localFlashcards.listFlashcards(auth.userId);
+  }
+
   const items = await queryByUser<FlashcardItem>(auth.userId, 'CARD#');
   return items.map(toRecord);
 }
@@ -60,6 +66,10 @@ export async function createFlashcard(
   auth: AuthenticatedContext,
   input: Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 ): Promise<FlashcardRecord> {
+  if (isLocalBackend()) {
+    return localFlashcards.createFlashcard(auth.userId, input);
+  }
+
   const now = Date.now();
   const id = randomUUID();
   const item: FlashcardItem = {
@@ -93,6 +103,10 @@ export async function updateFlashcard(
   cardId: string,
   input: Partial<Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt'>>
 ): Promise<FlashcardRecord> {
+  if (isLocalBackend()) {
+    return localFlashcards.updateFlashcard(auth.userId, cardId, input);
+  }
+
   const pk = userPk(auth.userId);
   const sk = cardSk(cardId);
   const existing = await getItem<FlashcardItem>(pk, sk);
@@ -116,6 +130,10 @@ export async function deleteFlashcard(
   auth: AuthenticatedContext,
   cardId: string
 ): Promise<{ success: true }> {
+  if (isLocalBackend()) {
+    return localFlashcards.deleteFlashcard(auth.userId, cardId);
+  }
+
   const pk = userPk(auth.userId);
   const sk = cardSk(cardId);
   const existing = await getItem<FlashcardItem>(pk, sk);
