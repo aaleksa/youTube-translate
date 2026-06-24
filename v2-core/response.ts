@@ -1,5 +1,6 @@
 import type { ApiResponse } from './types';
 import { isApiError } from './errors';
+import { logger } from './logging/logger';
 
 export function jsonResponse<T>(
   body: ApiResponse<T>,
@@ -31,6 +32,9 @@ export function handleServiceError(error: unknown): Response {
     );
   }
 
-  console.error('[v2-core]', error);
+  logger.error('Unhandled service error', {
+    code: 'INTERNAL',
+    error: error instanceof Error ? error.message : String(error),
+  });
   return jsonResponse(errorResponse('Internal server error', 'INTERNAL'), 500);
 }
