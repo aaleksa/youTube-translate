@@ -1,6 +1,11 @@
 import { startOfDay } from './flashcardSrs';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-daily-study';
+const STORAGE_BASE_KEY = 'yoytube-daily-study';
+
+function dailyStudyStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export interface DailyStudyEntry {
   date: string;
@@ -18,7 +23,7 @@ function readLog(): DailyStudyEntry[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(dailyStudyStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as DailyStudyEntry[];
     return Array.isArray(parsed) ? parsed : [];
@@ -32,7 +37,7 @@ function writeLog(entries: DailyStudyEntry[]): void {
     .filter((entry) => entry.date && entry.cardsReviewed > 0)
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 400);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+  localStorage.setItem(dailyStudyStorageKey(), JSON.stringify(trimmed));
 }
 
 export function recordDailyCardReview(count = 1, known = true): void {

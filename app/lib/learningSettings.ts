@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'yoytube-learning-settings';
+import { userScopedStorageKey } from './v2/userStorage';
+
+const STORAGE_BASE_KEY = 'yoytube-learning-settings';
 
 export type AutoPauseFeature =
   | 'explainSentence'
@@ -19,11 +21,15 @@ const DEFAULT_SETTINGS: LearningSettings = {
   },
 };
 
+function learningSettingsStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
+
 export function getLearningSettings(): LearningSettings {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(learningSettingsStorageKey());
     if (!raw) return DEFAULT_SETTINGS;
 
     const parsed = JSON.parse(raw) as Partial<LearningSettings>;
@@ -39,7 +45,7 @@ export function getLearningSettings(): LearningSettings {
 }
 
 export function saveLearningSettings(settings: LearningSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  localStorage.setItem(learningSettingsStorageKey(), JSON.stringify(settings));
 }
 
 export function updateAutoPause(

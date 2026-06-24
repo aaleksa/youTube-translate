@@ -1,6 +1,11 @@
 import type { Sentence } from './transcriptTypes';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-sentences';
+const STORAGE_BASE_KEY = 'yoytube-sentences';
+
+function sentencesStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export interface StoredSentence {
   id: string;
@@ -23,7 +28,7 @@ export function getSentences(): StoredSentence[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(sentencesStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<StoredSentence>[];
     if (!Array.isArray(parsed)) return [];
@@ -50,7 +55,7 @@ export function getSentences(): StoredSentence[] {
 }
 
 function saveSentences(sentences: StoredSentence[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sentences));
+  localStorage.setItem(sentencesStorageKey(), JSON.stringify(sentences));
 }
 
 export function getSentenceById(id: string): StoredSentence | undefined {

@@ -12,6 +12,7 @@ import {
   type TranscriptSearchResult,
 } from '../lib/transcriptHistory';
 import { deleteVideoHistory } from '../lib/v2/videoHistoryApi';
+import { VIDEO_HISTORY_CHANGED_EVENT } from '../lib/dataRefresh';
 import { getAccessToken } from '../lib/v2/tokenStorage';
 import { isBackendV2Enabled } from '../lib/v2/config';
 import { useI18n } from './InterfaceLanguageProvider';
@@ -35,6 +36,20 @@ export default function TranscriptHistorySearch({
   useEffect(() => {
     setEntries(getTranscriptHistory());
   }, [refreshKey]);
+
+  useEffect(() => {
+    const handleHistoryChanged = () => {
+      setEntries(getTranscriptHistory());
+    };
+
+    window.addEventListener(VIDEO_HISTORY_CHANGED_EVENT, handleHistoryChanged);
+    return () => {
+      window.removeEventListener(
+        VIDEO_HISTORY_CHANGED_EVENT,
+        handleHistoryChanged
+      );
+    };
+  }, []);
 
   const results = useMemo<TranscriptSearchResult[]>(() => {
     if (query.trim()) {

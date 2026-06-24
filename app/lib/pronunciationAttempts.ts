@@ -1,13 +1,18 @@
 import type { ShadowingAttempt } from './pronunciationTypes';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-pronunciation-attempts';
+const STORAGE_BASE_KEY = 'yoytube-pronunciation-attempts';
 const MAX_ATTEMPTS = 200;
+
+function pronunciationAttemptsStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export function getPronunciationAttempts(): ShadowingAttempt[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(pronunciationAttemptsStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as ShadowingAttempt[];
     return Array.isArray(parsed) ? parsed : [];
@@ -18,7 +23,7 @@ export function getPronunciationAttempts(): ShadowingAttempt[] {
 
 export function savePronunciationAttempt(attempt: ShadowingAttempt): ShadowingAttempt[] {
   const updated = [attempt, ...getPronunciationAttempts()].slice(0, MAX_ATTEMPTS);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  localStorage.setItem(pronunciationAttemptsStorageKey(), JSON.stringify(updated));
   return updated;
 }
 

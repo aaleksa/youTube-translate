@@ -11,6 +11,10 @@ const SERVER_ID_PATTERN =
 
 let bootstrapPromise: Promise<void> | null = null;
 
+export function resetBookmarksSyncBootstrap(): void {
+  bootstrapPromise = null;
+}
+
 function canSync(): boolean {
   return isBackendV2Enabled() && Boolean(getAccessToken());
 }

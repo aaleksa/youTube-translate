@@ -19,15 +19,21 @@ export interface TranscriptSearchResult {
   snippet?: string;
 }
 
-const STORAGE_KEY = 'yoytube-transcript-history';
+import { userScopedStorageKey } from './v2/userStorage';
+
+const STORAGE_BASE_KEY = 'yoytube-transcript-history';
 const MAX_ITEMS = 10;
 const SNIPPET_RADIUS = 60;
+
+function transcriptHistoryStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export function getTranscriptHistory(): TranscriptHistoryEntry[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(transcriptHistoryStorageKey());
     if (!raw) return [];
 
     const parsed = JSON.parse(raw) as TranscriptHistoryEntry[];
@@ -46,7 +52,7 @@ export function getTranscriptHistory(): TranscriptHistoryEntry[] {
 }
 
 function saveTranscriptHistory(entries: TranscriptHistoryEntry[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  localStorage.setItem(transcriptHistoryStorageKey(), JSON.stringify(entries));
 }
 
 export function saveToTranscriptHistory(
@@ -81,8 +87,23 @@ export function removeFromTranscriptHistory(videoId: string): TranscriptHistoryE
   return updated;
 }
 
+export function replaceTranscriptHistory(entries: TranscriptHistoryEntry[]): void {
+  const valid = entries
+    .filter(
+      (entry) =>
+        entry.videoId &&
+        entry.url &&
+        typeof entry.text === 'string' &&
+        Array.isArray(entry.transcript)
+    )
+    .sort((left, right) => right.savedAt - left.savedAt)
+    .slice(0, MAX_ITEMS);
+
+  saveTranscriptHistory(valid);
+}
+
 export function clearTranscriptHistory(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(transcriptHistoryStorageKey());
 }
 
 function buildTextSnippet(text: string, query: string): string {

@@ -13,6 +13,17 @@ const SYNC_DEBOUNCE_MS = 2000;
 const pendingUpdates = new Map<string, ReturnType<typeof setTimeout>>();
 let bootstrapPromise: Promise<void> | null = null;
 
+export function resetFlashcardsSyncBootstrap(): void {
+  bootstrapPromise = null;
+}
+
+export function cancelPendingFlashcardSyncs(): void {
+  for (const timer of pendingUpdates.values()) {
+    clearTimeout(timer);
+  }
+  pendingUpdates.clear();
+}
+
 function canSync(): boolean {
   return isBackendV2Enabled() && Boolean(getAccessToken());
 }

@@ -19,8 +19,13 @@ import type { Sentence } from './transcriptTypes';
 import { parseTimestampToSeconds } from './timestamp';
 import { getSavedTranslationLanguage } from './languageSettings';
 import type { TranslationLanguageCode } from './translationLanguages';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-flashcards';
+const STORAGE_BASE_KEY = 'yoytube-flashcards';
+
+function flashcardsStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 function queueFlashcardCreate(card: Flashcard): void {
   void import('./v2/syncFlashcards').then((mod) => mod.syncFlashcardCreate(card));
@@ -284,7 +289,7 @@ export function getFlashcards(): Flashcard[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(flashcardsStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<Flashcard>[];
     if (!Array.isArray(parsed)) return [];
@@ -314,7 +319,7 @@ export function getFlashcards(): Flashcard[] {
 }
 
 export function saveFlashcards(cards: Flashcard[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  localStorage.setItem(flashcardsStorageKey(), JSON.stringify(cards));
 }
 
 export function resolveSentenceForDraft(

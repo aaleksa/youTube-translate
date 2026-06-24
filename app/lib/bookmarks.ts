@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'yoytube-bookmarks';
+import { userScopedStorageKey } from './v2/userStorage';
+
+const STORAGE_BASE_KEY = 'yoytube-bookmarks';
 const DUPLICATE_TOLERANCE_SECONDS = 0.5;
 
 function queueBookmarkCreate(bookmark: Bookmark): void {
@@ -7,6 +9,10 @@ function queueBookmarkCreate(bookmark: Bookmark): void {
 
 function queueBookmarkDelete(id: string): void {
   void import('./v2/syncBookmarks').then((mod) => mod.syncBookmarkDelete(id));
+}
+
+function bookmarksStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
 }
 
 export interface Bookmark {
@@ -27,7 +33,7 @@ export function getBookmarks(): Bookmark[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(bookmarksStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Bookmark[];
     return Array.isArray(parsed) ? parsed : [];
@@ -43,7 +49,7 @@ export function getBookmarksForVideo(videoId: string): Bookmark[] {
 }
 
 function saveBookmarks(bookmarks: Bookmark[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+  localStorage.setItem(bookmarksStorageKey(), JSON.stringify(bookmarks));
 }
 
 export function replaceBookmarks(bookmarks: Bookmark[]): void {

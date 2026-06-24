@@ -3,8 +3,13 @@ import {
   getDueFlashcards,
   removeDeckFromCards,
 } from './flashcards';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-decks';
+const STORAGE_BASE_KEY = 'yoytube-decks';
+
+function decksStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export interface Deck {
   id: string;
@@ -22,7 +27,7 @@ export function getDecks(): Deck[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(decksStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<Deck>[];
     if (!Array.isArray(parsed)) return [];
@@ -41,7 +46,7 @@ export function getDecks(): Deck[] {
 }
 
 function saveDecks(decks: Deck[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+  localStorage.setItem(decksStorageKey(), JSON.stringify(decks));
 }
 
 export function createDeck(name: string): Deck | null {

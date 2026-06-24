@@ -9,6 +9,7 @@ import {
   isTranslationSuitableForReverseQuiz,
 } from './flashcardTranslations';
 import type { TranslationLanguageCode } from './translationLanguages';
+import { userScopedStorageKey } from './v2/userStorage';
 
 export type QuizQuestionType =
   | 'en-to-ua-mc'
@@ -46,9 +47,13 @@ export interface QuizAttempt {
   createdAt: number;
 }
 
-const ATTEMPTS_KEY = 'yoytube-quiz-attempts';
+const ATTEMPTS_BASE_KEY = 'yoytube-quiz-attempts';
 const DEFAULT_QUESTION_COUNT = 10;
 const MC_OPTION_COUNT = 4;
+
+function quizAttemptsStorageKey(): string {
+  return userScopedStorageKey(ATTEMPTS_BASE_KEY);
+}
 
 function shuffleArray<T>(items: T[]): T[] {
   const copy = [...items];
@@ -400,7 +405,7 @@ export function getQuizAttempts(): QuizAttempt[] {
   if (typeof window === 'undefined') return [];
 
   try {
-    const raw = localStorage.getItem(ATTEMPTS_KEY);
+    const raw = localStorage.getItem(quizAttemptsStorageKey());
     const parsed = raw ? (JSON.parse(raw) as QuizAttempt[]) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -411,7 +416,7 @@ export function getQuizAttempts(): QuizAttempt[] {
 export function restoreQuizAttempts(attempts: QuizAttempt[]): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(
-    ATTEMPTS_KEY,
+    quizAttemptsStorageKey(),
     JSON.stringify(Array.isArray(attempts) ? attempts.slice(0, 200) : [])
   );
 }
@@ -426,11 +431,11 @@ export function saveQuizAttempt(attempt: Omit<QuizAttempt, 'id' | 'createdAt'>):
   };
 
   try {
-    const raw = localStorage.getItem(ATTEMPTS_KEY);
+    const raw = localStorage.getItem(quizAttemptsStorageKey());
     const parsed = raw ? (JSON.parse(raw) as QuizAttempt[]) : [];
     const next = Array.isArray(parsed) ? [entry, ...parsed].slice(0, 200) : [entry];
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(next));
+    localStorage.setItem(quizAttemptsStorageKey(), JSON.stringify(next));
   } catch {
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([entry]));
+    localStorage.setItem(quizAttemptsStorageKey(), JSON.stringify([entry]));
   }
 }

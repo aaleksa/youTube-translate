@@ -10,13 +10,14 @@ import {
 } from 'react';
 import type { AuthUser } from '../../../v2-core/types';
 import * as authApi from '../../lib/v2/authApi';
-import { bootstrapBookmarksSync } from '../../lib/v2/syncBookmarks';
-import { bootstrapFlashcardsSync } from '../../lib/v2/syncFlashcards';
+import { bootstrapUserData } from '../../lib/v2/authBootstrap';
+import {
+  clearUserSession,
+} from '../../lib/v2/userSession';
 import { isBackendV2Enabled, isEmailVerificationEnabledOnClient } from '../../lib/v2/config';
 import {
   clearAuthStorage,
   getAccessToken,
-  getStoredUser,
 } from '../../lib/v2/tokenStorage';
 
 type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
@@ -46,10 +47,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function bootstrapUserData(): Promise<void> {
-  await Promise.all([bootstrapFlashcardsSync(), bootstrapBookmarksSync()]);
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const enabled = isBackendV2Enabled();
   const [ready, setReady] = useState(false);
@@ -77,9 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentUser = await authApi.getCurrentUser();
         setUser(currentUser);
-        await bootstrapUserData();
+        await bootstrapUserData(currentUser.userId);
       } catch {
         clearAuthStorage();
+        await clearUserSession();
         setUser(null);
       } finally {
         setReady(true);
@@ -109,7 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await authApi.login({ email, password });
       setUser(currentUser);
       setAuthView(null);
-      await bootstrapUserData();
+      const switched = await bootstrapUserData(currentUser.userId);
+      if (switched) window.location.reload();
       return;
     }
 
@@ -131,7 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.login({ email, password });
     setUser(currentUser);
     setAuthView(null);
-    await bootstrapUserData();
+    const switched = await bootstrapUserData(currentUser.userId);
+    if (switched) window.location.reload();
   }, []);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
@@ -139,12 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.loginWithGoogle(idToken);
     setUser(currentUser);
     setAuthView(null);
-    await bootstrapUserData();
+    const switched = await bootstrapUserData(currentUser.userId);
+    if (switched) window.location.reload();
   }, []);
 
   const logout = useCallback(async () => {
     setError(null);
     await authApi.logout();
+    await clearUserSession();
     setUser(null);
   }, []);
 
