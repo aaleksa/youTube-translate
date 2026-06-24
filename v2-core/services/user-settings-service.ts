@@ -7,6 +7,9 @@ import type {
 import { isLocalBackend } from '../storage/config';
 import * as localUserSettings from '../storage/local-user-settings-store';
 import {
+  DEFAULT_DAILY_CARD_GOAL,
+  DEFAULT_LEARNING_LEVEL,
+  DEFAULT_VOCABULARY_GOAL,
   defaultUserSettings,
   mergeUserSettings,
   parseAutoPause,
@@ -23,6 +26,9 @@ interface UserSettingsItem extends DynamoItem {
   theme: string;
   autoPause: UserSettingsAutoPause | string;
   bilingualMode: boolean;
+  dailyCardGoal?: number;
+  vocabularyGoal?: number;
+  learningLevel?: string;
 }
 
 function toRecord(item: UserSettingsItem): UserSettingsRecord {
@@ -31,6 +37,14 @@ function toRecord(item: UserSettingsItem): UserSettingsRecord {
       ? parseStoredAutoPause(item.autoPause)
       : parseAutoPause(item.autoPause);
 
+  const learningLevel = item.learningLevel;
+  const normalizedLevel =
+    learningLevel === 'beginner' ||
+    learningLevel === 'advanced' ||
+    learningLevel === 'intermediate'
+      ? learningLevel
+      : DEFAULT_LEARNING_LEVEL;
+
   return {
     userId: item.userId,
     interfaceLanguage: item.interfaceLanguage,
@@ -38,6 +52,9 @@ function toRecord(item: UserSettingsItem): UserSettingsRecord {
     theme: item.theme,
     autoPause,
     bilingualMode: Boolean(item.bilingualMode),
+    dailyCardGoal: item.dailyCardGoal ?? DEFAULT_DAILY_CARD_GOAL,
+    vocabularyGoal: item.vocabularyGoal ?? DEFAULT_VOCABULARY_GOAL,
+    learningLevel: normalizedLevel,
   };
 }
 
@@ -91,6 +108,9 @@ export async function updateUserSettings(
     theme: merged.theme,
     autoPause: merged.autoPause,
     bilingualMode: merged.bilingualMode,
+    dailyCardGoal: merged.dailyCardGoal,
+    vocabularyGoal: merged.vocabularyGoal,
+    learningLevel: merged.learningLevel,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };

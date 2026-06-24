@@ -8,9 +8,14 @@ import {
   isTranslationLanguage,
   type TranslationLanguageCode,
 } from './translationLanguages';
+import { userScopedStorageKey } from './v2/userStorage';
 
-const STORAGE_KEY = 'yoytube-language-settings';
+const STORAGE_BASE_KEY = 'yoytube-language-settings';
 const LEGACY_TRANSLATION_KEY = 'yoytube-translation-language';
+
+function languageSettingsStorageKey(): string {
+  return userScopedStorageKey(STORAGE_BASE_KEY);
+}
 
 export interface LanguageSettings {
   interfaceLanguage: InterfaceLanguage;
@@ -51,7 +56,7 @@ export function getLanguageSettings(): LanguageSettings {
   if (typeof window === 'undefined') return defaultSettings();
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(languageSettingsStorageKey());
     if (!raw) {
       return migrateLegacySettings();
     }
@@ -97,8 +102,12 @@ export function saveLanguageSettings(
   const current = getLanguageSettings();
   const next: LanguageSettings = { ...current, ...partial };
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(languageSettingsStorageKey(), JSON.stringify(next));
   localStorage.setItem(LEGACY_TRANSLATION_KEY, next.translationLanguage);
+
+  void import('./v2/syncUserSettings').then(({ scheduleUserSettingsSync }) => {
+    scheduleUserSettingsSync();
+  });
 
   return next;
 }

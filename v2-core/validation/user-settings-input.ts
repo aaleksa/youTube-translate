@@ -8,6 +8,11 @@ import type {
 export const DEFAULT_INTERFACE_LANGUAGE = 'uk';
 export const DEFAULT_TRANSLATION_LANGUAGE = 'uk';
 export const DEFAULT_THEME = 'light';
+export const DEFAULT_DAILY_CARD_GOAL = 30;
+export const DEFAULT_VOCABULARY_GOAL = 1000;
+export const DEFAULT_LEARNING_LEVEL = 'intermediate';
+
+const VALID_LEARNING_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
 
 const VALID_LANGUAGE_CODES = new Set([
   'uk',
@@ -40,6 +45,9 @@ export function defaultUserSettings(userId: string): UserSettingsRecord {
     theme: DEFAULT_THEME,
     autoPause: { ...DEFAULT_AUTO_PAUSE },
     bilingualMode: false,
+    dailyCardGoal: DEFAULT_DAILY_CARD_GOAL,
+    vocabularyGoal: DEFAULT_VOCABULARY_GOAL,
+    learningLevel: DEFAULT_LEARNING_LEVEL,
   };
 }
 
@@ -109,6 +117,54 @@ function validateAutoPausePatch(
   return Object.keys(patch).length > 0 ? patch : undefined;
 }
 
+function validatePositiveInteger(
+  value: unknown,
+  field: string,
+  fallback: number
+): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new ApiError(
+      `${field} must be a positive number`,
+      400,
+      'INVALID_USER_SETTINGS'
+    );
+  }
+
+  return Math.round(numeric);
+}
+
+function validateLearningLevel(
+  value: unknown
+): UserSettingsRecord['learningLevel'] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new ApiError(
+      'learningLevel must be a string',
+      400,
+      'INVALID_USER_SETTINGS'
+    );
+  }
+
+  const level = value.trim().toLowerCase();
+  if (!VALID_LEARNING_LEVELS.has(level)) {
+    throw new ApiError(
+      'learningLevel has an invalid value',
+      400,
+      'INVALID_USER_SETTINGS'
+    );
+  }
+
+  return level as UserSettingsRecord['learningLevel'];
+}
+
 export function validateUpdateUserSettingsInput(
   input: UpdateUserSettingsInput
 ): UpdateUserSettingsInput {
@@ -126,6 +182,17 @@ export function validateUpdateUserSettingsInput(
   );
   const theme = validateTheme(input.theme);
   const autoPause = validateAutoPausePatch(input.autoPause);
+  const dailyCardGoal = validatePositiveInteger(
+    input.dailyCardGoal,
+    'dailyCardGoal',
+    DEFAULT_DAILY_CARD_GOAL
+  );
+  const vocabularyGoal = validatePositiveInteger(
+    input.vocabularyGoal,
+    'vocabularyGoal',
+    DEFAULT_VOCABULARY_GOAL
+  );
+  const learningLevel = validateLearningLevel(input.learningLevel);
 
   let bilingualMode: boolean | undefined;
   if (input.bilingualMode !== undefined && input.bilingualMode !== null) {
@@ -144,7 +211,10 @@ export function validateUpdateUserSettingsInput(
     translationLanguage === undefined &&
     theme === undefined &&
     autoPause === undefined &&
-    bilingualMode === undefined
+    bilingualMode === undefined &&
+    dailyCardGoal === undefined &&
+    vocabularyGoal === undefined &&
+    learningLevel === undefined
   ) {
     throw new ApiError(
       'At least one setting field is required',
@@ -159,6 +229,9 @@ export function validateUpdateUserSettingsInput(
     ...(theme !== undefined ? { theme } : {}),
     ...(autoPause !== undefined ? { autoPause } : {}),
     ...(bilingualMode !== undefined ? { bilingualMode } : {}),
+    ...(dailyCardGoal !== undefined ? { dailyCardGoal } : {}),
+    ...(vocabularyGoal !== undefined ? { vocabularyGoal } : {}),
+    ...(learningLevel !== undefined ? { learningLevel } : {}),
   };
 }
 
@@ -177,6 +250,9 @@ export function mergeUserSettings(
       ...(patch.autoPause ?? {}),
     },
     bilingualMode: patch.bilingualMode ?? current.bilingualMode,
+    dailyCardGoal: patch.dailyCardGoal ?? current.dailyCardGoal,
+    vocabularyGoal: patch.vocabularyGoal ?? current.vocabularyGoal,
+    learningLevel: patch.learningLevel ?? current.learningLevel,
   };
 }
 

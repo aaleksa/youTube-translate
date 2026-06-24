@@ -14,6 +14,7 @@
     "test:auth-isolation": "playwright test tests/account-isolation.spec.ts --project=auth-isolation",
     "test:auth-ui": "playwright test --project=auth-ui",
     "test:auth": "playwright test --project=auth-isolation --project=auth-ui",
+    "test:settings-sync": "playwright test tests/settings-sync-api.spec.ts --project=auth-isolation",
     "db:cleanup-test-users": "node scripts/cleanup-test-users.mjs",
     "test:responsive:ui": "playwright test --ui",
     "backend:build": "cd backend && npm run build",

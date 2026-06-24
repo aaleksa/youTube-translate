@@ -50,3 +50,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
 
       - run: npm run test:auth
+
+      - run: npm run test:settings-sync

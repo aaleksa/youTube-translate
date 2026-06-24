@@ -25,7 +25,7 @@ export default defineConfig({
       testMatch: [
         '**/account-isolation.spec.ts',
         '**/billing-api.spec.ts',
-        '**/billing-api.spec.ts',
+        '**/settings-sync-api.spec.ts',
       ],
     },
     {

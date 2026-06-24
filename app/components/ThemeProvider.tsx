@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { SETTINGS_SYNCED_EVENT } from '../lib/v2/syncUserSettings';
 
 type Theme = 'light' | 'dark';
 
@@ -42,6 +43,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const syncThemeFromStorage = () => {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'dark' || stored === 'light') {
+        setTheme(stored);
+      }
+    };
+
+    window.addEventListener(SETTINGS_SYNCED_EVENT, syncThemeFromStorage);
+    return () => {
+      window.removeEventListener(SETTINGS_SYNCED_EVENT, syncThemeFromStorage);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!mounted) return;
     document.documentElement.classList.remove('light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -49,6 +64,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.add('light');
     }
     localStorage.setItem('theme', theme);
+    void import('../lib/v2/syncUserSettings').then(({ scheduleUserSettingsSync }) => {
+      scheduleUserSettingsSync();
+    });
   }, [theme, mounted]);
 
   const toggleTheme = () => {

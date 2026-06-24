@@ -46,6 +46,9 @@ export function getLearningSettings(): LearningSettings {
 
 export function saveLearningSettings(settings: LearningSettings): void {
   localStorage.setItem(learningSettingsStorageKey(), JSON.stringify(settings));
+  void import('./v2/syncUserSettings').then(({ scheduleUserSettingsSync }) => {
+    scheduleUserSettingsSync();
+  });
 }
 
 export function updateAutoPause(

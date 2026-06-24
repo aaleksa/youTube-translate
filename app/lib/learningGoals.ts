@@ -54,6 +54,9 @@ export function getLearningGoals(): LearningGoals {
 
 function saveGoals(goals: LearningGoals): LearningGoals {
   localStorage.setItem(learningGoalsStorageKey(), JSON.stringify(goals));
+  void import('./v2/syncUserSettings').then(({ scheduleUserSettingsSync }) => {
+    scheduleUserSettingsSync();
+  });
   return goals;
 }
 

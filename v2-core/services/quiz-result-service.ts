@@ -1,11 +1,17 @@
+import { randomUUID } from 'crypto';
 import type {
   AuthenticatedContext,
+  CreateQuizResultInput,
   QuizResultRecord,
 } from '../types';
 import { isLocalBackend } from '../storage/config';
 import * as localQuizResults from '../storage/local-quiz-result-store';
-import { normalizeQuizResultVideoIdFilter } from '../validation/quiz-result-input';
-import { queryByUser, type DynamoItem } from '../dynamodb/repository';
+import {
+  normalizeQuizResultVideoIdFilter,
+  validateCreateQuizResultInput,
+} from '../validation/quiz-result-input';
+import { quizResultSk, userPk } from '../dynamodb/keys';
+import { putItem, queryByUser, type DynamoItem } from '../dynamodb/repository';
 
 interface QuizResultItem extends DynamoItem {
   entityType: 'QUIZ_RESULT';
@@ -46,4 +52,33 @@ export async function listQuizResults(
   return records
     .filter((result) => result.videoId === filter)
     .sort((left, right) => right.createdAt - left.createdAt);
+}
+
+export async function createQuizResult(
+  auth: AuthenticatedContext,
+  input: CreateQuizResultInput
+): Promise<QuizResultRecord> {
+  const validated = validateCreateQuizResultInput(input);
+
+  if (isLocalBackend()) {
+    return localQuizResults.createQuizResult(auth.userId, validated);
+  }
+
+  const now = Date.now();
+  const id = randomUUID();
+  const item: QuizResultItem = {
+    PK: userPk(auth.userId),
+    SK: quizResultSk(id),
+    entityType: 'QUIZ_RESULT',
+    userId: auth.userId,
+    id,
+    videoId: validated.videoId,
+    score: validated.score,
+    totalQuestions: validated.totalQuestions,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await putItem(item);
+  return toRecord(item);
 }
