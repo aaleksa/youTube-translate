@@ -10,6 +10,7 @@ import {
 } from 'react';
 import type { AuthUser } from '../../../v2-core/types';
 import * as authApi from '../../lib/v2/authApi';
+import { bootstrapBookmarksSync } from '../../lib/v2/syncBookmarks';
 import { bootstrapFlashcardsSync } from '../../lib/v2/syncFlashcards';
 import { isBackendV2Enabled, isEmailVerificationEnabledOnClient } from '../../lib/v2/config';
 import {
@@ -45,6 +46,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function bootstrapUserData(): Promise<void> {
+  await Promise.all([bootstrapFlashcardsSync(), bootstrapBookmarksSync()]);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const enabled = isBackendV2Enabled();
   const [ready, setReady] = useState(false);
@@ -71,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentUser = await authApi.getCurrentUser();
         setUser(currentUser);
-        await bootstrapFlashcardsSync();
+        await bootstrapUserData();
       } catch {
         clearAuthStorage();
         setUser(storedUser);
@@ -103,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await authApi.login({ email, password });
       setUser(currentUser);
       setAuthView(null);
-      await bootstrapFlashcardsSync();
+      await bootstrapUserData();
       return;
     }
 
@@ -125,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.login({ email, password });
     setUser(currentUser);
     setAuthView(null);
-    await bootstrapFlashcardsSync();
+    await bootstrapUserData();
   }, []);
 
   const loginWithGoogle = useCallback(async (idToken: string) => {
@@ -133,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUser = await authApi.loginWithGoogle(idToken);
     setUser(currentUser);
     setAuthView(null);
-    await bootstrapFlashcardsSync();
+    await bootstrapUserData();
   }, []);
 
   const logout = useCallback(async () => {

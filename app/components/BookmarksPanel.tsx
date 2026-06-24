@@ -8,6 +8,7 @@ import {
   removeBookmark,
   type Bookmark,
 } from '../lib/bookmarks';
+import { BOOKMARKS_CHANGED_EVENT } from '../lib/dataRefresh';
 import {
   findActiveLineIndex,
   formatSecondsToTimestamp,
@@ -57,8 +58,12 @@ export default function BookmarksPanel({
   const [feedback, setFeedback] = useState('');
 
   useEffect(() => {
-    setBookmarks(getBookmarksForVideo(videoId));
+    const refresh = () => setBookmarks(getBookmarksForVideo(videoId));
+    refresh();
     setFeedback('');
+
+    window.addEventListener(BOOKMARKS_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(BOOKMARKS_CHANGED_EVENT, refresh);
   }, [videoId]);
 
   useEffect(() => {

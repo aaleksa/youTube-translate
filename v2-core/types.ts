@@ -190,5 +190,5 @@ export interface BookmarkRecord {
 export interface CreateBookmarkInput {
   videoId: string;
   timestamp: number;
-  note: string;
+  note?: string;
 }
