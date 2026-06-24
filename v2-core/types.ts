@@ -74,6 +74,17 @@ export interface ApiErrorResponse {
 
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
+/** Canonical flashcard row (TASK-BE-006). */
+export interface Flashcard {
+  id: string;
+  userId: string;
+  word: string;
+  translation: string;
+  example: string;
+  videoId: string | null;
+  createdAt: number;
+}
+
 export interface FlashcardRecord {
   id: string;
   userId: string;

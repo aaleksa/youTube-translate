@@ -22,6 +22,30 @@ import type { TranslationLanguageCode } from './translationLanguages';
 
 const STORAGE_KEY = 'yoytube-flashcards';
 
+function queueFlashcardCreate(card: Flashcard): void {
+  void import('./v2/syncFlashcards').then((mod) => mod.syncFlashcardCreate(card));
+}
+
+function queueFlashcardUpdate(card: Flashcard): void {
+  void import('./v2/syncFlashcards').then((mod) => mod.syncFlashcardUpdate(card));
+}
+
+function queueFlashcardReviewSync(card: Flashcard): void {
+  void import('./v2/syncFlashcards').then((mod) => mod.scheduleFlashcardSync(card));
+}
+
+function queueFlashcardUpdates(cards: Flashcard[]): void {
+  void import('./v2/syncFlashcards').then((mod) => {
+    for (const card of cards) {
+      mod.scheduleFlashcardSync(card);
+    }
+  });
+}
+
+function queueFlashcardDelete(id: string): void {
+  void import('./v2/syncFlashcards').then((mod) => mod.syncFlashcardDelete(id));
+}
+
 const DEFAULT_EASE = 2.5;
 
 export type EnrichmentStatus = 'pending' | 'completed' | 'failed';
@@ -415,6 +439,7 @@ export function recordFlashcardReview(
 
   cards[index] = result.card;
   saveFlashcards(cards);
+  queueFlashcardReviewSync(result.card);
   recordDailyCardReview(1, result.known);
   return result;
 }
@@ -565,6 +590,7 @@ export function removeDeckFromCards(deckId: string): Flashcard[] {
     deckIds: card.deckIds.filter((id) => id !== deckId),
   }));
   saveFlashcards(updated);
+  queueFlashcardUpdates(updated);
   return updated;
 }
 
@@ -584,6 +610,7 @@ export function toggleCardDeckMembership(
   const updated = { ...card, deckIds };
   cards[index] = updated;
   saveFlashcards(cards);
+  queueFlashcardUpdate(updated);
   return updated;
 }
 
@@ -597,6 +624,7 @@ export function addFlashcard(
   const card = createFlashcard(draft, 0, context, translationLanguage);
   const updated = [card, ...getFlashcards()];
   saveFlashcards(updated);
+  queueFlashcardCreate(card);
   return card;
 }
 
@@ -626,6 +654,9 @@ export function addFlashcards(
 
   if (added.length > 0) {
     saveFlashcards([...added, ...getFlashcards()]);
+    for (const card of added) {
+      queueFlashcardCreate(card);
+    }
   }
 
   return { added, skipped };
@@ -634,6 +665,7 @@ export function addFlashcards(
 export function removeFlashcard(id: string): Flashcard[] {
   const updated = getFlashcards().filter((card) => card.id !== id);
   saveFlashcards(updated);
+  queueFlashcardDelete(id);
   return updated;
 }
 
@@ -651,6 +683,7 @@ export function recordQuizAnswer(cardId: string, isCorrect: boolean): Flashcard 
 
   cards[index] = updated;
   saveFlashcards(cards);
+  queueFlashcardUpdate(updated);
   return updated;
 }
 
@@ -692,6 +725,7 @@ export function updateFlashcard(update: FlashcardUpdate): UpdateFlashcardResult 
 
   cards[index] = updated;
   saveFlashcards(cards);
+  queueFlashcardUpdate(updated);
   return { ok: true, card: updated };
 }
 
@@ -762,6 +796,7 @@ export function patchFlashcardEnrichment(
 
   cards[index] = updated;
   saveFlashcards(cards);
+  queueFlashcardUpdate(updated);
   return updated;
 }
 
@@ -957,11 +992,13 @@ export function importFlashcardRows(
   });
 
   saveFlashcards(cards);
+  void import('./v2/syncFlashcards').then((mod) => mod.bootstrapFlashcardsSync());
   return result;
 }
 
 export function restoreFlashcards(cards: Flashcard[]): void {
   saveFlashcards(cards);
+  void import('./v2/syncFlashcards').then((mod) => mod.bootstrapFlashcardsSync());
 }
 
 export function findExampleLine(

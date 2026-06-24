@@ -43,6 +43,20 @@ function ensureSchema(db: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(userId);
+
+    CREATE TABLE IF NOT EXISTS flashcards (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      word TEXT NOT NULL,
+      translation TEXT NOT NULL,
+      example TEXT NOT NULL DEFAULT '',
+      videoId TEXT,
+      createdAt INTEGER NOT NULL,
+      meta TEXT NOT NULL DEFAULT '{}'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_flashcards_user ON flashcards(userId);
+    CREATE INDEX IF NOT EXISTS idx_flashcards_user_video ON flashcards(userId, videoId);
   `);
 }
 
@@ -57,6 +71,7 @@ export function getLocalDatabase(): Database.Database {
   database.pragma('foreign_keys = ON');
   ensureSchema(database);
   migrateUsersTable(database);
+  migrateFlashcardsFromItems(database);
 
   return database;
 }
@@ -89,4 +104,53 @@ function migrateUsersTable(db: Database.Database): void {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id
       ON users(googleId) WHERE googleId IS NOT NULL
   `);
+}
+
+function migrateFlashcardsFromItems(db: Database.Database): void {
+  const legacyRows = db
+    .prepare(
+      `SELECT userId, SK, data, createdAt, updatedAt
+       FROM items
+       WHERE entityType = 'CARD' OR SK LIKE 'CARD#%'`
+    )
+    .all() as Array<{
+    userId: string;
+    SK: string;
+    data: string;
+    createdAt: number;
+    updatedAt: number | null;
+  }>;
+
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO flashcards (
+      id, userId, word, translation, example, videoId, createdAt, meta
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+
+  for (const row of legacyRows) {
+    const extra = JSON.parse(row.data) as Record<string, unknown>;
+    const id = String(extra.id ?? row.SK.replace(/^CARD#/, ''));
+    const meta = {
+      tags: extra.tags,
+      deckIds: extra.deckIds,
+      repetitions: extra.repetitions,
+      ease: extra.ease,
+      interval: extra.interval,
+      nextReview: extra.nextReview,
+      knownCount: extra.knownCount,
+      unknownCount: extra.unknownCount,
+      updatedAt: row.updatedAt ?? extra.updatedAt,
+    };
+
+    insert.run(
+      id,
+      row.userId,
+      String(extra.word ?? ''),
+      String(extra.translation ?? ''),
+      String(extra.example ?? ''),
+      extra.videoId ? String(extra.videoId) : null,
+      row.createdAt,
+      JSON.stringify(meta)
+    );
+  }
 }
