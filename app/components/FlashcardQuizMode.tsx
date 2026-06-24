@@ -27,6 +27,7 @@ interface FlashcardQuizModeProps extends FlashcardSentenceHandlers {
   format: QuizFormat;
   quizLanguage: TranslationLanguageCode;
   activeVideoId?: string;
+  sourceLabel?: string;
   onClose: () => void;
   onComplete: () => void;
 }
@@ -53,6 +54,7 @@ export default function FlashcardQuizMode({
   format,
   quizLanguage,
   activeVideoId,
+  sourceLabel,
   onListenSentence,
   onWatchExample,
   onRepeatSentence,
@@ -213,9 +215,16 @@ export default function FlashcardQuizMode({
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {t('quiz.progress', { current: currentIndex + 1, total })}
-        </p>
+        <div className="min-w-0">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t('quiz.progress', { current: currentIndex + 1, total })}
+          </p>
+          {sourceLabel && (
+            <p className="text-xs font-medium text-amber-800 dark:text-amber-200 truncate mt-0.5">
+              {sourceLabel}
+            </p>
+          )}
+        </div>
         <button
           type="button"
           onClick={onClose}

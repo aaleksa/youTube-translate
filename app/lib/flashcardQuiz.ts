@@ -92,15 +92,21 @@ export function getQuizPool(
       pool = getDueFlashcards(pool);
       break;
     case 'video':
-      if (options.videoId) {
+      if (!options.videoId) {
+        pool = [];
+      } else {
         pool = pool.filter((card) => card.videoId === options.videoId);
       }
       break;
-    case 'deck':
-      if (options.deckId) {
-        pool = pool.filter((card) => card.deckIds.includes(options.deckId!));
+    case 'deck': {
+      const deckId = options.deckId;
+      if (!deckId) {
+        pool = [];
+      } else {
+        pool = pool.filter((card) => card.deckIds.includes(deckId));
       }
       break;
+    }
     case 'weak':
       pool = getWeakFlashcards(pool);
       break;

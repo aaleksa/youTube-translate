@@ -40,6 +40,13 @@ function toV2Payload(
   };
 }
 
+function mergeDeckIds(
+  serverDeckIds?: string[],
+  localDeckIds?: string[]
+): string[] {
+  return [...new Set([...(localDeckIds ?? []), ...(serverDeckIds ?? [])])];
+}
+
 function mergeServerWithLocal(
   server: FlashcardRecord,
   local?: Flashcard
@@ -71,7 +78,7 @@ function mergeServerWithLocal(
     example: server.example ?? base.example,
     tags: server.tags ?? base.tags,
     videoId: server.videoId ?? base.videoId,
-    deckIds: server.deckIds ?? base.deckIds,
+    deckIds: mergeDeckIds(server.deckIds, base.deckIds),
     repetitions: server.repetitions ?? base.repetitions,
     ease: server.ease ?? base.ease,
     interval: server.interval ?? base.interval,
@@ -191,8 +198,20 @@ export async function bootstrapFlashcardsSync(): Promise<void> {
           })
         );
 
-      merged.push(mergeServerWithLocal(serverCard, local));
-      if (local) processedLocalIds.add(local.id);
+      const mergedCard = mergeServerWithLocal(serverCard, local);
+      merged.push(mergedCard);
+
+      if (local) {
+        processedLocalIds.add(local.id);
+        const serverDeckIds = serverCard.deckIds ?? [];
+        const localDeckIds = local.deckIds ?? [];
+        if (
+          localDeckIds.length > serverDeckIds.length ||
+          localDeckIds.some((id) => !serverDeckIds.includes(id))
+        ) {
+          scheduleFlashcardSync(mergedCard);
+        }
+      }
     }
 
     for (const localCard of localCards) {
