@@ -251,3 +251,25 @@ export interface CreateSelectionAnalysisInput {
   selectedText: string;
   analysis: string;
 }
+
+export type UserSettingsAutoPause = Record<
+  'explainSentence' | 'translateSelection' | 'grammarAnalysis' | 'quiz',
+  boolean
+>;
+
+export interface UserSettingsRecord {
+  userId: string;
+  interfaceLanguage: string;
+  translationLanguage: string;
+  theme: string;
+  autoPause: UserSettingsAutoPause;
+  bilingualMode: boolean;
+}
+
+export interface UpdateUserSettingsInput {
+  interfaceLanguage?: string;
+  translationLanguage?: string;
+  theme?: string;
+  autoPause?: Partial<UserSettingsAutoPause>;
+  bilingualMode?: boolean;
+}

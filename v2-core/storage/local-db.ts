@@ -120,6 +120,15 @@ function ensureSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_selection_analyses_user ON selection_analyses(userId);
     CREATE INDEX IF NOT EXISTS idx_selection_analyses_user_created
       ON selection_analyses(userId, createdAt);
+
+    CREATE TABLE IF NOT EXISTS user_settings (
+      userId TEXT PRIMARY KEY,
+      interfaceLanguage TEXT NOT NULL DEFAULT 'uk',
+      translationLanguage TEXT NOT NULL DEFAULT 'uk',
+      theme TEXT NOT NULL DEFAULT 'light',
+      autoPause TEXT NOT NULL DEFAULT '{}',
+      bilingualMode INTEGER NOT NULL DEFAULT 0
+    );
   `);
 }
 
