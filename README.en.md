@@ -112,8 +112,9 @@ Details: [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md), [docs/INFRASTRUCTURE.
 | `yoytube-transcript-cache-*` | Transcript cache (IndexedDB + prefix) | 🔶 local only, per-user prefix |
 | `yoytube-quiz-attempts` | Quiz attempts (per-question) | 🔶 local only (scoped) |
 | `yoytube-quiz-session-results` | Quiz session summaries | ✅ bootstrap + push after session |
-| `yoytube-pronunciation-attempts` | Pronunciation / shadowing | 🔶 local only (scoped) |
-| `yoytube-daily-study-log` | Daily study log | 🔶 local only (scoped) |
+| `yoytube-pronunciation-attempts` | Pronunciation / shadowing | ✅ bootstrap + push after attempt |
+| `yoytube-daily-study` | Daily study log | ✅ bootstrap + debounced push (today) |
+| `yoytube-playback-position-cache` | Video playback position | ✅ bootstrap + push while watching |
 | `yoytube-learning-goals` | Learning goals | ✅ via `/api/v2/settings` (bootstrap + debounced push) |
 | `yoytube-learning-settings` | Learning settings (auto-pause) | ✅ via `/api/v2/settings` |
 | `yoytube-language-settings` | Interface / translation languages | ✅ via `/api/v2/settings` |
@@ -360,9 +361,9 @@ Instead of simple Know / Don't know — **4-level grading** (Anki-like SM-2):
 
 1. `prepareUserSession` — legacy key migration, clear previous user scoped data
 2. `bootstrapFlashcardsSync` — merge local ↔ server
-3. In parallel: bookmarks, decks, video history, **user settings**, **quiz session results**
+3. In parallel: bookmarks, decks, video history, **user settings**, **quiz session results**, **daily study log**, **pronunciation attempts**, **playback positions**
 
-**Push to server:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`). Per-question quiz attempts, analytics, pronunciation, daily study log — **still local only**.
+**Push to server:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`), **daily study** (PUT `/daily-study-log`), **pronunciation** (POST `/pronunciation-attempts`), **playback position** (PUT `/playback-position`). Per-question quiz attempts, analytics — **still local only**.
 
 **Dev / HMR:** providers live in `AppProviders.tsx` for stabler hot reload. If the UI sticks on “Loading…” or auth looks wrong — **hard refresh** (`Cmd+Shift+R`).
 

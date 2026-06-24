@@ -4,11 +4,13 @@ import {
   type ApiEnvelope,
 } from './helpers/auth';
 import type {
+  DailyStudyLogRecord,
+  PronunciationAttemptRecord,
   QuizResultRecord,
   UserSettingsRecord,
 } from '../v2-core/types';
 
-test.describe('settings and quiz-results sync API', () => {
+test.describe('V2 sync API', () => {
   test('settings round-trip includes learning goals', async ({ request }) => {
     const email = `settings-sync-${Date.now()}@example.com`;
     const { tokens } = await signUpAndLogin(request, email);
@@ -70,5 +72,79 @@ test.describe('settings and quiz-results sync API', () => {
     expect(listB.ok()).toBeTruthy();
     const resultsB = (await listB.json()) as ApiEnvelope<QuizResultRecord[]>;
     expect(resultsB.data.some((item) => item.id === created.data.id)).toBeFalsy();
+  });
+
+  test('daily-study-log upsert merges counts by date', async ({ request }) => {
+    const email = `daily-study-${Date.now()}@example.com`;
+    const { tokens } = await signUpAndLogin(request, email);
+    const headers = { Authorization: `Bearer ${tokens.accessToken}` };
+
+    const first = await request.put('/api/v2/daily-study-log', {
+      headers,
+      data: {
+        date: '2026-06-08',
+        cardsReviewed: 5,
+        correctReviews: 4,
+        incorrectReviews: 1,
+      },
+    });
+    expect(first.ok()).toBeTruthy();
+
+    const second = await request.put('/api/v2/daily-study-log', {
+      headers,
+      data: {
+        date: '2026-06-08',
+        cardsReviewed: 8,
+        correctReviews: 6,
+        incorrectReviews: 2,
+      },
+    });
+    expect(second.ok()).toBeTruthy();
+    const merged = (await second.json()) as ApiEnvelope<DailyStudyLogRecord>;
+    expect(merged.data.cardsReviewed).toBe(8);
+    expect(merged.data.correctReviews).toBe(6);
+
+    const list = await request.get('/api/v2/daily-study-log', { headers });
+    expect(list.ok()).toBeTruthy();
+    const entries = (await list.json()) as ApiEnvelope<DailyStudyLogRecord[]>;
+    expect(entries.data.some((item) => item.date === '2026-06-08')).toBeTruthy();
+  });
+
+  test('pronunciation-attempts create and list are user-scoped', async ({
+    request,
+  }) => {
+    const emailA = `pron-a-${Date.now()}@example.com`;
+    const emailB = `pron-b-${Date.now()}@example.com`;
+    const userA = await signUpAndLogin(request, emailA);
+    const userB = await signUpAndLogin(request, emailB);
+
+    const createResponse = await request.post('/api/v2/pronunciation-attempts', {
+      headers: { Authorization: `Bearer ${userA.tokens.accessToken}` },
+      data: {
+        id: 'attempt_test_1',
+        videoId: 'dQw4w9WgXcQ',
+        expectedText: 'Hello world',
+        recognizedText: 'Hello word',
+        score: 82,
+        missedWords: ['world'],
+        extraWords: [],
+        durationMs: 1200,
+      },
+    });
+    expect(createResponse.status()).toBe(201);
+    const created = (await createResponse.json()) as ApiEnvelope<PronunciationAttemptRecord>;
+    expect(created.data.score).toBe(82);
+
+    const listA = await request.get('/api/v2/pronunciation-attempts', {
+      headers: { Authorization: `Bearer ${userA.tokens.accessToken}` },
+    });
+    const resultsA = (await listA.json()) as ApiEnvelope<PronunciationAttemptRecord[]>;
+    expect(resultsA.data.some((item) => item.id === 'attempt_test_1')).toBeTruthy();
+
+    const listB = await request.get('/api/v2/pronunciation-attempts', {
+      headers: { Authorization: `Bearer ${userB.tokens.accessToken}` },
+    });
+    const resultsB = (await listB.json()) as ApiEnvelope<PronunciationAttemptRecord[]>;
+    expect(resultsB.data.some((item) => item.id === 'attempt_test_1')).toBeFalsy();
   });
 });

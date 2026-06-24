@@ -1,6 +1,9 @@
 import { bootstrapBookmarksSync } from './syncBookmarks';
+import { bootstrapDailyStudySync } from './syncDailyStudyLog';
 import { bootstrapDecksSync } from './syncDecks';
 import { bootstrapFlashcardsSync } from './syncFlashcards';
+import { bootstrapPlaybackPositionsSync } from './syncPlaybackPosition';
+import { bootstrapPronunciationAttemptsSync } from './syncPronunciationAttempts';
 import { bootstrapQuizResultsSync } from './syncQuizResults';
 import { bootstrapUserSettingsSync } from './syncUserSettings';
 import { bootstrapVideoHistorySync } from './syncVideoHistory';
@@ -23,6 +26,9 @@ export async function bootstrapUserData(userId: string): Promise<void> {
       bootstrapVideoHistorySync(userId),
       bootstrapUserSettingsSync(userId),
       bootstrapQuizResultsSync(userId),
+      bootstrapDailyStudySync(userId),
+      bootstrapPronunciationAttemptsSync(userId),
+      bootstrapPlaybackPositionsSync(userId),
     ]);
     notifyFlashcardsChanged();
     notifyBookmarksChanged();

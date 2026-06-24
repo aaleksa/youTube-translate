@@ -112,8 +112,9 @@
 | `yoytube-transcript-cache-*` | Кеш транскриптів (IndexedDB + prefix) | 🔶 лише локально, per-user prefix |
 | `yoytube-quiz-attempts` | Спроби квізів (per-question) | 🔶 лише локально (scoped) |
 | `yoytube-quiz-session-results` | Підсумки сесій квізу | ✅ bootstrap + push після сесії |
-| `yoytube-pronunciation-attempts` | Спроби вимови / shadowing | 🔶 лише локально (scoped) |
-| `yoytube-daily-study-log` | Щоденний журнал | 🔶 лише локально (scoped) |
+| `yoytube-pronunciation-attempts` | Спроби вимови / shadowing | ✅ bootstrap + push після спроби |
+| `yoytube-daily-study` | Щоденний журнал | ✅ bootstrap + debounced push (сьогодні) |
+| `yoytube-playback-position-cache` | Позиція відтворення відео | ✅ bootstrap + push при перегляді |
 | `yoytube-learning-goals` | Цілі навчання | ✅ через `/api/v2/settings` (bootstrap + debounced push) |
 | `yoytube-learning-settings` | Налаштування навчання (auto-pause) | ✅ через `/api/v2/settings` |
 | `yoytube-language-settings` | Мови інтерфейсу / перекладу | ✅ через `/api/v2/settings` |
@@ -360,9 +361,9 @@
 
 1. `prepareUserSession` — міграція legacy ключів, очистка scoped-даних попереднього userId
 2. `bootstrapFlashcardsSync` — merge local ↔ server
-3. Паралельно: bookmarks, decks, video history, **user settings**, **quiz session results**
+3. Паралельно: bookmarks, decks, video history, **user settings**, **quiz session results**, **daily study log**, **pronunciation attempts**, **playback positions**
 
-**Push на сервер:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`). Per-question quiz attempts, analytics, pronunciation, daily study log — **ще лише локально**.
+**Push на сервер:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`), **daily study** (PUT `/daily-study-log`), **pronunciation** (POST `/pronunciation-attempts`), **playback position** (PUT `/playback-position`). Per-question quiz attempts, analytics — **ще лише локально**.
 
 **Dev / HMR:** провайдери винесено в `AppProviders.tsx`, щоб зменшити перезавантаження при hot reload. Якщо UI «зависає» на «Завантаження…» або auth не відповідає — **hard refresh** (`Cmd+Shift+R`).
 

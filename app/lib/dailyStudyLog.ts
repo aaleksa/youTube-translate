@@ -65,6 +65,9 @@ export function recordDailyCardReview(count = 1, known = true): void {
   }
 
   writeLog(log);
+  void import('./v2/syncDailyStudyLog').then(({ scheduleDailyStudySync }) => {
+    scheduleDailyStudySync();
+  });
 }
 
 export function getTodayStudyEntry(): DailyStudyEntry {
