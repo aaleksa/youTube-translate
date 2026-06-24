@@ -31,5 +31,15 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "public/sw.js"]
+  "exclude": [
+    "node_modules",
+    "public/sw.js",
+    "backend",
+    "v2-core/lambda",
+    "v2-core/dynamodb/client.ts",
+    "v2-core/dynamodb/dynamo-repository.ts",
+    "v2-core/services/cognito-auth-service.ts",
+    "v2-core/auth/cognito-jwt-verifier.ts",
+    "v2-core/auth/context.ts"
+  ]
 }
