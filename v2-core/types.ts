@@ -104,6 +104,21 @@ export interface FlashcardRecord {
   updatedAt?: number;
 }
 
+export interface CreateFlashcardInput {
+  word: string;
+  translation: string;
+  example?: string;
+  tags?: string[];
+  videoId?: string;
+  deckIds?: string[];
+  repetitions?: number;
+  ease?: number;
+  interval?: number;
+  nextReview?: number;
+  knownCount?: number;
+  unknownCount?: number;
+}
+
 export interface DeckRecord {
   id: string;
   userId: string;

@@ -1,4 +1,4 @@
-import { UnauthorizedError } from '../errors';
+import { ApiError, UnauthorizedError } from '../errors';
 import type { AuthenticatedContext } from '../types';
 import { getBearerToken } from '../auth/context';
 import { verifyAccessToken } from '../auth/jwt-verifier';
@@ -7,7 +7,7 @@ export async function parseJsonBody<T>(request: Request): Promise<T> {
   try {
     return (await request.json()) as T;
   } catch {
-    throw new UnauthorizedError('Invalid JSON body');
+    throw new ApiError('Invalid JSON body', 400, 'INVALID_JSON');
   }
 }
 

@@ -1,7 +1,12 @@
-import { NotFoundError } from '../errors';
-import type { AuthenticatedContext, FlashcardRecord } from '../types';
+import { ConflictError, NotFoundError } from '../errors';
+import type {
+  AuthenticatedContext,
+  CreateFlashcardInput,
+  FlashcardRecord,
+} from '../types';
 import { isLocalBackend } from '../storage/config';
 import * as localFlashcards from '../storage/local-flashcard-store';
+import { validateCreateFlashcardInput, normalizeFlashcardWord } from '../validation/flashcard-input';
 import { cardSk, userPk } from '../dynamodb/keys';
 import {
   deleteItem,
@@ -64,10 +69,22 @@ export async function listFlashcards(
 
 export async function createFlashcard(
   auth: AuthenticatedContext,
-  input: Omit<FlashcardRecord, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+  input: CreateFlashcardInput
 ): Promise<FlashcardRecord> {
+  const validated = validateCreateFlashcardInput(input);
+
   if (isLocalBackend()) {
-    return localFlashcards.createFlashcard(auth.userId, input);
+    return localFlashcards.createFlashcard(auth.userId, validated);
+  }
+
+  const existing = await queryByUser<FlashcardItem>(auth.userId, 'CARD#');
+  const normalized = normalizeFlashcardWord(validated.word);
+  if (
+    existing.some(
+      (card) => normalizeFlashcardWord(card.word) === normalized
+    )
+  ) {
+    throw new ConflictError('A flashcard with this word already exists');
   }
 
   const now = Date.now();
@@ -78,18 +95,18 @@ export async function createFlashcard(
     entityType: 'CARD',
     userId: auth.userId,
     id,
-    word: input.word,
-    translation: input.translation,
-    example: input.example,
-    tags: input.tags ?? [],
-    videoId: input.videoId,
-    deckIds: input.deckIds ?? [],
-    repetitions: input.repetitions ?? 0,
-    ease: input.ease ?? 2.5,
-    interval: input.interval ?? 0,
-    nextReview: input.nextReview,
-    knownCount: input.knownCount ?? 0,
-    unknownCount: input.unknownCount ?? 0,
+    word: validated.word,
+    translation: validated.translation,
+    example: validated.example,
+    tags: validated.tags ?? [],
+    videoId: validated.videoId,
+    deckIds: validated.deckIds ?? [],
+    repetitions: validated.repetitions ?? 0,
+    ease: validated.ease ?? 2.5,
+    interval: validated.interval ?? 0,
+    nextReview: validated.nextReview,
+    knownCount: validated.knownCount ?? 0,
+    unknownCount: validated.unknownCount ?? 0,
     createdAt: now,
     updatedAt: now,
   };
