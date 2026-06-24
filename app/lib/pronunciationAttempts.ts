@@ -24,7 +24,18 @@ export function getPronunciationAttempts(): ShadowingAttempt[] {
 export function savePronunciationAttempt(attempt: ShadowingAttempt): ShadowingAttempt[] {
   const updated = [attempt, ...getPronunciationAttempts()].slice(0, MAX_ATTEMPTS);
   localStorage.setItem(pronunciationAttemptsStorageKey(), JSON.stringify(updated));
+  void import('./v2/syncPronunciationAttempts').then(({ syncPronunciationAttempt }) => {
+    void syncPronunciationAttempt(attempt);
+  });
   return updated;
+}
+
+export function restorePronunciationAttempts(attempts: ShadowingAttempt[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(
+    pronunciationAttemptsStorageKey(),
+    JSON.stringify(Array.isArray(attempts) ? attempts.slice(0, MAX_ATTEMPTS) : [])
+  );
 }
 
 export function getAttemptsForPhrase(

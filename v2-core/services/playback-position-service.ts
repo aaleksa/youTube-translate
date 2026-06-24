@@ -5,7 +5,7 @@ import type {
   SavePlaybackPositionInput,
 } from '../types';
 import { playbackPositionSk, userPk } from '../dynamodb/keys';
-import { getItem, putItem, type DynamoItem } from '../dynamodb/repository';
+import { getItem, putItem, queryByUser, type DynamoItem } from '../dynamodb/repository';
 
 interface PlaybackPositionItem extends DynamoItem {
   entityType: 'PLAYBACK';
@@ -70,6 +70,16 @@ export async function getPlaybackPosition(
   }
 
   return toRecord(existing);
+}
+
+export async function listPlaybackPositions(
+  auth: AuthenticatedContext
+): Promise<PlaybackPositionRecord[]> {
+  const items = await queryByUser<PlaybackPositionItem>(auth.userId, 'PLAYBACK#');
+  return items
+    .map(toRecord)
+    .filter((record) => record.lastPosition >= MIN_POSITION_SECONDS)
+    .sort((left, right) => right.updatedAt - left.updatedAt);
 }
 
 export async function savePlaybackPosition(

@@ -15,6 +15,8 @@ import * as deckService from '../services/deck-service';
 import * as flashcardService from '../services/flashcard-service';
 import * as premiumAccessService from '../services/premium-access-service';
 import * as progressService from '../services/progress-service';
+import * as dailyStudyLogService from '../services/daily-study-log-service';
+import * as pronunciationAttemptService from '../services/pronunciation-attempt-service';
 import * as quizResultService from '../services/quiz-result-service';
 import * as reviewService from '../services/review-service';
 import * as userSettingsService from '../services/user-settings-service';
@@ -28,6 +30,7 @@ import type {
   CreateDeckInput,
   CreateFlashcardInput,
   CreateQuizResultInput,
+  CreatePronunciationAttemptInput,
   FlashcardRecord,
   ForgotPasswordInput,
   GoogleLoginInput,
@@ -37,6 +40,7 @@ import type {
   SavePlaybackPositionInput,
   SignUpInput,
   UpdateUserSettingsInput,
+  UpsertDailyStudyLogInput,
   UpsertVocabularyProgressInput,
 } from '../types';
 import { parsePaginationParams } from '../validation/pagination';
@@ -228,6 +232,33 @@ async function dispatchProtected(
     );
   }
 
+  if (method === 'GET' && path === '/daily-study-log') {
+    return ok(await dailyStudyLogService.listDailyStudyLog(auth));
+  }
+
+  if (method === 'PUT' && path === '/daily-study-log') {
+    return ok(
+      await dailyStudyLogService.upsertDailyStudyLog(
+        auth,
+        body as UpsertDailyStudyLogInput
+      )
+    );
+  }
+
+  if (method === 'GET' && path === '/pronunciation-attempts') {
+    return ok(await pronunciationAttemptService.listPronunciationAttempts(auth));
+  }
+
+  if (method === 'POST' && path === '/pronunciation-attempts') {
+    return ok(
+      await pronunciationAttemptService.createPronunciationAttempt(
+        auth,
+        body as CreatePronunciationAttemptInput
+      ),
+      201
+    );
+  }
+
   if (method === 'PUT' && path === '/vocabulary-progress') {
     return ok(
       await vocabularyProgressService.upsertVocabularyProgress(
@@ -289,6 +320,10 @@ async function dispatchProtected(
         body as SavePlaybackPositionInput
       )
     );
+  }
+
+  if (method === 'GET' && path === '/playback-positions') {
+    return ok(await playbackPositionService.listPlaybackPositions(auth));
   }
 
   const playbackMatch = path.match(/^\/playback-position\/([^/]+)$/);

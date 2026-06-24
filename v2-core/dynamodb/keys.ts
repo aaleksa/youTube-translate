@@ -9,6 +9,8 @@ export const ENTITY = {
   PLAYBACK: 'PLAYBACK',
   BOOKMARK: 'BOOKMARK',
   QUIZ_RESULT: 'QUIZ_RESULT',
+  DAILY_STUDY: 'DAILY_STUDY',
+  PRONUNCIATION: 'PRONUNCIATION',
   VOCAB_PROGRESS: 'VOCAB_PROGRESS',
   EXPLAIN_SENTENCE: 'EXPLAIN_SENTENCE',
   SELECTION_ANALYSIS: 'SELECTION_ANALYSIS',
@@ -55,6 +57,14 @@ export function bookmarkSk(bookmarkId: string): string {
 
 export function quizResultSk(resultId: string): string {
   return `${ENTITY.QUIZ_RESULT}#${resultId}`;
+}
+
+export function dailyStudySk(date: string): string {
+  return `${ENTITY.DAILY_STUDY}#${date}`;
+}
+
+export function pronunciationAttemptSk(attemptId: string): string {
+  return `${ENTITY.PRONUNCIATION}#${attemptId}`;
 }
 
 export function vocabularyProgressSk(progressId: string): string {

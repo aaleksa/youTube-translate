@@ -12,6 +12,10 @@ export async function getPlaybackPosition(
   );
 }
 
+export async function listPlaybackPositions(): Promise<PlaybackPositionRecord[]> {
+  return apiGet<PlaybackPositionRecord[]>('/playback-positions');
+}
+
 export async function savePlaybackPosition(
   input: SavePlaybackPositionInput
 ): Promise<PlaybackPositionRecord> {

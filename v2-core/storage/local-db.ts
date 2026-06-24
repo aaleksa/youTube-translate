@@ -83,6 +83,38 @@ function ensureSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_video ON quiz_results(userId, videoId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_created ON quiz_results(userId, createdAt);
 
+    CREATE TABLE IF NOT EXISTS daily_study_log (
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      cardsReviewed INTEGER NOT NULL DEFAULT 0,
+      correctReviews INTEGER NOT NULL DEFAULT 0,
+      incorrectReviews INTEGER NOT NULL DEFAULT 0,
+      updatedAt INTEGER NOT NULL,
+      PRIMARY KEY (userId, date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user ON daily_study_log(userId);
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user_date ON daily_study_log(userId, date);
+
+    CREATE TABLE IF NOT EXISTS pronunciation_attempts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      sentenceId TEXT,
+      phraseId TEXT,
+      expectedText TEXT NOT NULL,
+      recognizedText TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      missedWords TEXT NOT NULL DEFAULT '[]',
+      extraWords TEXT NOT NULL DEFAULT '[]',
+      durationMs INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user ON pronunciation_attempts(userId);
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user_created
+      ON pronunciation_attempts(userId, createdAt);
+
     CREATE TABLE IF NOT EXISTS vocabulary_progress (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,

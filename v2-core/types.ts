@@ -212,6 +212,51 @@ export interface CreateQuizResultInput {
   totalQuestions: number;
 }
 
+export interface DailyStudyLogRecord {
+  userId: string;
+  date: string;
+  cardsReviewed: number;
+  correctReviews: number;
+  incorrectReviews: number;
+  updatedAt: number;
+}
+
+export interface UpsertDailyStudyLogInput {
+  date: string;
+  cardsReviewed: number;
+  correctReviews?: number;
+  incorrectReviews?: number;
+}
+
+export interface PronunciationAttemptRecord {
+  id: string;
+  userId: string;
+  videoId: string;
+  sentenceId?: string;
+  phraseId?: string;
+  expectedText: string;
+  recognizedText: string;
+  score: number;
+  missedWords: string[];
+  extraWords: string[];
+  durationMs: number;
+  createdAt: number;
+}
+
+export interface CreatePronunciationAttemptInput {
+  id?: string;
+  videoId: string;
+  sentenceId?: string;
+  phraseId?: string;
+  expectedText: string;
+  recognizedText: string;
+  score: number;
+  missedWords?: string[];
+  extraWords?: string[];
+  durationMs: number;
+  createdAt?: number;
+}
+
 export interface VocabularyProgressRecord {
   id: string;
   userId: string;
