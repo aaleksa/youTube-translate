@@ -1,4 +1,5 @@
-import type { QuizResultRecord } from '../types';
+import { randomUUID } from 'crypto';
+import type { CreateQuizResultInput, QuizResultRecord } from '../types';
 import { getLocalDatabase } from './local-db';
 
 interface QuizResultRow {
@@ -43,4 +44,35 @@ export function listQuizResults(
         .all(userId) as QuizResultRow[]);
 
   return rows.map(toRecord);
+}
+
+export function createQuizResult(
+  userId: string,
+  input: CreateQuizResultInput
+): QuizResultRecord {
+  const id = randomUUID();
+  const createdAt = Date.now();
+  const db = getLocalDatabase();
+
+  db.prepare(
+    `INSERT INTO quiz_results (
+      id, userId, videoId, score, totalQuestions, createdAt
+    ) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    userId,
+    input.videoId,
+    input.score,
+    input.totalQuestions,
+    createdAt
+  );
+
+  return {
+    id,
+    userId,
+    videoId: input.videoId,
+    score: input.score,
+    totalQuestions: input.totalQuestions,
+    createdAt,
+  };
 }

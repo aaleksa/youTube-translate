@@ -110,11 +110,13 @@
 | `yoytube-bookmarks` | Закладки в транскрипті | ✅ bootstrap + push |
 | `yoytube-transcript-history` | Історія відео | ✅ сервер авторитетний при bootstrap |
 | `yoytube-transcript-cache-*` | Кеш транскриптів (IndexedDB + prefix) | 🔶 лише локально, per-user prefix |
-| `yoytube-quiz-attempts` | Спроби квізів | 🔶 лише локально (scoped) |
+| `yoytube-quiz-attempts` | Спроби квізів (per-question) | 🔶 лише локально (scoped) |
+| `yoytube-quiz-session-results` | Підсумки сесій квізу | ✅ bootstrap + push після сесії |
 | `yoytube-pronunciation-attempts` | Спроби вимови / shadowing | 🔶 лише локально (scoped) |
 | `yoytube-daily-study-log` | Щоденний журнал | 🔶 лише локально (scoped) |
-| `yoytube-learning-goals` | Цілі навчання | 🔶 лише локально (scoped) |
-| `yoytube-learning-settings` | Налаштування навчання | 🔶 лише локально (scoped) |
+| `yoytube-learning-goals` | Цілі навчання | ✅ через `/api/v2/settings` (bootstrap + debounced push) |
+| `yoytube-learning-settings` | Налаштування навчання (auto-pause) | ✅ через `/api/v2/settings` |
+| `yoytube-language-settings` | Мови інтерфейсу / перекладу | ✅ через `/api/v2/settings` |
 | AI-кеші (`*-cache-*`) | Результати AI по `videoId` | 🔶 per-user scoped локально, потребують мережі для оновлення |
 
 **Перемикання акаунта:** при вході іншого користувача `clearUserScopedLocalData` очищає scoped-ключі попереднього userId; bootstrap завантажує дані нового акаунта з сервера.
@@ -358,9 +360,9 @@
 
 1. `prepareUserSession` — міграція legacy ключів, очистка scoped-даних попереднього userId
 2. `bootstrapFlashcardsSync` — merge local ↔ server
-3. Паралельно: bookmarks, decks, video history
+3. Паралельно: bookmarks, decks, video history, **user settings**, **quiz session results**
 
-**Push на сервер:** flashcards (debounced), bookmarks, deck create/delete. Quiz, analytics, pronunciation, learning goals — **не синхронізуються**.
+**Push на сервер:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`). Per-question quiz attempts, analytics, pronunciation, daily study log — **ще лише локально**.
 
 **Dev / HMR:** провайдери винесено в `AppProviders.tsx`, щоб зменшити перезавантаження при hot reload. Якщо UI «зависає» на «Завантаження…» або auth не відповідає — **hard refresh** (`Cmd+Shift+R`).
 
@@ -584,6 +586,7 @@ npm start
 | `npm run build` | Production build + PWA icons |
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript (`tsc --noEmit`) |
 | `npm run test:responsive` | Playwright responsive tests |
 | `npm run test:auth` | Auth API + UI E2E (ізоляція акаунтів, login/logout) |
 | `npm run test:auth-isolation` | Лише API-ізоляція (`account-isolation.spec.ts`) |

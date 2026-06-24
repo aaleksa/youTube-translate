@@ -27,6 +27,7 @@ import type {
   CreateBookmarkInput,
   CreateDeckInput,
   CreateFlashcardInput,
+  CreateQuizResultInput,
   FlashcardRecord,
   ForgotPasswordInput,
   GoogleLoginInput,
@@ -214,6 +215,16 @@ async function dispatchProtected(
   if (method === 'GET' && path === '/quiz-results') {
     return ok(
       await quizResultService.listQuizResults(auth, query.get('videoId') ?? undefined)
+    );
+  }
+
+  if (method === 'POST' && path === '/quiz-results') {
+    return ok(
+      await quizResultService.createQuizResult(
+        auth,
+        body as CreateQuizResultInput
+      ),
+      201
     );
   }
 

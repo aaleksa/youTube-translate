@@ -161,9 +161,33 @@ export function getLocalDatabase(): Database.Database {
   database.pragma('foreign_keys = ON');
   ensureSchema(database);
   migrateUsersTable(database);
+  migrateUserSettingsTable(database);
   migrateFlashcardsFromItems(database);
 
   return database;
+}
+
+function migrateUserSettingsTable(db: Database.Database): void {
+  const columns = db
+    .prepare(`PRAGMA table_info(user_settings)`)
+    .all() as Array<{ name: string }>;
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has('dailyCardGoal')) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN dailyCardGoal INTEGER NOT NULL DEFAULT 30`
+    );
+  }
+  if (!names.has('vocabularyGoal')) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN vocabularyGoal INTEGER NOT NULL DEFAULT 1000`
+    );
+  }
+  if (!names.has('learningLevel')) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN learningLevel TEXT NOT NULL DEFAULT 'intermediate'`
+    );
+  }
 }
 
 function migrateUsersTable(db: Database.Database): void {

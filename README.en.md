@@ -110,11 +110,13 @@ Details: [docs/LOCAL_BACKEND.md](./docs/LOCAL_BACKEND.md), [docs/INFRASTRUCTURE.
 | `yoytube-bookmarks` | Transcript bookmarks | ✅ bootstrap + push |
 | `yoytube-transcript-history` | Video history | ✅ server authoritative on bootstrap |
 | `yoytube-transcript-cache-*` | Transcript cache (IndexedDB + prefix) | 🔶 local only, per-user prefix |
-| `yoytube-quiz-attempts` | Quiz attempts | 🔶 local only (scoped) |
+| `yoytube-quiz-attempts` | Quiz attempts (per-question) | 🔶 local only (scoped) |
+| `yoytube-quiz-session-results` | Quiz session summaries | ✅ bootstrap + push after session |
 | `yoytube-pronunciation-attempts` | Pronunciation / shadowing | 🔶 local only (scoped) |
 | `yoytube-daily-study-log` | Daily study log | 🔶 local only (scoped) |
-| `yoytube-learning-goals` | Learning goals | 🔶 local only (scoped) |
-| `yoytube-learning-settings` | Learning settings | 🔶 local only (scoped) |
+| `yoytube-learning-goals` | Learning goals | ✅ via `/api/v2/settings` (bootstrap + debounced push) |
+| `yoytube-learning-settings` | Learning settings (auto-pause) | ✅ via `/api/v2/settings` |
+| `yoytube-language-settings` | Interface / translation languages | ✅ via `/api/v2/settings` |
 | AI caches (`*-cache-*`) | AI results per `videoId` | 🔶 per-user scoped locally; network required to refresh |
 
 **Account switch:** signing in as another user runs `clearUserScopedLocalData` for the previous userId; bootstrap loads the new account from the server.
@@ -358,9 +360,9 @@ Instead of simple Know / Don't know — **4-level grading** (Anki-like SM-2):
 
 1. `prepareUserSession` — legacy key migration, clear previous user scoped data
 2. `bootstrapFlashcardsSync` — merge local ↔ server
-3. In parallel: bookmarks, decks, video history
+3. In parallel: bookmarks, decks, video history, **user settings**, **quiz session results**
 
-**Push to server:** flashcards (debounced), bookmarks, deck create/delete. Quiz, analytics, pronunciation, learning goals — **not synced**.
+**Push to server:** flashcards (debounced), bookmarks, deck create/delete, **learning settings/goals/languages/theme** (debounced PUT `/settings`), **quiz session summary** (POST `/quiz-results`). Per-question quiz attempts, analytics, pronunciation, daily study log — **still local only**.
 
 **Dev / HMR:** providers live in `AppProviders.tsx` for stabler hot reload. If the UI sticks on “Loading…” or auth looks wrong — **hard refresh** (`Cmd+Shift+R`).
 
@@ -626,6 +628,7 @@ npm start
 | `npm run build` | Production build + PWA icons |
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript (`tsc --noEmit`) |
 | `npm run test:responsive` | Playwright responsive tests |
 | `npm run test:auth` | Auth API + UI E2E (account isolation, login/logout) |
 | `npm run test:auth-isolation` | API isolation only (`account-isolation.spec.ts`) |

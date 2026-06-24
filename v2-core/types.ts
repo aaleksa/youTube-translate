@@ -268,7 +268,12 @@ export interface UserSettingsRecord {
   theme: string;
   autoPause: UserSettingsAutoPause;
   bilingualMode: boolean;
+  dailyCardGoal: number;
+  vocabularyGoal: number;
+  learningLevel: LearningLevel;
 }
+
+export type LearningLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export interface UpdateUserSettingsInput {
   interfaceLanguage?: string;
@@ -276,6 +281,9 @@ export interface UpdateUserSettingsInput {
   theme?: string;
   autoPause?: Partial<UserSettingsAutoPause>;
   bilingualMode?: boolean;
+  dailyCardGoal?: number;
+  vocabularyGoal?: number;
+  learningLevel?: LearningLevel;
 }
 
 export interface TodayReviewsResponse {

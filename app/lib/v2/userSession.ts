@@ -26,17 +26,24 @@ export async function resetSyncBootstrapState(): Promise<void> {
     { resetBookmarksSyncBootstrap },
     { resetDecksSyncBootstrap },
     { resetVideoHistorySyncBootstrap },
+    { resetUserSettingsSyncBootstrap, cancelPendingUserSettingsSync },
+    { resetQuizResultsSyncBootstrap },
   ] = await Promise.all([
     import('./syncFlashcards'),
     import('./syncBookmarks'),
     import('./syncDecks'),
     import('./syncVideoHistory'),
+    import('./syncUserSettings'),
+    import('./syncQuizResults'),
   ]);
   cancelPendingFlashcardSyncs();
+  cancelPendingUserSettingsSync();
   resetFlashcardsSyncBootstrap();
   resetBookmarksSyncBootstrap();
   resetDecksSyncBootstrap();
   resetVideoHistorySyncBootstrap();
+  resetUserSettingsSyncBootstrap();
+  resetQuizResultsSyncBootstrap();
 }
 
 export async function prepareUserSession(userId: string): Promise<void> {

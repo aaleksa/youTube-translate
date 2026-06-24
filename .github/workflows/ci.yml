@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+  auth-e2e:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      PLAYWRIGHT_PORT: '3001'
+      STORAGE_BACKEND: local
+      LOCAL_DB_PATH: data/local.db
+      LOCAL_AUTH_SECRET: ci-test-secret
+      NEXT_PUBLIC_BACKEND_V2_ENABLED: 'true'
+      NEXT_PUBLIC_STORAGE_BACKEND: local
+      OPENAI_API_KEY: sk-ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:auth
+
+      - run: npm run test:settings-sync

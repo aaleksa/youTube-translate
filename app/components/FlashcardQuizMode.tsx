@@ -10,6 +10,7 @@ import {
   type QuizQuestion,
   type QuizSessionSummary,
 } from '../lib/flashcardQuiz';
+import { syncQuizSessionResult } from '../lib/v2/syncQuizResults';
 import { recordQuizAnswer, type Flashcard } from '../lib/flashcards';
 import FlashcardExampleActions, {
   type FlashcardSentenceHandlers,
@@ -98,6 +99,16 @@ export default function FlashcardQuizMode({
   ) => {
     setSummary(summarizeQuizSession(nextResults));
   };
+
+  useEffect(() => {
+    if (!summary) return;
+
+    void syncQuizSessionResult({
+      videoId: activeVideoId ?? 'flashcards',
+      score: summary.correct,
+      totalQuestions: summary.total,
+    });
+  }, [summary, activeVideoId]);
 
   const submitAnswer = (userAnswer: string) => {
     if (!currentQuestion || answered) return;
