@@ -22,6 +22,7 @@ import VideoMetadataPanel from './components/VideoMetadataPanel';
 import VideoDifficultyPanel from './components/VideoDifficultyPanel';
 import BookmarksPanel from './components/BookmarksPanel';
 import { useI18n } from './components/InterfaceLanguageProvider';
+import { useAuth } from './components/auth/AuthProvider';
 import { saveTranscriptLanguage } from './lib/languageSettings';
 import {
   type FlashcardDraft,
@@ -31,6 +32,13 @@ import {
 import type { StoredSentence } from './lib/sentenceStore';
 import { getTranscriptHistory } from './lib/transcriptHistory';
 import { syncVideoHistoryToServer } from './lib/v2/syncVideoHistory';
+import {
+  flushPendingPlaybackPosition,
+  loadPlaybackPosition,
+  resetPlaybackPositionSyncState,
+  schedulePlaybackPositionSave,
+} from './lib/v2/syncPlaybackPosition';
+import { formatSecondsToTimestamp } from './lib/timestamp';
 import type { ParsedFlashcardItem } from './lib/parseFlashcardList';
 import { findActiveLineIndex } from './lib/timestamp';
 import {
@@ -82,6 +90,7 @@ interface TranscriptResponse {
 
 export default function Home() {
   const { t } = useI18n();
+  const { isAuthenticated } = useAuth();
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const videoSectionRef = useRef<HTMLDivElement>(null);
   const shadowingPanelRef = useRef<HTMLDivElement>(null);
@@ -119,6 +128,7 @@ export default function Home() {
     text: string;
     key: number;
   } | null>(null);
+  const resumePositionRef = useRef<number | null>(null);
   useEffect(() => {
     const saved = localStorage.getItem('yoytube-quick-info-open');
     if (saved !== null) setQuickInfoOpen(saved === 'true');
@@ -161,6 +171,63 @@ export default function Home() {
     );
     setActiveLineIndex((prev) => (prev === nextIndex ? prev : nextIndex));
   }, [currentPlaybackTime, videoData, visibleTranscript]);
+
+  useEffect(() => {
+    if (!videoData?.videoId || !isAuthenticated) {
+      resumePositionRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    void loadPlaybackPosition(videoData.videoId).then((position) => {
+      if (!cancelled && position > 0) {
+        resumePositionRef.current = position;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [videoData?.videoId, isAuthenticated]);
+
+  useEffect(() => {
+    if (!playerState.isReady || resumePositionRef.current == null) {
+      return;
+    }
+
+    const seconds = resumePositionRef.current;
+    resumePositionRef.current = null;
+    videoPlayerRef.current?.seekTo(seconds, false);
+    setCurrentPlaybackTime(seconds);
+    setCacheNotice(
+      t('playback.resumedFrom', {
+        time: formatSecondsToTimestamp(seconds),
+      })
+    );
+  }, [playerState.isReady, videoData?.videoId, t]);
+
+  useEffect(() => {
+    if (!videoData?.videoId || !isAuthenticated) {
+      return;
+    }
+
+    schedulePlaybackPositionSave(videoData.videoId, currentPlaybackTime);
+  }, [currentPlaybackTime, videoData?.videoId, isAuthenticated]);
+
+  useEffect(() => {
+    if (!videoData?.videoId || !isAuthenticated || playerState.isPlaying) {
+      return;
+    }
+
+    void flushPendingPlaybackPosition();
+  }, [playerState.isPlaying, videoData?.videoId, isAuthenticated]);
+
+  useEffect(() => {
+    return () => {
+      void flushPendingPlaybackPosition();
+      resetPlaybackPositionSyncState();
+    };
+  }, []);
 
   const handleShadowingCaptionIndexes = useCallback(
     (rawIndexes: number[]) => {

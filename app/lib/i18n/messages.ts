@@ -581,6 +581,7 @@ const uk = {
   'auth.errorGeneric': 'Помилка авторизації',
   'auth.googleSignIn': 'Увійти через Google',
   'auth.orContinueWithEmail': 'або email',
+  'playback.resumedFrom': 'Продовжено з {time}',
 } as const;
 
 const en: Record<keyof typeof uk, string> = {
@@ -1156,6 +1157,7 @@ const en: Record<keyof typeof uk, string> = {
   'auth.errorGeneric': 'Authentication error',
   'auth.googleSignIn': 'Sign in with Google',
   'auth.orContinueWithEmail': 'or email',
+  'playback.resumedFrom': 'Resumed from {time}',
 };
 
 const pl: Record<keyof typeof uk, string> = {

@@ -126,3 +126,15 @@ export interface RecordVideoHistoryInput {
   url: string;
   channel: string;
 }
+
+export interface PlaybackPositionRecord {
+  userId: string;
+  videoId: string;
+  lastPosition: number;
+  updatedAt: number;
+}
+
+export interface SavePlaybackPositionInput {
+  videoId: string;
+  lastPosition: number;
+}
