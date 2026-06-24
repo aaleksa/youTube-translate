@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getBearerToken } from './v2-core/auth/context';
-import { verifyAccessTokenEdge } from './v2-core/auth/edge-jwt';
+import { verifyAccessToken } from './v2-core/auth/jwt-verifier';
 
-const PUBLIC_API_PREFIXES = ['/api/v2/auth', '/api/v2/status', '/api/v2/billing/webhook'];
+const PUBLIC_API_PREFIXES = [
+  '/api/v2/auth',
+  '/api/v2/status',
+  '/api/v2/billing/webhook',
+];
 
 function isPublicApi(pathname: string): boolean {
   return PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -18,7 +22,7 @@ function isLocalAuthMode(): boolean {
   return configured !== 'dynamodb';
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (request.method === 'OPTIONS') {
     return NextResponse.next();
   }
@@ -35,7 +39,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     const token = getBearerToken(request.headers.get('authorization'));
-    await verifyAccessTokenEdge(token);
+    await verifyAccessToken(token);
     return NextResponse.next();
   } catch {
     return NextResponse.json(

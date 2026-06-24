@@ -21,7 +21,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 Коли `NEXT_PUBLIC_BACKEND_V2_ENABLED=true` (за замовчуванням):
 
 - **UI** — основний контент доступний лише після входу (`RequireAuth`).
-- **API** — усі `/api/*` маршрути (крім `/api/v2/auth/*` та `/api/v2/status`) вимагають `Authorization: Bearer <token>` (`middleware.ts`).
+- **API** — усі `/api/*` маршрути (крім `/api/v2/auth/*`, `/api/v2/status`, `/api/v2/billing/webhook`) вимагають `Authorization: Bearer <token>` (`proxy.ts`).
 
 Публічні endpoint'и: реєстрація, вхід, refresh, status.
 

@@ -577,6 +577,9 @@ const uk = {
   'auth.loginRequiredTitle': 'Увійдіть, щоб продовжити',
   'auth.loginRequiredHint':
     'Транскрипти, AI-аналіз і збережені дані доступні лише після входу в акаунт.',
+  'offline.v2Title': 'Офлайн — обмежений режим',
+  'offline.v2Hint':
+    'Показуються лише дані, збережені на цьому пристрої після останньої синхронізації. Вхід, AI, субтитри та синхронізація потребують мережі.',
   'auth.sessionExpired': 'Сесію завершено. Увійдіть знову.',
   'auth.logout': 'Вийти',
   'auth.signUp': 'Зареєструватися',
@@ -592,7 +595,7 @@ const uk = {
   'premium.aiUsage': 'AI: {used}/{limit}',
   'premium.aiUnlimited': 'AI: безліміт',
   'premium.upgrade': 'Upgrade',
-  'premium.upgradeTitle': 'YoyTube Premium',
+  'premium.upgradeTitle': 'YouTube Translator Premium',
   'premium.upgradeBody':
     'Більше AI-запитів на день для аналізу транскриптів, тестів і пояснень.',
   'premium.benefitUnlimitedAi': 'Щоденний ліміт AI без обмежень',
@@ -1175,6 +1178,9 @@ const en: Record<keyof typeof uk, string> = {
   'auth.loginRequiredTitle': 'Sign in to continue',
   'auth.loginRequiredHint':
     'Transcripts, AI tools, and saved data are available only after you sign in.',
+  'offline.v2Title': 'Offline — limited mode',
+  'offline.v2Hint':
+    'Only data synced on this device is available. Sign-in, AI, transcripts, and sync require a network connection.',
   'auth.sessionExpired': 'Your session has expired. Please sign in again.',
   'auth.logout': 'Sign out',
   'auth.signUp': 'Sign up',
@@ -1190,7 +1196,7 @@ const en: Record<keyof typeof uk, string> = {
   'premium.aiUsage': 'AI: {used}/{limit}',
   'premium.aiUnlimited': 'AI: unlimited',
   'premium.upgrade': 'Upgrade',
-  'premium.upgradeTitle': 'YoyTube Premium',
+  'premium.upgradeTitle': 'YouTube Translator Premium',
   'premium.upgradeBody':
     'More daily AI requests for transcript analysis, quizzes, and explanations.',
   'premium.benefitUnlimitedAi': 'Unlimited daily AI requests',

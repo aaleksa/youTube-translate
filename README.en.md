@@ -1,4 +1,4 @@
-# YoyTube Translaty
+# YouTube Translaty
 
 **A platform for learning English from YouTube videos** — subtitle extraction, AI content analysis, flashcards, spaced repetition (SRS), quizzes, shadowing, pronunciation practice, and progress analytics.
 
