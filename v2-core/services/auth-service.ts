@@ -122,5 +122,8 @@ export async function getCurrentUser(accessToken: string): Promise<AuthUser> {
   return {
     userId: context.userId,
     email: context.email,
+    name: '',
+    createdAt: 0,
+    updatedAt: 0,
   };
 }

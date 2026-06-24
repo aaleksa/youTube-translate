@@ -8,7 +8,19 @@ export interface AuthTokens {
 export interface AuthUser {
   userId: string;
   email: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
   emailVerified?: boolean;
+}
+
+/** Canonical user record stored in the users table. */
+export interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface SignUpInput {
