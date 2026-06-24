@@ -17,13 +17,19 @@ import { issueLocalTokens } from '../auth/local-jwt';
 interface LocalUserRow {
   id: string;
   email: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
   passwordHash: string;
   emailVerified: number;
   resetCode: string | null;
   resetCodeExpiresAt: number | null;
   googleId: string | null;
   authProvider: string;
-  createdAt: number;
+}
+
+function now(): number {
+  return Date.now();
 }
 
 function normalizeEmail(email: string): string {
@@ -97,6 +103,9 @@ function toAuthUser(user: LocalUserRow): AuthUser {
   return {
     userId: user.id,
     email: user.email,
+    name: user.name,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
     emailVerified: user.emailVerified === 1,
   };
 }
@@ -113,11 +122,13 @@ export async function signUp(input: SignUpInput): Promise<{ success: true }> {
 
   const db = getLocalDatabase();
   const passwordHash = await bcrypt.hash(input.password, 12);
+  const timestamp = now();
 
   db.prepare(
-    `INSERT INTO users (id, email, passwordHash, emailVerified, createdAt)
-     VALUES (?, ?, ?, 1, ?)`
-  ).run(randomUUID(), email, passwordHash, Date.now());
+    `INSERT INTO users (
+      id, email, name, createdAt, updatedAt, passwordHash, emailVerified
+    ) VALUES (?, ?, '', ?, ?, ?, 1)`
+  ).run(randomUUID(), email, timestamp, timestamp, passwordHash);
 
   return { success: true };
 }
@@ -165,19 +176,31 @@ export async function loginWithGoogle(input: {
 
     if (existingByEmail) {
       const authProvider = existingByEmail.passwordHash ? 'both' : 'google';
+      const displayName =
+        existingByEmail.name || profile.name?.trim() || '';
       db.prepare(
         `UPDATE users
-         SET googleId = ?, authProvider = ?, emailVerified = 1
+         SET googleId = ?, authProvider = ?, emailVerified = 1,
+             name = ?, updatedAt = ?
          WHERE id = ?`
-      ).run(profile.googleId, authProvider, existingByEmail.id);
+      ).run(
+        profile.googleId,
+        authProvider,
+        displayName,
+        now(),
+        existingByEmail.id
+      );
       user = getUserById(existingByEmail.id);
     } else {
       const id = randomUUID();
+      const timestamp = now();
+      const displayName = profile.name?.trim() || '';
       db.prepare(
         `INSERT INTO users (
-          id, email, passwordHash, emailVerified, googleId, authProvider, createdAt
-        ) VALUES (?, ?, '', 1, ?, 'google', ?)`
-      ).run(id, email, profile.googleId, Date.now());
+          id, email, name, createdAt, updatedAt,
+          passwordHash, emailVerified, googleId, authProvider
+        ) VALUES (?, ?, ?, ?, ?, '', 1, ?, 'google')`
+      ).run(id, email, displayName, timestamp, timestamp, profile.googleId);
       user = getUserById(id);
     }
   }
@@ -228,8 +251,8 @@ export async function forgotPassword(
   const db = getLocalDatabase();
 
   db.prepare(
-    `UPDATE users SET resetCode = ?, resetCodeExpiresAt = ? WHERE id = ?`
-  ).run(resetCode, expiresAt, user.id);
+    `UPDATE users SET resetCode = ?, resetCodeExpiresAt = ?, updatedAt = ? WHERE id = ?`
+  ).run(resetCode, expiresAt, now(), user.id);
 
   if (process.env.NODE_ENV !== 'production') {
     console.info(`[local-auth] Password reset code for ${user.email}: ${resetCode}`);
@@ -261,9 +284,9 @@ export async function confirmForgotPassword(
 
   db.prepare(
     `UPDATE users
-     SET passwordHash = ?, resetCode = NULL, resetCodeExpiresAt = NULL
+     SET passwordHash = ?, resetCode = NULL, resetCodeExpiresAt = NULL, updatedAt = ?
      WHERE id = ?`
-  ).run(passwordHash, user.id);
+  ).run(passwordHash, now(), user.id);
 
   revokeAllRefreshTokens(user.id);
   return { success: true };

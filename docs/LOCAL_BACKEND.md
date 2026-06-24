@@ -21,7 +21,7 @@ NEXT_PUBLIC_STORAGE_BACKEND=local
 | Файл / таблиця | Дані |
 |----------------|------|
 | `data/local.db` | Користувачі, refresh tokens, flashcards, decks, progress |
-| `users` | email + password hash (bcrypt) |
+| `users` | Профіль (`id`, `email`, `name`, timestamps) + auth (`passwordHash`, `googleId`, …) |
 | `items` | Усі сутності V2 (картки, колоди тощо) |
 
 Файл `data/local.db` **не комітиться** в git (див. `.gitignore`).
@@ -79,6 +79,6 @@ DYNAMODB_TABLE_NAME=yoytube-main
 ```bash
 sqlite3 data/local.db
 .tables
-SELECT email, createdAt FROM users;
+SELECT id, email, name, createdAt, updatedAt FROM users;
 .quit
 ```

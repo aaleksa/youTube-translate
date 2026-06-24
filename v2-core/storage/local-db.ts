@@ -23,14 +23,18 @@ function ensureSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
       passwordHash TEXT NOT NULL DEFAULT '',
       emailVerified INTEGER NOT NULL DEFAULT 1,
       resetCode TEXT,
       resetCodeExpiresAt INTEGER,
       googleId TEXT,
-      authProvider TEXT NOT NULL DEFAULT 'local',
-      createdAt INTEGER NOT NULL
+      authProvider TEXT NOT NULL DEFAULT 'local'
     );
+
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
     CREATE TABLE IF NOT EXISTS refresh_tokens (
       token TEXT PRIMARY KEY,
@@ -71,8 +75,17 @@ function migrateUsersTable(db: Database.Database): void {
       `ALTER TABLE users ADD COLUMN authProvider TEXT NOT NULL DEFAULT 'local'`
     );
   }
+  if (!names.has('name')) {
+    db.exec(`ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''`);
+  }
+  if (!names.has('updatedAt')) {
+    db.exec(`ALTER TABLE users ADD COLUMN updatedAt INTEGER`);
+    db.exec(`UPDATE users SET updatedAt = createdAt WHERE updatedAt IS NULL`);
+  }
 
   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id
       ON users(googleId) WHERE googleId IS NOT NULL
   `);
