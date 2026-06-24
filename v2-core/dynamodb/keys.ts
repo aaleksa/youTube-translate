@@ -5,6 +5,7 @@ export const ENTITY = {
   PROFILE: 'PROFILE',
   PROGRESS: 'PROGRESS',
   REVIEW: 'REVIEW',
+  VIDEO: 'VIDEO',
 } as const;
 
 export function userPk(userId: string): string {
@@ -29,4 +30,8 @@ export function progressSk(): string {
 
 export function reviewSk(reviewId: string): string {
   return `${ENTITY.REVIEW}#${reviewId}`;
+}
+
+export function videoHistorySk(videoId: string): string {
+  return `${ENTITY.VIDEO}#${videoId}`;
 }

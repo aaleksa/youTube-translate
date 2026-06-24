@@ -110,3 +110,19 @@ export interface UserProgressRecord {
   lastStudiedAt?: number;
   updatedAt: number;
 }
+
+export interface VideoHistoryRecord {
+  userId: string;
+  videoId: string;
+  title: string;
+  url: string;
+  channel: string;
+  createdAt: number;
+}
+
+export interface RecordVideoHistoryInput {
+  videoId: string;
+  title: string;
+  url: string;
+  channel: string;
+}
