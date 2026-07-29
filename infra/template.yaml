@@ -130,6 +130,14 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        BillingWebhookRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v2/billing/webhook
+            Method: POST
+            Auth:
+              Authorizer: NONE
         ProtectedRoutes:
           Type: HttpApi
           Properties:

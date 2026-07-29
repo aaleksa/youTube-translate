@@ -10,6 +10,7 @@ import { logger } from '../logging/logger';
 import { handleServiceError, jsonResponse, successResponse } from '../response';
 import { isLocalBackend } from '../storage/config';
 import * as authService from '../services/auth-service';
+import * as billingService from '../services/billing-service';
 import * as bookmarkService from '../services/bookmark-service';
 import * as deckService from '../services/deck-service';
 import * as flashcardService from '../services/flashcard-service';
@@ -46,7 +47,9 @@ import type {
 import { parsePaginationParams } from '../validation/pagination';
 import {
   getEventPath,
+  getHeader,
   getQueryParams,
+  getRawBody,
   getRequestId,
   parseEventBody,
 } from './event';
@@ -122,6 +125,15 @@ const PUBLIC_ROUTES: Record<string, PublicHandler> = {
   'POST /auth/google': async (event) => {
     const body = parseEventBody(event) as GoogleLoginInput;
     return ok(await authService.loginWithGoogle(body));
+  },
+  // Stripe calls this directly (no Cognito JWT) — must also be marked
+  // `Auth: Authorizer: NONE` on the API Gateway route in infra/template.yaml,
+  // otherwise the gateway rejects it with 401 before Lambda ever runs.
+  'POST /billing/webhook': async (event) => {
+    const payload = getRawBody(event);
+    const signature = getHeader(event, 'stripe-signature') ?? null;
+    await billingService.handleStripeWebhook(payload, signature);
+    return ok({ received: true });
   },
 };
 
@@ -283,6 +295,10 @@ async function dispatchProtected(
 
   if (method === 'GET' && path === '/subscription') {
     return ok(await premiumAccessService.getPremiumAccess(auth));
+  }
+
+  if (method === 'POST' && path === '/billing/checkout') {
+    return ok(await billingService.createCheckoutSession(auth));
   }
 
   if (method === 'GET' && path === '/reviews/today') {

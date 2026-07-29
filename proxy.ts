@@ -126,10 +126,14 @@ interface RateLimitRule {
 
 const RULES: RateLimitRule[] = [
   // Auth: brute-force protection on login/signup/password-reset.
+  // Note: this bucket is shared by IP across *all* auth endpoints
+  // (signup/login/refresh/logout/forgot-password/...), so it needs enough
+  // headroom for legitimate multi-step flows (and shared-IP/NAT users)
+  // without being a meaningful brute-force budget.
   {
     id: 'auth',
     matches: (p) => p.startsWith('/api/v2/auth/'),
-    limit: 10,
+    limit: 30,
     windowMs: 60_000,
   },
   // AI + transcript extraction: the most expensive routes.

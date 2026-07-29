@@ -831,6 +831,8 @@ var init_keys = __esm({
       PLAYBACK: "PLAYBACK",
       BOOKMARK: "BOOKMARK",
       QUIZ_RESULT: "QUIZ_RESULT",
+      DAILY_STUDY: "DAILY_STUDY",
+      PRONUNCIATION: "PRONUNCIATION",
       VOCAB_PROGRESS: "VOCAB_PROGRESS",
       EXPLAIN_SENTENCE: "EXPLAIN_SENTENCE",
       SELECTION_ANALYSIS: "SELECTION_ANALYSIS",
@@ -1004,6 +1006,10 @@ function isApiError(error) {
 var DEFAULT_INTERFACE_LANGUAGE = "uk";
 var DEFAULT_TRANSLATION_LANGUAGE = "uk";
 var DEFAULT_THEME = "light";
+var DEFAULT_DAILY_CARD_GOAL = 30;
+var DEFAULT_VOCABULARY_GOAL = 1e3;
+var DEFAULT_LEARNING_LEVEL = "intermediate";
+var VALID_LEARNING_LEVELS = /* @__PURE__ */ new Set(["beginner", "intermediate", "advanced"]);
 var VALID_LANGUAGE_CODES = /* @__PURE__ */ new Set([
   "uk",
   "en",
@@ -1032,7 +1038,10 @@ function defaultUserSettings(userId) {
     translationLanguage: DEFAULT_TRANSLATION_LANGUAGE,
     theme: DEFAULT_THEME,
     autoPause: { ...DEFAULT_AUTO_PAUSE },
-    bilingualMode: false
+    bilingualMode: false,
+    dailyCardGoal: DEFAULT_DAILY_CARD_GOAL,
+    vocabularyGoal: DEFAULT_VOCABULARY_GOAL,
+    learningLevel: DEFAULT_LEARNING_LEVEL
   };
 }
 function validateLanguageCode(value, field) {
@@ -1083,6 +1092,41 @@ function validateAutoPausePatch(value) {
   }
   return Object.keys(patch).length > 0 ? patch : void 0;
 }
+function validatePositiveInteger(value, field) {
+  if (value === void 0 || value === null) {
+    return void 0;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new ApiError(
+      `${field} must be a positive number`,
+      400,
+      "INVALID_USER_SETTINGS"
+    );
+  }
+  return Math.round(numeric);
+}
+function validateLearningLevel(value) {
+  if (value === void 0 || value === null) {
+    return void 0;
+  }
+  if (typeof value !== "string") {
+    throw new ApiError(
+      "learningLevel must be a string",
+      400,
+      "INVALID_USER_SETTINGS"
+    );
+  }
+  const level = value.trim().toLowerCase();
+  if (!VALID_LEARNING_LEVELS.has(level)) {
+    throw new ApiError(
+      "learningLevel has an invalid value",
+      400,
+      "INVALID_USER_SETTINGS"
+    );
+  }
+  return level;
+}
 function validateUpdateUserSettingsInput(input) {
   if (!input || typeof input !== "object") {
     throw new ApiError("Request body is required", 400, "INVALID_USER_SETTINGS");
@@ -1097,6 +1141,15 @@ function validateUpdateUserSettingsInput(input) {
   );
   const theme = validateTheme(input.theme);
   const autoPause = validateAutoPausePatch(input.autoPause);
+  const dailyCardGoal = validatePositiveInteger(
+    input.dailyCardGoal,
+    "dailyCardGoal"
+  );
+  const vocabularyGoal = validatePositiveInteger(
+    input.vocabularyGoal,
+    "vocabularyGoal"
+  );
+  const learningLevel = validateLearningLevel(input.learningLevel);
   let bilingualMode;
   if (input.bilingualMode !== void 0 && input.bilingualMode !== null) {
     if (typeof input.bilingualMode !== "boolean") {
@@ -1108,7 +1161,7 @@ function validateUpdateUserSettingsInput(input) {
     }
     bilingualMode = input.bilingualMode;
   }
-  if (interfaceLanguage === void 0 && translationLanguage === void 0 && theme === void 0 && autoPause === void 0 && bilingualMode === void 0) {
+  if (interfaceLanguage === void 0 && translationLanguage === void 0 && theme === void 0 && autoPause === void 0 && bilingualMode === void 0 && dailyCardGoal === void 0 && vocabularyGoal === void 0 && learningLevel === void 0) {
     throw new ApiError(
       "At least one setting field is required",
       400,
@@ -1120,7 +1173,10 @@ function validateUpdateUserSettingsInput(input) {
     ...translationLanguage !== void 0 ? { translationLanguage } : {},
     ...theme !== void 0 ? { theme } : {},
     ...autoPause !== void 0 ? { autoPause } : {},
-    ...bilingualMode !== void 0 ? { bilingualMode } : {}
+    ...bilingualMode !== void 0 ? { bilingualMode } : {},
+    ...dailyCardGoal !== void 0 ? { dailyCardGoal } : {},
+    ...vocabularyGoal !== void 0 ? { vocabularyGoal } : {},
+    ...learningLevel !== void 0 ? { learningLevel } : {}
   };
 }
 function mergeUserSettings(current, patch) {
@@ -1133,7 +1189,10 @@ function mergeUserSettings(current, patch) {
       ...current.autoPause,
       ...patch.autoPause ?? {}
     },
-    bilingualMode: patch.bilingualMode ?? current.bilingualMode
+    bilingualMode: patch.bilingualMode ?? current.bilingualMode,
+    dailyCardGoal: patch.dailyCardGoal ?? current.dailyCardGoal,
+    vocabularyGoal: patch.vocabularyGoal ?? current.vocabularyGoal,
+    learningLevel: patch.learningLevel ?? current.learningLevel
   };
 }
 function parseAutoPause(value) {
@@ -1239,6 +1298,38 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_video ON quiz_results(userId, videoId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_created ON quiz_results(userId, createdAt);
 
+    CREATE TABLE IF NOT EXISTS daily_study_log (
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      cardsReviewed INTEGER NOT NULL DEFAULT 0,
+      correctReviews INTEGER NOT NULL DEFAULT 0,
+      incorrectReviews INTEGER NOT NULL DEFAULT 0,
+      updatedAt INTEGER NOT NULL,
+      PRIMARY KEY (userId, date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user ON daily_study_log(userId);
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user_date ON daily_study_log(userId, date);
+
+    CREATE TABLE IF NOT EXISTS pronunciation_attempts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      sentenceId TEXT,
+      phraseId TEXT,
+      expectedText TEXT NOT NULL,
+      recognizedText TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      missedWords TEXT NOT NULL DEFAULT '[]',
+      extraWords TEXT NOT NULL DEFAULT '[]',
+      durationMs INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user ON pronunciation_attempts(userId);
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user_created
+      ON pronunciation_attempts(userId, createdAt);
+
     CREATE TABLE IF NOT EXISTS vocabulary_progress (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
@@ -1314,8 +1405,28 @@ function getLocalDatabase() {
   database.pragma("foreign_keys = ON");
   ensureSchema(database);
   migrateUsersTable(database);
+  migrateUserSettingsTable(database);
   migrateFlashcardsFromItems(database);
   return database;
+}
+function migrateUserSettingsTable(db) {
+  const columns = db.prepare(`PRAGMA table_info(user_settings)`).all();
+  const names = new Set(columns.map((column) => column.name));
+  if (!names.has("dailyCardGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN dailyCardGoal INTEGER NOT NULL DEFAULT 30`
+    );
+  }
+  if (!names.has("vocabularyGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN vocabularyGoal INTEGER NOT NULL DEFAULT 1000`
+    );
+  }
+  if (!names.has("learningLevel")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN learningLevel TEXT NOT NULL DEFAULT 'intermediate'`
+    );
+  }
 }
 function migrateUsersTable(db) {
   const columns = db.prepare(`PRAGMA table_info(users)`).all();
@@ -1388,7 +1499,10 @@ function toRecord(row) {
     translationLanguage: row.translationLanguage,
     theme: row.theme,
     autoPause: parseStoredAutoPause(row.autoPause),
-    bilingualMode: row.bilingualMode === 1
+    bilingualMode: row.bilingualMode === 1,
+    dailyCardGoal: row.dailyCardGoal ?? DEFAULT_DAILY_CARD_GOAL,
+    vocabularyGoal: row.vocabularyGoal ?? DEFAULT_VOCABULARY_GOAL,
+    learningLevel: row.learningLevel === "beginner" || row.learningLevel === "advanced" || row.learningLevel === "intermediate" ? row.learningLevel : DEFAULT_LEARNING_LEVEL
   };
 }
 function getUserSettings(userId) {
@@ -1406,21 +1520,28 @@ function updateUserSettings(userId, input) {
   const db = getLocalDatabase();
   db.prepare(
     `INSERT INTO user_settings (
-      userId, interfaceLanguage, translationLanguage, theme, autoPause, bilingualMode
-    ) VALUES (?, ?, ?, ?, ?, ?)
+      userId, interfaceLanguage, translationLanguage, theme, autoPause, bilingualMode,
+      dailyCardGoal, vocabularyGoal, learningLevel
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(userId) DO UPDATE SET
       interfaceLanguage = excluded.interfaceLanguage,
       translationLanguage = excluded.translationLanguage,
       theme = excluded.theme,
       autoPause = excluded.autoPause,
-      bilingualMode = excluded.bilingualMode`
+      bilingualMode = excluded.bilingualMode,
+      dailyCardGoal = excluded.dailyCardGoal,
+      vocabularyGoal = excluded.vocabularyGoal,
+      learningLevel = excluded.learningLevel`
   ).run(
     userId,
     merged.interfaceLanguage,
     merged.translationLanguage,
     merged.theme,
     JSON.stringify(merged.autoPause),
-    merged.bilingualMode ? 1 : 0
+    merged.bilingualMode ? 1 : 0,
+    merged.dailyCardGoal,
+    merged.vocabularyGoal,
+    merged.learningLevel
   );
   const row = db.prepare(`SELECT * FROM user_settings WHERE userId = ?`).get(userId);
   if (!row) {
@@ -1438,7 +1559,17 @@ init_keys();
 
 // ../v2-core/storage/local-repository.ts
 function serializeItem(item) {
-  const { PK, SK, entityType, userId, createdAt, updatedAt, ...rest } = item;
+  const rest = { ...item };
+  for (const key of [
+    "PK",
+    "SK",
+    "entityType",
+    "userId",
+    "createdAt",
+    "updatedAt"
+  ]) {
+    delete rest[key];
+  }
   return JSON.stringify(rest);
 }
 function deserializeItem(row) {
@@ -1515,13 +1646,18 @@ async function getItem3(pk, sk) {
 // ../v2-core/services/user-settings-service.ts
 function toRecord2(item) {
   const autoPause = typeof item.autoPause === "string" ? parseStoredAutoPause(item.autoPause) : parseAutoPause(item.autoPause);
+  const learningLevel = item.learningLevel;
+  const normalizedLevel = learningLevel === "beginner" || learningLevel === "advanced" || learningLevel === "intermediate" ? learningLevel : DEFAULT_LEARNING_LEVEL;
   return {
     userId: item.userId,
     interfaceLanguage: item.interfaceLanguage,
     translationLanguage: item.translationLanguage,
     theme: item.theme,
     autoPause,
-    bilingualMode: Boolean(item.bilingualMode)
+    bilingualMode: Boolean(item.bilingualMode),
+    dailyCardGoal: item.dailyCardGoal ?? DEFAULT_DAILY_CARD_GOAL,
+    vocabularyGoal: item.vocabularyGoal ?? DEFAULT_VOCABULARY_GOAL,
+    learningLevel: normalizedLevel
   };
 }
 async function updateUserSettings2(auth, input) {
@@ -1546,6 +1682,9 @@ async function updateUserSettings2(auth, input) {
     theme: merged.theme,
     autoPause: merged.autoPause,
     bilingualMode: merged.bilingualMode,
+    dailyCardGoal: merged.dailyCardGoal,
+    vocabularyGoal: merged.vocabularyGoal,
+    learningLevel: merged.learningLevel,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now
   };

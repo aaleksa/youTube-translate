@@ -37,6 +37,37 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// ../v2-core/dynamodb/keys.ts
+function userPk(userId) {
+  return `${ENTITY.USER}#${userId}`;
+}
+var ENTITY;
+var init_keys = __esm({
+  "../v2-core/dynamodb/keys.ts"() {
+    "use strict";
+    ENTITY = {
+      USER: "USER",
+      CARD: "CARD",
+      DECK: "DECK",
+      PROFILE: "PROFILE",
+      PROGRESS: "PROGRESS",
+      REVIEW: "REVIEW",
+      VIDEO: "VIDEO",
+      PLAYBACK: "PLAYBACK",
+      BOOKMARK: "BOOKMARK",
+      QUIZ_RESULT: "QUIZ_RESULT",
+      DAILY_STUDY: "DAILY_STUDY",
+      PRONUNCIATION: "PRONUNCIATION",
+      VOCAB_PROGRESS: "VOCAB_PROGRESS",
+      EXPLAIN_SENTENCE: "EXPLAIN_SENTENCE",
+      SELECTION_ANALYSIS: "SELECTION_ANALYSIS",
+      USER_SETTINGS: "USER_SETTINGS",
+      USER_SUBSCRIPTION: "USER_SUBSCRIPTION",
+      AI_USAGE: "AI_USAGE"
+    };
+  }
+});
+
 // ../node_modules/better-sqlite3/lib/util.js
 var require_util = __commonJS({
   "../node_modules/better-sqlite3/lib/util.js"(exports) {
@@ -832,35 +863,6 @@ var init_client = __esm({
   }
 });
 
-// ../v2-core/dynamodb/keys.ts
-function userPk(userId) {
-  return `${ENTITY.USER}#${userId}`;
-}
-var ENTITY;
-var init_keys = __esm({
-  "../v2-core/dynamodb/keys.ts"() {
-    "use strict";
-    ENTITY = {
-      USER: "USER",
-      CARD: "CARD",
-      DECK: "DECK",
-      PROFILE: "PROFILE",
-      PROGRESS: "PROGRESS",
-      REVIEW: "REVIEW",
-      VIDEO: "VIDEO",
-      PLAYBACK: "PLAYBACK",
-      BOOKMARK: "BOOKMARK",
-      QUIZ_RESULT: "QUIZ_RESULT",
-      VOCAB_PROGRESS: "VOCAB_PROGRESS",
-      EXPLAIN_SENTENCE: "EXPLAIN_SENTENCE",
-      SELECTION_ANALYSIS: "SELECTION_ANALYSIS",
-      USER_SETTINGS: "USER_SETTINGS",
-      USER_SUBSCRIPTION: "USER_SUBSCRIPTION",
-      AI_USAGE: "AI_USAGE"
-    };
-  }
-});
-
 // ../v2-core/dynamodb/dynamo-repository.ts
 var dynamo_repository_exports = {};
 __export(dynamo_repository_exports, {
@@ -950,6 +952,28 @@ var init_dynamo_repository = __esm({
     init_keys();
   }
 });
+
+// ../v2-core/errors.ts
+var ApiError = class extends Error {
+  constructor(message, statusCode = 400, code = "BAD_REQUEST") {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+};
+var UnauthorizedError = class extends ApiError {
+  constructor(message = "Unauthorized") {
+    super(message, 401, "UNAUTHORIZED");
+    this.name = "UnauthorizedError";
+  }
+};
+function isApiError(error) {
+  return error instanceof ApiError;
+}
+
+// ../v2-core/services/deck-service.ts
+init_keys();
 
 // ../v2-core/auth/config.ts
 function getCognitoConfig() {
@@ -1061,6 +1085,38 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_video ON quiz_results(userId, videoId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_created ON quiz_results(userId, createdAt);
 
+    CREATE TABLE IF NOT EXISTS daily_study_log (
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      cardsReviewed INTEGER NOT NULL DEFAULT 0,
+      correctReviews INTEGER NOT NULL DEFAULT 0,
+      incorrectReviews INTEGER NOT NULL DEFAULT 0,
+      updatedAt INTEGER NOT NULL,
+      PRIMARY KEY (userId, date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user ON daily_study_log(userId);
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user_date ON daily_study_log(userId, date);
+
+    CREATE TABLE IF NOT EXISTS pronunciation_attempts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      sentenceId TEXT,
+      phraseId TEXT,
+      expectedText TEXT NOT NULL,
+      recognizedText TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      missedWords TEXT NOT NULL DEFAULT '[]',
+      extraWords TEXT NOT NULL DEFAULT '[]',
+      durationMs INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user ON pronunciation_attempts(userId);
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user_created
+      ON pronunciation_attempts(userId, createdAt);
+
     CREATE TABLE IF NOT EXISTS vocabulary_progress (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
@@ -1136,8 +1192,28 @@ function getLocalDatabase() {
   database.pragma("foreign_keys = ON");
   ensureSchema(database);
   migrateUsersTable(database);
+  migrateUserSettingsTable(database);
   migrateFlashcardsFromItems(database);
   return database;
+}
+function migrateUserSettingsTable(db) {
+  const columns = db.prepare(`PRAGMA table_info(user_settings)`).all();
+  const names = new Set(columns.map((column) => column.name));
+  if (!names.has("dailyCardGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN dailyCardGoal INTEGER NOT NULL DEFAULT 30`
+    );
+  }
+  if (!names.has("vocabularyGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN vocabularyGoal INTEGER NOT NULL DEFAULT 1000`
+    );
+  }
+  if (!names.has("learningLevel")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN learningLevel TEXT NOT NULL DEFAULT 'intermediate'`
+    );
+  }
 }
 function migrateUsersTable(db) {
   const columns = db.prepare(`PRAGMA table_info(users)`).all();
@@ -1226,25 +1302,6 @@ function queryByUser(userId, skPrefix) {
   return rows.map((row) => deserializeItem(row));
 }
 
-// ../v2-core/errors.ts
-var ApiError = class extends Error {
-  constructor(message, statusCode = 400, code = "BAD_REQUEST") {
-    super(message);
-    this.name = "ApiError";
-    this.statusCode = statusCode;
-    this.code = code;
-  }
-};
-var UnauthorizedError = class extends ApiError {
-  constructor(message = "Unauthorized") {
-    super(message, 401, "UNAUTHORIZED");
-    this.name = "UnauthorizedError";
-  }
-};
-function isApiError(error) {
-  return error instanceof ApiError;
-}
-
 // ../v2-core/dynamodb/repository.ts
 async function getDynamoRepo() {
   try {
@@ -1277,7 +1334,7 @@ function toRecord(item) {
 }
 async function listDecks(auth) {
   const items = await queryByUser3(auth.userId, "DECK#");
-  return items.map(toRecord);
+  return items.map(toRecord).sort((left, right) => left.name.localeCompare(right.name));
 }
 
 // ../v2-core/auth/context.ts

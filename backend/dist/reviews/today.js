@@ -828,6 +828,8 @@ var init_keys = __esm({
       PLAYBACK: "PLAYBACK",
       BOOKMARK: "BOOKMARK",
       QUIZ_RESULT: "QUIZ_RESULT",
+      DAILY_STUDY: "DAILY_STUDY",
+      PRONUNCIATION: "PRONUNCIATION",
       VOCAB_PROGRESS: "VOCAB_PROGRESS",
       EXPLAIN_SENTENCE: "EXPLAIN_SENTENCE",
       SELECTION_ANALYSIS: "SELECTION_ANALYSIS",
@@ -1118,6 +1120,38 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_video ON quiz_results(userId, videoId);
     CREATE INDEX IF NOT EXISTS idx_quiz_results_user_created ON quiz_results(userId, createdAt);
 
+    CREATE TABLE IF NOT EXISTS daily_study_log (
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      cardsReviewed INTEGER NOT NULL DEFAULT 0,
+      correctReviews INTEGER NOT NULL DEFAULT 0,
+      incorrectReviews INTEGER NOT NULL DEFAULT 0,
+      updatedAt INTEGER NOT NULL,
+      PRIMARY KEY (userId, date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user ON daily_study_log(userId);
+    CREATE INDEX IF NOT EXISTS idx_daily_study_user_date ON daily_study_log(userId, date);
+
+    CREATE TABLE IF NOT EXISTS pronunciation_attempts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      videoId TEXT NOT NULL,
+      sentenceId TEXT,
+      phraseId TEXT,
+      expectedText TEXT NOT NULL,
+      recognizedText TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      missedWords TEXT NOT NULL DEFAULT '[]',
+      extraWords TEXT NOT NULL DEFAULT '[]',
+      durationMs INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user ON pronunciation_attempts(userId);
+    CREATE INDEX IF NOT EXISTS idx_pronunciation_attempts_user_created
+      ON pronunciation_attempts(userId, createdAt);
+
     CREATE TABLE IF NOT EXISTS vocabulary_progress (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
@@ -1193,8 +1227,28 @@ function getLocalDatabase() {
   database.pragma("foreign_keys = ON");
   ensureSchema(database);
   migrateUsersTable(database);
+  migrateUserSettingsTable(database);
   migrateFlashcardsFromItems(database);
   return database;
+}
+function migrateUserSettingsTable(db) {
+  const columns = db.prepare(`PRAGMA table_info(user_settings)`).all();
+  const names = new Set(columns.map((column) => column.name));
+  if (!names.has("dailyCardGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN dailyCardGoal INTEGER NOT NULL DEFAULT 30`
+    );
+  }
+  if (!names.has("vocabularyGoal")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN vocabularyGoal INTEGER NOT NULL DEFAULT 1000`
+    );
+  }
+  if (!names.has("learningLevel")) {
+    db.exec(
+      `ALTER TABLE user_settings ADD COLUMN learningLevel TEXT NOT NULL DEFAULT 'intermediate'`
+    );
+  }
 }
 function migrateUsersTable(db) {
   const columns = db.prepare(`PRAGMA table_info(users)`).all();
@@ -1292,6 +1346,10 @@ function toRecord(row) {
     nextReview: meta.nextReview,
     knownCount: meta.knownCount,
     unknownCount: meta.unknownCount,
+    againCount: meta.againCount,
+    hardCount: meta.hardCount,
+    goodCount: meta.goodCount,
+    easyCount: meta.easyCount,
     updatedAt: meta.updatedAt
   };
 }
@@ -1367,6 +1425,10 @@ function toRecord2(item) {
     nextReview: item.nextReview,
     knownCount: item.knownCount,
     unknownCount: item.unknownCount,
+    againCount: item.againCount,
+    hardCount: item.hardCount,
+    goodCount: item.goodCount,
+    easyCount: item.easyCount,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt
   };
