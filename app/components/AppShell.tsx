@@ -81,14 +81,14 @@ function AuthenticatedMain({ children }: { children: ReactNode }) {
 function AppShellChrome({ children }: { children: ReactNode }) {
   return (
     <>
-      <div className="fixed top-3 right-3 z-50 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] sm:top-4 sm:right-4">
+      <div className="fixed top-3 right-3 z-[80] pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] sm:top-4 sm:right-4">
         <div className={topBarShell}>
           <PremiumStatus />
           <SyncStatusBadge />
           <span aria-hidden="true" className={topBarDivider} />
           <AuthButton />
           <span aria-hidden="true" className={topBarDivider} />
-          <div className="flex items-center gap-0.5">
+          <div className="relative z-[1] flex items-center gap-0.5">
             <InstallAppButton />
             <AppSettingsPanel />
             <ThemeToggle />
