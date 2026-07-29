@@ -214,6 +214,9 @@ const uk = {
   'urlInput.enterUrl': 'Введіть URL YouTube',
   'urlInput.errorGeneric': 'Сталася помилка',
   'urlInput.note': '⚠️ Примітка:',
+  'urlInput.paste': 'Вставити',
+  'urlInput.pasteFailed': 'Не вдалося прочитати буфер обміну',
+  'urlInput.clearUrl': 'Очистити URL',
   'urlInput.captionTipsTitle': '💡 Спробуйте:',
   'urlInput.captionTip1': 'Відео з увімкненими субтитрами (кнопка CC)',
   'urlInput.captionTip2': 'Музичні або навчальні відео — зазвичай мають субтитри',
@@ -221,7 +224,7 @@ const uk = {
   'urlInput.captionTip4': 'Перевірте мову субтитрів у налаштуваннях відео',
   'urlInput.supportedFormats': '✓ Підтримувані формати:',
   'urlInput.captionHint':
-    'Найкраще працює з відео, де є субтитри або автоматично згенеровані підписи',
+    'Працює з youtube.com / youtu.be / playlist. Найкраще — відео з субтитрами або автопідписами.',
   'learning.title': 'Налаштування навчання',
   'learning.hint':
     'За замовчуванням відео не зупиняється. Увімкніть автопаузу для режиму детального навчання.',
@@ -878,6 +881,9 @@ const en: Record<keyof typeof uk, string> = {
   'urlInput.enterUrl': 'Please enter a YouTube URL',
   'urlInput.errorGeneric': 'An error occurred',
   'urlInput.note': '⚠️ Note:',
+  'urlInput.paste': 'Paste',
+  'urlInput.pasteFailed': 'Could not read the clipboard',
+  'urlInput.clearUrl': 'Clear URL',
   'urlInput.captionTipsTitle': '💡 Try these tips:',
   'urlInput.captionTip1': 'Use videos with captions enabled (CC button visible)',
   'urlInput.captionTip2':
@@ -886,7 +892,7 @@ const en: Record<keyof typeof uk, string> = {
   'urlInput.captionTip4': 'Check if the video language is set correctly',
   'urlInput.supportedFormats': '✓ Supported formats:',
   'urlInput.captionHint':
-    'Works best with videos that have captions or auto-generated subtitles enabled',
+    'Works with youtube.com / youtu.be / playlist. Best with captions or auto-generated subtitles.',
   'learning.title': 'Learning Settings',
   'learning.hint':
     'By default the video keeps playing. Enable auto-pause for focused study mode.',
