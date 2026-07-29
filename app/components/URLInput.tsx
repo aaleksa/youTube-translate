@@ -58,7 +58,20 @@ export default function URLInput({
         </div>
 
         {error && (
-          <div className="text-sm text-white bg-red-500 bg-opacity-40 p-3 rounded border border-red-300">
+          <div
+            role="alert"
+            className="relative text-sm text-white bg-red-500 bg-opacity-40 p-3 pr-11 rounded border border-red-300"
+          >
+            <button
+              type="button"
+              onClick={() => setError('')}
+              aria-label={t('common.close')}
+              className="absolute top-2 right-2 inline-flex min-h-8 min-w-8 items-center justify-center rounded-md text-white/90 hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">
+                ×
+              </span>
+            </button>
             <p className="font-semibold mb-2">{t('urlInput.note')}</p>
             <p>{error}</p>
             {error.includes('captions') && (
