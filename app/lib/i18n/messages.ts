@@ -12,12 +12,16 @@ export type InterfaceLanguage = (typeof INTERFACE_LANGUAGES)[number]['code'];
 const uk = {
   'settings.title': 'Налаштування',
   'settings.ariaLabel': 'Відкрити налаштування',
+  'settings.close': 'Закрити налаштування',
+  'settings.sectionLanguages': 'Мови',
+  'settings.sectionLearning': 'Навчання',
+  'settings.sectionData': 'Дані',
   'settings.translationLanguage': 'Мова перекладу',
   'settings.translationLanguageHint':
-    'Мова перекладів на картках, у субтитрах та vocabulary. Незалежна від мови інтерфейсу.',
+    'Картки, субтитри, vocabulary — незалежно від інтерфейсу.',
   'settings.taskLanguage': 'Мова завдань',
   'settings.taskLanguageHint':
-    'Мова AI-завдань: тести, пояснення, конспекти',
+    'AI: тести, пояснення, конспекти.',
   'pwa.install': '📲 Встановити додаток',
   'pwa.offlineReady': 'Додаток готовий до роботи offline',
   'shadowing.title': 'Shadowing',
@@ -227,9 +231,9 @@ const uk = {
     'Працює з youtube.com / youtu.be / playlist. Найкраще — відео з субтитрами або автопідписами.',
   'learning.title': 'Налаштування навчання',
   'learning.hint':
-    'За замовчуванням відео не зупиняється. Увімкніть автопаузу для режиму детального навчання.',
-  'learning.autoPauseWhen': 'Автопауза відео коли:',
-  'learning.continuousMode': 'Режим безперервного перегляду.',
+    'Увімкніть автопаузу, щоб відео зупинялось під час детального навчання.',
+  'learning.autoPauseWhen': 'Автопауза коли',
+  'learning.continuousMode': 'Зараз увімкнено безперервний перегляд.',
   'learning.explainSentence': 'Пояснити речення',
   'learning.translateSelection': 'Переклад виділення',
   'learning.grammarAnalysis': 'Граматичний аналіз',
@@ -679,12 +683,16 @@ const uk = {
 const en: Record<keyof typeof uk, string> = {
   'settings.title': 'Settings',
   'settings.ariaLabel': 'Open settings',
+  'settings.close': 'Close settings',
+  'settings.sectionLanguages': 'Languages',
+  'settings.sectionLearning': 'Learning',
+  'settings.sectionData': 'Data',
   'settings.translationLanguage': 'Translation language',
   'settings.translationLanguageHint':
-    'Language for flashcard translations, subtitles, and vocabulary. Independent from interface language.',
+    'Cards, subtitles, vocabulary — independent of the UI language.',
   'settings.taskLanguage': 'Task language',
   'settings.taskLanguageHint':
-    'Language for AI tasks: quizzes, explanations, notes',
+    'AI quizzes, explanations, and notes.',
   'pwa.install': '📲 Install App',
   'pwa.offlineReady': 'App is ready to work offline',
   'shadowing.title': 'Shadowing',
@@ -895,9 +903,9 @@ const en: Record<keyof typeof uk, string> = {
     'Works with youtube.com / youtu.be / playlist. Best with captions or auto-generated subtitles.',
   'learning.title': 'Learning Settings',
   'learning.hint':
-    'By default the video keeps playing. Enable auto-pause for focused study mode.',
-  'learning.autoPauseWhen': 'Auto-pause video when:',
-  'learning.continuousMode': 'Continuous viewing mode.',
+    'Turn on auto-pause so the video stops during focused study.',
+  'learning.autoPauseWhen': 'Auto-pause when',
+  'learning.continuousMode': 'Continuous playback is on.',
   'learning.explainSentence': 'Explain Sentence',
   'learning.translateSelection': 'Translate Selection',
   'learning.grammarAnalysis': 'Grammar Analysis',

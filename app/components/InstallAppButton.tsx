@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useI18n } from './InterfaceLanguageProvider';
-
-const topBarButtonClass =
-  'px-3 py-2.5 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-md text-sm font-semibold whitespace-nowrap';
+import { topBarTextButton } from './topBarStyles';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -71,7 +69,7 @@ export default function InstallAppButton() {
     <button
       type="button"
       onClick={() => void handleInstall()}
-      className={topBarButtonClass}
+      className={`${topBarTextButton} px-2.5 text-xs font-semibold`}
       aria-label={t('pwa.install')}
     >
       {t('pwa.install')}
