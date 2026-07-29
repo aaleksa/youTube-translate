@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import AppShell from "./components/AppShell";
-import PwaProvider from "./components/PwaProvider";
+import RootClientLayout from "./RootClientLayout";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,9 +58,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <PwaProvider>
-          <AppShell>{children}</AppShell>
-        </PwaProvider>
+        <RootClientLayout>{children}</RootClientLayout>
       </body>
     </html>
   );
