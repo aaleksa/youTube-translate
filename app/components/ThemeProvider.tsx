@@ -1,7 +1,17 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { SETTINGS_SYNCED_EVENT } from '../lib/v2/syncUserSettings';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  scheduleUserSettingsSync,
+  SETTINGS_SYNCED_EVENT,
+} from '../lib/v2/syncUserSettings';
 
 type Theme = 'light' | 'dark';
 
@@ -21,33 +31,47 @@ export function useTheme() {
   return context;
 }
 
+function applyThemeClass(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.remove('light', 'dark');
+  root.classList.add(theme);
+}
+
+function readStoredTheme(): Theme | null {
+  const stored = localStorage.getItem('theme');
+  return stored === 'dark' || stored === 'light' ? stored : null;
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
+  // Ignore remote settings overwrites for a short window after the user
+  // toggles — otherwise bootstrap/sync can snap the theme back.
+  const ignoreRemoteUntilRef = useRef(0);
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme');
+    const stored = readStoredTheme();
     const prefersDark = window.matchMedia(
       '(prefers-color-scheme: dark)'
     ).matches;
+    const initial: Theme = stored ?? (prefersDark ? 'dark' : 'light');
 
-    if (stored === 'dark' || stored === 'light') {
-      document.documentElement.classList.toggle('dark', stored === 'dark');
-      document.documentElement.classList.toggle('light', stored === 'light');
-      setTheme(stored);
-    } else {
-      setTheme(prefersDark ? 'dark' : 'light');
-    }
-
+    applyThemeClass(initial);
+    localStorage.setItem('theme', initial);
+    setTheme(initial);
     setMounted(true);
   }, []);
 
   useEffect(() => {
     const syncThemeFromStorage = () => {
-      const stored = localStorage.getItem('theme');
-      if (stored === 'dark' || stored === 'light') {
-        setTheme(stored);
-      }
+      if (Date.now() < ignoreRemoteUntilRef.current) return;
+      const stored = readStoredTheme();
+      if (!stored) return;
+      setTheme((current) => {
+        if (current === stored) return current;
+        applyThemeClass(stored);
+        return stored;
+      });
     };
 
     window.addEventListener(SETTINGS_SYNCED_EVENT, syncThemeFromStorage);
@@ -58,20 +82,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted) return;
-    document.documentElement.classList.remove('light');
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-    }
+    applyThemeClass(theme);
     localStorage.setItem('theme', theme);
-    void import('../lib/v2/syncUserSettings').then(({ scheduleUserSettingsSync }) => {
-      scheduleUserSettingsSync();
-    });
+    scheduleUserSettingsSync();
   }, [theme, mounted]);
 
-  const toggleTheme = () => {
-    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
-  };
+  const toggleTheme = useCallback(() => {
+    ignoreRemoteUntilRef.current = Date.now() + 5000;
+    setTheme((current) => {
+      const next: Theme = current === 'dark' ? 'light' : 'dark';
+      applyThemeClass(next);
+      localStorage.setItem('theme', next);
+      return next;
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, mounted, toggleTheme }}>

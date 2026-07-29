@@ -1,16 +1,12 @@
 @import "tailwindcss";
 
-/* Class-based dark + system preference (no blocking script — React 19 safe) */
-@custom-variant dark {
-  &:where(.dark, .dark *) {
-    @slot;
-  }
-  @media (prefers-color-scheme: dark) {
-    &:where(:not(.light), :not(.light) *) {
-      @slot;
-    }
-  }
-}
+/*
+ * Class-based dark mode only (html.dark / html.light).
+ * System preference is applied only via CSS variables below, before
+ * ThemeProvider mounts — never via dark:* utilities, so choosing light
+ * mode while the OS is dark actually works.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
@@ -18,7 +14,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not(.light) {
+  html:not(.light):not(.dark) {
     --background: #0a0a0a;
     --foreground: #ededed;
     color-scheme: dark;
