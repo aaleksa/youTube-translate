@@ -19,7 +19,7 @@ test.describe('auth flow', () => {
     await page.goto('/');
     await loginThroughUi(page, email);
 
-    await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByTestId('auth-user-email')).toHaveText(email);
     await waitForAuthenticatedApp(page);
   });
 

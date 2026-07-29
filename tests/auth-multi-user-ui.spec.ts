@@ -40,7 +40,7 @@ test.describe('multi-user UI isolation', () => {
     await page.goto('/');
     await waitForAuthenticatedApp(page);
 
-    await expect(page.getByText(emailB)).toBeVisible();
+    await expect(page.getByTestId('auth-user-email')).toHaveText(emailB);
     await expect(page.getByText(markerTitle)).toHaveCount(0);
     await expect(
       page.getByText(/recent videos|нещодавні відео/i)
