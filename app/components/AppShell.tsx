@@ -18,7 +18,7 @@ import PremiumCheckoutReturn from './premium/PremiumCheckoutReturn';
 import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
 
-const PUBLIC_ROUTES = new Set(['/faq', '/~offline']);
+const PUBLIC_ROUTES = new Set(['/faq', '/privacy', '/terms', '/~offline']);
 
 function AuthenticatedMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
