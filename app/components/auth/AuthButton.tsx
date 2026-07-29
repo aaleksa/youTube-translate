@@ -11,18 +11,14 @@ export default function AuthButton() {
   if (!enabled || !ready) return null;
 
   if (isAuthenticated && user) {
-    const shortEmail =
-      user.email.length > 22
-        ? `${user.email.slice(0, 10)}…${user.email.slice(-8)}`
-        : user.email;
-
     return (
       <div className="inline-flex h-9 max-w-[16rem] items-center overflow-hidden rounded-full border border-gray-200/80 bg-gray-50/90 dark:border-gray-600 dark:bg-gray-800/80">
         <span
-          className="hidden min-w-0 truncate px-2.5 text-xs text-gray-600 dark:text-gray-300 sm:inline"
+          data-testid="auth-user-email"
+          className="hidden min-w-0 max-w-[10rem] truncate px-2.5 text-xs text-gray-600 dark:text-gray-300 sm:inline"
           title={user.email}
         >
-          {shortEmail}
+          {user.email}
         </span>
         <span
           aria-hidden="true"
