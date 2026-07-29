@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    image: yoytube-translaty:latest
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.local
+    environment:
+      # Override .env.local defaults to make sure SQLite persists in the
+      # mounted volume regardless of LOCAL_DB_PATH set locally.
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      LOCAL_DB_PATH: /app/data/local.db
+      NEXT_PUBLIC_BACKEND_V2_ENABLED: ${NEXT_PUBLIC_BACKEND_V2_ENABLED:-true}
+      NEXT_PUBLIC_STORAGE_BACKEND: ${NEXT_PUBLIC_STORAGE_BACKEND:-local}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
