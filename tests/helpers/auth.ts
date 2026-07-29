@@ -24,14 +24,25 @@ export async function signUpAndLogin(
   email: string,
   password = TEST_PASSWORD
 ): Promise<{ tokens: AuthTokens; user: AuthUser }> {
-  await request.post('/api/v2/auth/signup', {
+  const signupResponse = await request.post('/api/v2/auth/signup', {
     data: { email, password },
   });
+  if (!signupResponse.ok() && signupResponse.status() !== 409) {
+    const signupBody = await signupResponse.text();
+    throw new Error(
+      `Signup failed for ${email}: HTTP ${signupResponse.status()} ${signupBody}`
+    );
+  }
 
   const loginResponse = await request.post('/api/v2/auth/login', {
     data: { email, password },
   });
-  expect(loginResponse.ok()).toBeTruthy();
+  if (!loginResponse.ok()) {
+    const loginBody = await loginResponse.text();
+    throw new Error(
+      `Login failed for ${email}: HTTP ${loginResponse.status()} ${loginBody}`
+    );
+  }
 
   const tokens = (await loginResponse.json()) as ApiEnvelope<AuthTokens>;
 

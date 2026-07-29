@@ -68,7 +68,16 @@ DYNAMODB_TABLE_NAME=...
 AWS_REGION=eu-west-1
 ```
 
-Next.js `/api/v2/*` можна вимкнути на проді (frontend б’є напряму в API Gateway).
+Усі `/api/v2/*`, включно з `POST /billing/checkout` і `POST /billing/webhook`,
+реалізовані в Lambda-роутері (`v2-core/lambda/api-router.ts`) і можна перевести
+на пряме звернення `NEXT_PUBLIC_API_BASE_URL` → API Gateway. Webhook-маршрут
+має власний route `BillingWebhookRoute` (`Auth: Authorizer: NONE`) в
+`infra/template.yaml`, бо Stripe б'є без Cognito JWT — не вішайте на нього
+дефолтний authorizer.
+
+⚠️ Legacy AI/transcript-роути (`/api/transcript`, `/api/coach-advice` тощо),
+яким потрібні `yt-dlp`/OpenAI, у Lambda не переносились і завжди залишаються
+на Next.js (Vercel) незалежно від `STORAGE_BACKEND`.
 
 ## Local vs AWS
 

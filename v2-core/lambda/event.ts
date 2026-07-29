@@ -13,6 +13,25 @@ export function parseEventBody(event: APIGatewayProxyEventV2): unknown {
   }
 }
 
+export function getRawBody(event: APIGatewayProxyEventV2): string {
+  if (!event.body) return '';
+  return event.isBase64Encoded
+    ? Buffer.from(event.body, 'base64').toString('utf8')
+    : event.body;
+}
+
+export function getHeader(
+  event: APIGatewayProxyEventV2,
+  name: string
+): string | undefined {
+  const headers = event.headers ?? {};
+  const lowerName = name.toLowerCase();
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === lowerName) return headers[key];
+  }
+  return undefined;
+}
+
 export function getEventPath(event: APIGatewayProxyEventV2): string {
   const rawPath = event.rawPath ?? event.requestContext.http.path ?? '/';
   const normalized = rawPath.replace(/^\/api\/v2/, '') || '/';
