@@ -892,22 +892,6 @@ export default function Home() {
                     onStop={handleStop}
                   />
                 </div>
-                <div ref={shadowingPanelRef} id="shadowing-panel">
-                  <ShadowingPanel
-                    videoId={videoData.videoId}
-                    transcript={visibleTranscript}
-                    phrases={videoData.phrases}
-                    shadowingUnits={videoData.shadowingUnits}
-                    currentPlaybackTime={currentPlaybackTime}
-                    isPlayerReady={playerState.isReady}
-                    speechLanguage={videoData.selectedLanguage}
-                    jumpToText={shadowingJumpRequest}
-                    onSeek={handleSeek}
-                    onPauseVideo={handlePauseVideo}
-                    onLineIndexChange={setShadowingLineIndex}
-                    onCaptionIndexesChange={handleShadowingCaptionIndexes}
-                  />
-                </div>
                 <TranscriptDisplay
                   videoId={videoData.videoId}
                   videoTitle={videoData.title}
@@ -924,6 +908,22 @@ export default function Home() {
                   flashcardsRefreshKey={flashcardsRefreshKey}
                   onPauseVideo={handlePauseVideo}
                 />
+                <div ref={shadowingPanelRef} id="shadowing-panel">
+                  <ShadowingPanel
+                    videoId={videoData.videoId}
+                    transcript={visibleTranscript}
+                    phrases={videoData.phrases}
+                    shadowingUnits={videoData.shadowingUnits}
+                    currentPlaybackTime={currentPlaybackTime}
+                    isPlayerReady={playerState.isReady}
+                    speechLanguage={videoData.selectedLanguage}
+                    jumpToText={shadowingJumpRequest}
+                    onSeek={handleSeek}
+                    onPauseVideo={handlePauseVideo}
+                    onLineIndexChange={setShadowingLineIndex}
+                    onCaptionIndexesChange={handleShadowingCaptionIndexes}
+                  />
+                </div>
               </div>
             </div>
 
