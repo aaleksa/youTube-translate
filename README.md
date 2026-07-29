@@ -16,6 +16,10 @@
 
 ---
 
+![Скріншот головної сторінки YouTube Translator](./docs/assets/screenshot-home.png)
+
+---
+
 ## Цілі проєкту
 
 ### Головна мета
@@ -534,7 +538,7 @@ yoytube-translaty/
 npm install
 ```
 
-### 2. yt-dlp (обов'язково для субтитрів)
+### 2. yt-dlp (рекомендовано для повної функціональності)
 
 ```bash
 # macOS
@@ -546,6 +550,16 @@ pip install yt-dlp
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
+
+> **Serverless-хостинг (Vercel і подібні) без `yt-dlp`:** якщо бінарник недоступний
+> (типова ситуація для Vercel — там немає системного Python/yt-dlp), додаток
+> автоматично перемикається на JS-фолбек (`youtube-transcript`, прямі запити до
+> YouTube). Базове отримання субтитрів продовжує працювати, але з обмеженнями:
+> без списку всіх доступних мов, точної тривалості відео та назви каналу з
+> метаданих. Наявність `yt-dlp` перевіряється один раз на старті процесу
+> (кешується), тож зайвих спроб виклику бінарника на кожен запит не буде.
+> Для повної функціональності на власному сервері використовуй
+> [`Dockerfile`](./Dockerfile) — там `yt-dlp` встановлено з коробки.
 
 ### 3. OpenAI API та Backend V2
 

@@ -13,6 +13,7 @@ import {
   fetchVideoMetadata,
   getAvailableLanguages,
   getSubtitleVttUrl,
+  isYtDlpAvailable,
   parseLanguageFromSubtitleFilename,
   pickDefaultLanguage,
   type ExtractedVideoMetadata,
@@ -51,38 +52,66 @@ export async function POST(request: NextRequest) {
     let availableLanguages: SubtitleLanguage[] = [];
     let extractedMetadata: ExtractedVideoMetadata = {};
 
-    try {
-      const metadata = fetchVideoMetadata(url);
-      extractedMetadata = extractVideoMetadata(metadata);
-      availableLanguages = getAvailableLanguages(metadata);
-      const title = extractedMetadata.title ?? titleFromOembed;
-      const selectedLanguage =
-        typeof lang === 'string' && lang.trim()
-          ? lang.trim()
-          : pickDefaultLanguage(availableLanguages);
+    // yt-dlp isn't bundled on serverless hosts (e.g. Vercel) - skip straight
+    // to the JS-only fallback there instead of paying for failed spawns.
+    // Self-hosted/Docker deploys have yt-dlp and get full functionality
+    // (accurate duration/channel metadata, full language list).
+    const ytDlpReady = isYtDlpAvailable();
 
-      if (selectedLanguage) {
-        const vttUrl = getSubtitleVttUrl(metadata, selectedLanguage);
-        if (vttUrl) {
-          const vttContent = await fetchSubtitleContent(vttUrl);
-          const transcript = parseVTTTranscript(vttContent);
+    if (ytDlpReady) {
+      try {
+        const metadata = fetchVideoMetadata(url);
+        extractedMetadata = extractVideoMetadata(metadata);
+        availableLanguages = getAvailableLanguages(metadata);
+        const title = extractedMetadata.title ?? titleFromOembed;
+        const selectedLanguage =
+          typeof lang === 'string' && lang.trim()
+            ? lang.trim()
+            : pickDefaultLanguage(availableLanguages);
 
-          if (transcript.length > 0) {
-            return formatSuccessResponse(videoId, transcript, {
-              title,
-              channelName: extractedMetadata.channelName,
-              durationSeconds: extractedMetadata.durationSeconds,
-              availableLanguages,
-              selectedLanguage,
-            });
+        if (selectedLanguage) {
+          const vttUrl = getSubtitleVttUrl(metadata, selectedLanguage);
+          if (vttUrl) {
+            const vttContent = await fetchSubtitleContent(vttUrl);
+            const transcript = parseVTTTranscript(vttContent);
+
+            if (transcript.length > 0) {
+              return formatSuccessResponse(videoId, transcript, {
+                title,
+                channelName: extractedMetadata.channelName,
+                durationSeconds: extractedMetadata.durationSeconds,
+                availableLanguages,
+                selectedLanguage,
+              });
+            }
           }
         }
+      } catch (metadataError) {
+        console.log('Metadata subtitle fetch failed, using fallback:', metadataError);
       }
-    } catch (metadataError) {
-      console.log('Metadata subtitle fetch failed, using fallback:', metadataError);
     }
 
     const title = extractedMetadata.title ?? titleFromOembed;
+
+    if (!ytDlpReady) {
+      // No yt-dlp binary available at all - go straight to the network-based
+      // fallback (skips metadata like duration/channel/full language list).
+      const fallbackTranscript = await fetchTranscriptFallback(videoId);
+      if (fallbackTranscript.length > 0) {
+        return formatSuccessResponse(videoId, fallbackTranscript, {
+          title,
+          selectedLanguage: 'en',
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "No captions found for this video. Try:\n1. Check if the video has captions enabled on YouTube\n2. Use a video with manually added or auto-generated captions\n3. Check the video's language settings",
+        },
+        { status: 400 }
+      );
+    }
 
     // Create a temporary directory for transcript files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yt-transcript-'));

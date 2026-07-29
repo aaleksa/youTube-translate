@@ -16,6 +16,10 @@ The app runs as a **PWA** (Progressive Web App). Data can live **locally in the 
 
 ---
 
+![YouTube Translator home page screenshot](./docs/assets/screenshot-home.png)
+
+---
+
 ## Project goals
 
 ### Main objective
@@ -574,7 +578,7 @@ yoytube-translaty/
 npm install
 ```
 
-### 2. yt-dlp (required for subtitles)
+### 2. yt-dlp (recommended for full functionality)
 
 ```bash
 # macOS
@@ -586,6 +590,17 @@ pip install yt-dlp
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
+
+> **Serverless hosting (Vercel and similar) without `yt-dlp`:** if the binary
+> isn't available (the typical case on Vercel, which has no system
+> Python/yt-dlp), the app automatically falls back to a JS-only path
+> (`youtube-transcript`, direct requests to YouTube). Basic subtitle
+> extraction keeps working, but with reduced functionality: no full list of
+> available languages, no exact video duration or channel name from
+> metadata. yt-dlp availability is probed once per process and cached, so
+> there's no repeated failed-spawn overhead per request. For full
+> functionality on your own server, use the [`Dockerfile`](./Dockerfile) —
+> it ships with `yt-dlp` pre-installed.
 
 ### 3. OpenAI API and Backend V2
 
