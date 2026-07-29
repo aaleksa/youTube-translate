@@ -16,6 +16,10 @@ The app runs as a **PWA** (Progressive Web App). Data can live **locally in the 
 
 ---
 
+![YouTube Translator home page screenshot](./docs/assets/screenshot-home.png)
+
+---
+
 ## Project goals
 
 ### Main objective

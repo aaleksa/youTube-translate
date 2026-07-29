@@ -16,6 +16,10 @@
 
 ---
 
+![Скріншот головної сторінки YouTube Translator](./docs/assets/screenshot-home.png)
+
+---
+
 ## Цілі проєкту
 
 ### Головна мета
