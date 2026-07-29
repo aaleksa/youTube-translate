@@ -7,9 +7,37 @@ import {
   getStripeWebhookSecret,
   isStripeConfigured,
 } from '../billing/config';
-import type { AuthenticatedContext } from '../types';
+import type { AuthenticatedContext, UserSubscriptionRecord } from '../types';
 import { isLocalBackend } from '../storage/config';
 import * as localSubscriptions from '../storage/local-subscription-store';
+import { userPk, userSubscriptionSk } from '../dynamodb/keys';
+import { putItem, type DynamoItem } from '../dynamodb/repository';
+
+interface UserSubscriptionItem extends DynamoItem, Omit<UserSubscriptionRecord, 'userId'> {
+  entityType: 'USER_SUBSCRIPTION';
+}
+
+async function upsertSubscription(record: UserSubscriptionRecord): Promise<void> {
+  if (isLocalBackend()) {
+    localSubscriptions.upsertUserSubscription(record);
+    return;
+  }
+
+  const now = Date.now();
+  const item: UserSubscriptionItem = {
+    PK: userPk(record.userId),
+    SK: userSubscriptionSk(),
+    entityType: 'USER_SUBSCRIPTION',
+    userId: record.userId,
+    plan: record.plan,
+    status: record.status,
+    startDate: record.startDate,
+    endDate: record.endDate,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await putItem(item);
+}
 
 function getStripeClient(): Stripe {
   return new Stripe(getStripeSecretKey());
@@ -45,10 +73,8 @@ export async function createCheckoutSession(
   return { url: session.url };
 }
 
-function activatePremium(userId: string, endDate: number | null): void {
-  if (!isLocalBackend()) return;
-
-  localSubscriptions.upsertUserSubscription({
+async function activatePremium(userId: string, endDate: number | null): Promise<void> {
+  await upsertSubscription({
     userId,
     plan: 'premium',
     status: 'active',
@@ -57,10 +83,8 @@ function activatePremium(userId: string, endDate: number | null): void {
   });
 }
 
-function deactivatePremium(userId: string): void {
-  if (!isLocalBackend()) return;
-
-  localSubscriptions.upsertUserSubscription({
+async function deactivatePremium(userId: string): Promise<void> {
+  await upsertSubscription({
     userId,
     plan: 'free',
     status: 'cancelled',
@@ -84,7 +108,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
 
   if (!userId) return;
 
-  activatePremium(userId, null);
+  await activatePremium(userId, null);
 }
 
 function getSubscriptionPeriodEndMs(subscription: Stripe.Subscription): number | null {
@@ -110,7 +134,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
   const endDate = getSubscriptionPeriodEndMs(subscription);
 
   if (subscription.status === 'active' || subscription.status === 'trialing') {
-    activatePremium(userId, endDate);
+    await activatePremium(userId, endDate);
     return;
   }
 
@@ -119,7 +143,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Pro
     subscription.status === 'unpaid' ||
     subscription.status === 'incomplete_expired'
   ) {
-    deactivatePremium(userId);
+    await deactivatePremium(userId);
   }
 }
 
