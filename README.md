@@ -595,6 +595,43 @@ npm start
 
 ---
 
+## Продакшн-готовність
+
+Перед публічним запуском:
+
+- **`LOCAL_AUTH_SECRET`** — обов'язково зміни на випадкове значення
+  (`openssl rand -hex 32`). У режимі `STORAGE_BACKEND=local` сервер
+  **відмовиться стартувати** (`NODE_ENV=production`), якщо секрет не
+  змінено з дефолтного/прикладового значення — це захист від підробки JWT.
+- **Rate limiting** — базовий in-memory rate limiting на `/api/*` вже
+  увімкнено через [`proxy.ts`](./proxy.ts) (10 req/хв на auth-роути, 20 req/хв
+  на AI/transcript, 100 req/хв на решту, за IP). Це best-effort захист на
+  один процес/контейнер; для serverless з кількома інстансами (Vercel)
+  розглянь `@upstash/ratelimit` для справжнього розподіленого ліміту.
+- **Privacy Policy / Terms of Service** — шаблони лежать у [`app/privacy`](./app/privacy)
+  та [`app/terms`](./app/terms). Це **не юридична консультація** — онови
+  плейсхолдери (назва компанії, юрисдикція, контакти) і дай перевірити юристу.
+- **Error tracking (Sentry, опційно)** — інтеграція вже підключена
+  (`instrumentation.ts`, `instrumentation-client.ts`, `sentry.*.config.ts`) і
+  повністю неактивна, доки не задано `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.
+  Щоб увімкнути: створи проєкт на [sentry.io](https://sentry.io), додай DSN
+  у `.env.local`/Vercel env. Для source-map upload під час білду додатково
+  задай `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+- **robots.txt / sitemap.xml** — генеруються автоматично (`app/robots.ts`,
+  `app/sitemap.ts`) на основі `NEXT_PUBLIC_APP_URL`. Обов'язково задай цю
+  змінну на реальний домен перед деплоєм — інакше в sitemap потрапить
+  `localhost`.
+- **Email для Cognito** (якщо `STORAGE_BACKEND=dynamodb`) — за замовчуванням
+  Cognito надсилає підтвердження/скидання пароля зі свого домену з лімітом
+  **~50 листів/добу**. Для реального трафіку підключи Amazon SES
+  (verified domain) як email-провайдер User Pool — інакше частина
+  користувачів не отримає лист підтвердження. Деталі:
+  [AWS Cognito email settings](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-email.html).
+- **CI** — `.github/workflows/ci.yml` тепер включає `npm run build`
+  (окремо від lint/typecheck/e2e), щоб зловити помилки збірки до мержу.
+
+---
+
 ## Команди розробки
 
 | Команда | Опис |
