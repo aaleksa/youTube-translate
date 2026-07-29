@@ -26,6 +26,27 @@ jobs:
 
       - run: npm run typecheck
 
+  build:
+    runs-on: ubuntu-latest
+    env:
+      STORAGE_BACKEND: local
+      LOCAL_DB_PATH: data/local.db
+      LOCAL_AUTH_SECRET: ci-build-secret-not-for-prod
+      NEXT_PUBLIC_BACKEND_V2_ENABLED: 'true'
+      NEXT_PUBLIC_STORAGE_BACKEND: local
+      OPENAI_API_KEY: sk-ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
   auth-e2e:
     runs-on: ubuntu-latest
     env:
