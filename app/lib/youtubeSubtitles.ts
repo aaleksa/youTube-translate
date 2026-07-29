@@ -3,6 +3,29 @@ import { extractVideoId } from './youtubeUrl';
 
 export { extractVideoId };
 
+// Serverless hosts (e.g. Vercel) don't ship the yt-dlp Python binary, so we
+// probe for it once per process and cache the result. This lets callers skip
+// straight to the network-based fallback instead of paying for a failed
+// execSync spawn (~exit 127) on every request. Self-hosted/Docker deploys
+// (see Dockerfile) install yt-dlp and get full functionality.
+let ytDlpAvailable: boolean | null = null;
+
+export function isYtDlpAvailable(): boolean {
+  if (ytDlpAvailable === null) {
+    try {
+      execSync('yt-dlp --version', { stdio: 'ignore' });
+      ytDlpAvailable = true;
+    } catch {
+      ytDlpAvailable = false;
+      console.log(
+        'yt-dlp binary not found - falling back to JS-only transcript extraction ' +
+          '(reduced language/metadata support). Use the Docker image for full functionality.'
+      );
+    }
+  }
+  return ytDlpAvailable;
+}
+
 export interface SubtitleLanguage {
   code: string;
   name: string;
