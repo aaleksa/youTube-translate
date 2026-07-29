@@ -636,6 +636,45 @@ npm start
 
 ---
 
+## Production readiness
+
+Before a public launch:
+
+- **`LOCAL_AUTH_SECRET`** - must be changed to a random value
+  (`openssl rand -hex 32`). In `STORAGE_BACKEND=local` mode, the server
+  **refuses to start** (`NODE_ENV=production`) if the secret is still the
+  default/placeholder value - this prevents forged JWTs.
+- **Rate limiting** - a basic in-memory rate limiter on `/api/*` is already
+  enabled via [`proxy.ts`](./proxy.ts) (10 req/min on auth routes, 20 req/min
+  on AI/transcript routes, 100 req/min on everything else, per IP). This is
+  best-effort protection per process/container; for serverless with multiple
+  instances (Vercel), consider `@upstash/ratelimit` for a real distributed
+  limit.
+- **Privacy Policy / Terms of Service** - templates live in
+  [`app/privacy`](./app/privacy) and [`app/terms`](./app/terms). This is
+  **not legal advice** - fill in the placeholders (company name,
+  jurisdiction, contact info) and have a lawyer review them.
+- **Error tracking (Sentry, optional)** - integration is already wired up
+  (`instrumentation.ts`, `instrumentation-client.ts`, `sentry.*.config.ts`)
+  and fully inactive unless `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` are set.
+  To enable: create a project on [sentry.io](https://sentry.io), add the DSN
+  to `.env.local`/Vercel env. For build-time source map upload, also set
+  `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+- **robots.txt / sitemap.xml** - generated automatically (`app/robots.ts`,
+  `app/sitemap.ts`) based on `NEXT_PUBLIC_APP_URL`. Make sure to set this to
+  your real domain before deploying, otherwise `localhost` ends up in the
+  sitemap.
+- **Cognito email** (if `STORAGE_BACKEND=dynamodb`) - by default Cognito
+  sends confirmation/reset emails from its own domain with a limit of
+  **~50 emails/day**. For real traffic, configure Amazon SES (verified
+  domain) as the User Pool's email provider, otherwise some users won't
+  receive their confirmation email. Details:
+  [AWS Cognito email settings](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-email.html).
+- **CI** - `.github/workflows/ci.yml` now includes `npm run build`
+  (separate from lint/typecheck/e2e) to catch build failures before merge.
+
+---
+
 ## Development commands
 
 | Command | Description |

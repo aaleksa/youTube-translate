@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   isEmailVerificationEnabledOnClient,
   isGoogleAuthConfiguredOnClient,
@@ -203,14 +204,35 @@ export default function AuthPanel() {
           )}
 
           {authView === 'signup' && (
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={() => submit(() => signUp(email, password))}
-              className="w-full min-h-11 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
-            >
-              {t('auth.signUp')}
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => submit(() => signUp(email, password))}
+                className="w-full min-h-11 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {t('auth.signUp')}
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('auth.agreeToTermsPrefix')}{' '}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="underline hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  {t('auth.privacyPolicy')}
+                </Link>{' '}
+                {t('auth.and')}{' '}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="underline hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  {t('auth.termsOfService')}
+                </Link>
+                .
+              </p>
+            </>
           )}
 
           {authView === 'confirm' && (

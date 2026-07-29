@@ -66,6 +66,15 @@ export default function FaqPageContent() {
             </a>
           ) : null}
         </section>
+
+        <footer className="mt-6 flex justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <Link href="/privacy" className="hover:underline">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:underline">
+            Terms of Service
+          </Link>
+        </footer>
       </div>
     </main>
   );
