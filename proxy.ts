@@ -152,7 +152,31 @@ const RULES: RateLimitRule[] = [
   },
 ];
 
+function isRateLimitDisabled(): boolean {
+  // E2E / CI runs many auth flows from a single loopback IP against one
+  // process; the in-memory limiter would flake tests without adding
+  // production value. Opt out via env (set by Playwright webServer + CI).
+  const flag = process.env.RATE_LIMIT_DISABLED?.trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
+}
+
+function shouldSkipRateLimitForIp(ip: string): boolean {
+  // Playwright / local curl hit Next without a reverse proxy, so there is
+  // no X-Forwarded-For and the IP resolves to "unknown". Bucket-all-as-one
+  // would flake e2e and also wrongly throttle every unidentified client
+  // together in misconfigured prod — skip instead.
+  if (ip === 'unknown' || ip === '') return true;
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    ip === 'localhost' ||
+    ip === '::ffff:127.0.0.1'
+  );
+}
+
 function checkRateLimit(request: NextRequest): NextResponse | null {
+  if (isRateLimitDisabled()) return null;
+
   const { pathname } = request.nextUrl;
   const rule = RULES.find((r) => r.matches(pathname));
   if (!rule) return null;
@@ -161,6 +185,8 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
   cleanupStaleBuckets(now);
 
   const ip = getClientIp(request);
+  if (shouldSkipRateLimitForIp(ip)) return null;
+
   const key = `${rule.id}:${ip}`;
   const bucket = buckets.get(key);
 

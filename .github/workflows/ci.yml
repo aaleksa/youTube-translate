@@ -58,6 +58,9 @@ jobs:
       NEXT_PUBLIC_BACKEND_V2_ENABLED: 'true'
       NEXT_PUBLIC_STORAGE_BACKEND: local
       OPENAI_API_KEY: sk-ci-placeholder
+      # Parallel Playwright workers share one Next.js process + loopback IP;
+      # disable the in-memory API rate limiter so auth flows don't flake.
+      RATE_LIMIT_DISABLED: 'true'
     steps:
       - uses: actions/checkout@v4
 

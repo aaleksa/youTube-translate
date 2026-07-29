@@ -91,5 +91,11 @@ export default defineConfig({
     url: testBaseUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      // Auth e2e fires many signup/login calls from one loopback IP;
+      // keep the in-memory rate limiter from flaking the suite.
+      RATE_LIMIT_DISABLED: 'true',
+    },
   },
 });
