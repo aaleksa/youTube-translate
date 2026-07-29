@@ -23,6 +23,7 @@
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
     "@react-oauth/google": "^0.13.5",
+    "@sentry/nextjs": "^10.69.0",
     "@serwist/next": "^9.5.11",
     "axios": "^1.17.0",
     "bcryptjs": "^3.0.3",
