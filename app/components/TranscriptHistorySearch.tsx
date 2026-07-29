@@ -26,6 +26,10 @@ function readHistoryEntries(userId: string | undefined): TranscriptHistoryEntry[
   return getTranscriptHistory();
 }
 
+function youtubeThumbnailUrl(videoId: string): string {
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
 interface TranscriptHistorySearchProps {
   isLoading: boolean;
   refreshKey?: number;
@@ -95,26 +99,34 @@ export default function TranscriptHistorySearch({
     }
   };
 
+  // Empty history: hide the whole section (no search/clear chrome).
   if (entries.length === 0 && !query.trim()) {
     return null;
   }
 
   return (
-    <div className="mt-5 pt-4 border-t border-blue-400/40">
+    <section
+      aria-label={t('history.title')}
+      className="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70 sm:p-5"
+    >
       <div className="flex items-center justify-between gap-2 mb-1">
-        <p className="text-sm font-semibold text-blue-100">{t('history.title')}</p>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          {t('history.title')}
+        </h2>
         {entries.length > 0 && (
           <button
             type="button"
             onClick={handleClear}
-            className="text-xs text-blue-200 hover:text-white transition"
+            className="text-xs text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 transition"
           >
             {t('common.clear')}
           </button>
         )}
       </div>
       {!query.trim() && (
-        <p className="text-xs text-blue-200/90 mb-3">{t('history.recentHint')}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {t('history.recentHint')}
+        </p>
       )}
 
       <input
@@ -122,58 +134,66 @@ export default function TranscriptHistorySearch({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t('history.searchPlaceholder')}
-        className="w-full px-3 py-2 mb-3 rounded-lg bg-white/95 text-gray-800 placeholder-gray-400 dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-white dark:focus:ring-blue-400 focus:outline-none"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 bg-white text-gray-800 placeholder-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
       />
 
       {query.trim() && results.length === 0 && (
-        <p className="text-sm text-blue-200 mb-2">{t('history.noResults')}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          {t('history.noResults')}
+        </p>
       )}
 
       {results.length > 0 && (
-        <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
+        <ul className="space-y-2 max-h-72 overflow-y-auto pr-1">
           {results.map(({ entry, matchedIn, snippet }) => (
             <li
               key={`${entry.videoId}-${entry.savedAt}`}
-              className="flex items-start gap-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
+              className="group flex items-stretch gap-2 rounded-lg border border-transparent bg-gray-50 transition hover:border-blue-200 hover:bg-blue-50/70 dark:bg-gray-800/70 dark:hover:border-blue-700 dark:hover:bg-gray-800"
             >
               <button
                 type="button"
                 onClick={() => onLoad(entry)}
                 disabled={isLoading}
-                className="flex-1 text-left px-3 py-2 min-w-0 disabled:opacity-50"
-                title={entry.url}
+                className="flex flex-1 items-start gap-3 text-left px-2.5 py-2 min-w-0 disabled:opacity-50"
+                title={entry.title}
               >
-                <span className="block text-sm font-medium line-clamp-2">
-                  {entry.title}
-                </span>
-                {!query.trim() && (
-                  <span className="block text-xs text-blue-200/80 mt-0.5 truncate">
-                    {entry.url}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={youtubeThumbnailUrl(entry.videoId)}
+                  alt=""
+                  width={96}
+                  height={54}
+                  loading="lazy"
+                  className="h-14 w-24 shrink-0 rounded-md object-cover bg-gray-200 dark:bg-gray-700"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                    {entry.title}
                   </span>
-                )}
-                {snippet && (
-                  <span className="block text-xs text-blue-100/90 mt-1 line-clamp-2">
-                    {snippet}
-                  </span>
-                )}
-                <span className="flex flex-wrap items-center gap-2 text-xs text-blue-300/80 mt-1">
-                  <span>{formatHistoryDate(entry.savedAt, locale)}</span>
-                  {matchedIn.includes('title') && (
-                    <span className="px-1.5 py-0.5 rounded bg-white/15">
-                      {t('history.matchTitle')}
+                  {snippet && (
+                    <span className="block text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                      {snippet}
                     </span>
                   )}
-                  {matchedIn.includes('text') && (
-                    <span className="px-1.5 py-0.5 rounded bg-white/15">
-                      {t('history.matchText')}
-                    </span>
-                  )}
+                  <span className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <span>{formatHistoryDate(entry.savedAt, locale)}</span>
+                    {matchedIn.includes('title') && (
+                      <span className="px-1.5 py-0.5 rounded bg-gray-200/80 dark:bg-gray-700">
+                        {t('history.matchTitle')}
+                      </span>
+                    )}
+                    {matchedIn.includes('text') && (
+                      <span className="px-1.5 py-0.5 rounded bg-gray-200/80 dark:bg-gray-700">
+                        {t('history.matchText')}
+                      </span>
+                    )}
+                  </span>
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => handleRemove(entry.videoId)}
-                className="shrink-0 px-3 py-2 text-blue-200 hover:text-white transition"
+                className="shrink-0 self-center px-3 py-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition"
                 aria-label={t('history.remove')}
               >
                 ✕
@@ -182,6 +202,6 @@ export default function TranscriptHistorySearch({
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
