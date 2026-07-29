@@ -8,9 +8,7 @@ import InterfaceLanguageSelect from './InterfaceLanguageSelect';
 import ImportExportSettings from './ImportExportSettings';
 import LearningSettings from './LearningSettings';
 import TaskLanguageSelect from './TaskLanguageSelect';
-
-const topBarButtonClass =
-  'p-2.5 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-md';
+import { topBarIconButton } from './topBarStyles';
 
 export default function AppSettingsPanel() {
   const { t } = useI18n();
@@ -46,7 +44,7 @@ export default function AppSettingsPanel() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={t('settings.ariaLabel')}
-        className={`${topBarButtonClass} ${open ? 'ring-2 ring-blue-500/50' : ''}`}
+        className={`${topBarIconButton} ${open ? 'ring-2 ring-blue-500/50' : ''}`}
       >
         ⚙️
       </button>

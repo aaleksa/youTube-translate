@@ -53,24 +53,27 @@ export default function SyncStatusBadge() {
           ? 'sync.statusPending'
           : 'sync.statusSynced';
 
-  const className =
+  const dotClass =
     state === 'offline'
-      ? 'border-amber-300/80 bg-amber-50/95 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/90 dark:text-amber-100'
+      ? 'bg-amber-500'
       : state === 'syncing'
-        ? 'border-blue-300/80 bg-blue-50/95 text-blue-950 dark:border-blue-500/40 dark:bg-blue-950/90 dark:text-blue-100'
+        ? 'bg-blue-500 animate-pulse'
         : state === 'pending'
-          ? 'border-slate-300/80 bg-slate-50/95 text-slate-800 dark:border-slate-500/40 dark:bg-slate-900/90 dark:text-slate-100'
-          : 'border-emerald-300/80 bg-emerald-50/95 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950/90 dark:text-emerald-100';
+          ? 'bg-slate-400'
+          : 'bg-emerald-500';
+
+  const label = t(labelKey);
 
   return (
     <span
       role="status"
       data-testid="sync-status-badge"
       data-sync-state={state}
-      className={`inline-flex max-w-[9rem] items-center rounded-full border px-2 py-0.5 text-[11px] font-medium leading-tight backdrop-blur ${className}`}
-      title={t(labelKey)}
+      className="inline-flex h-9 max-w-[9.5rem] items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium text-gray-600 dark:text-gray-300"
+      title={label}
     >
-      {t(labelKey)}
+      <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
+      <span className="truncate">{label}</span>
     </span>
   );
 }

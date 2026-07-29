@@ -8,12 +8,12 @@ import { isStripeConfiguredOnClient } from '../../lib/v2/config';
 import { useI18n } from '../InterfaceLanguageProvider';
 import { useAuth } from '../auth/AuthProvider';
 
-const topBarButtonClass =
-  'px-3 py-2 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-md text-sm font-medium';
-
 function formatAiUsage(
   info: PremiumAccessInfo,
-  t: (key: 'premium.aiUnlimited' | 'premium.aiUsage', params?: Record<string, string | number>) => string
+  t: (
+    key: 'premium.aiUnlimited' | 'premium.aiUsage',
+    params?: Record<string, string | number>
+  ) => string
 ): string {
   if (info.isPremium && info.aiUsage.limit === null) {
     return t('premium.aiUnlimited');
@@ -88,32 +88,46 @@ export default function PremiumStatus() {
     }
   };
 
+  const usageTone = info.isPremium
+    ? 'text-amber-800 dark:text-amber-100'
+    : isLow
+      ? 'text-red-700 dark:text-red-200'
+      : 'text-gray-700 dark:text-gray-200';
+
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div
+        className={`inline-flex h-9 items-center overflow-hidden rounded-full border text-xs font-medium ${
+          info.isPremium
+            ? 'border-amber-300/70 bg-amber-50/90 dark:border-amber-500/40 dark:bg-amber-950/50'
+            : isLow
+              ? 'border-red-300/70 bg-red-50/90 dark:border-red-500/40 dark:bg-red-950/40'
+              : 'border-gray-200/80 bg-gray-50/90 dark:border-gray-600 dark:bg-gray-800/80'
+        }`}
+      >
         <span
           data-testid="premium-ai-usage"
-          className={`hidden sm:inline text-xs font-medium px-2 py-1 rounded-md border ${
-            info.isPremium
-              ? 'border-amber-300/80 bg-amber-50 text-amber-900 dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-100'
-              : isLow
-                ? 'border-red-300/80 bg-red-50 text-red-800 dark:border-red-500/50 dark:bg-red-950/40 dark:text-red-100'
-                : 'border-gray-200 bg-white/90 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'
-          }`}
+          className={`px-2.5 py-1 ${usageTone}`}
           title={usageLabel}
         >
           {usageLabel}
         </span>
 
         {!info.isPremium && (
-          <button
-            type="button"
-            data-testid="premium-upgrade-button"
-            onClick={() => setShowUpgrade(true)}
-            className={`${topBarButtonClass} border-amber-300/80 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-900/50`}
-          >
-            {t('premium.upgrade')}
-          </button>
+          <>
+            <span
+              aria-hidden="true"
+              className="h-4 w-px bg-gray-300/80 dark:bg-gray-600"
+            />
+            <button
+              type="button"
+              data-testid="premium-upgrade-button"
+              onClick={() => setShowUpgrade(true)}
+              className="h-full px-2.5 py-1 font-semibold text-amber-800 transition hover:bg-amber-100/80 dark:text-amber-100 dark:hover:bg-amber-900/40"
+            >
+              {t('premium.upgrade')}
+            </button>
+          </>
         )}
       </div>
 

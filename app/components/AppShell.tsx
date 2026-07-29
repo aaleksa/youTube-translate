@@ -17,6 +17,7 @@ import SyncStatusBadge from './SyncStatusBadge';
 import PremiumCheckoutReturn from './premium/PremiumCheckoutReturn';
 import { useI18n } from './InterfaceLanguageProvider';
 import ThemeToggle from './ThemeToggle';
+import { topBarDivider, topBarShell } from './topBarStyles';
 
 const PUBLIC_ROUTES = new Set(['/faq', '/privacy', '/terms', '/~offline']);
 
@@ -80,13 +81,19 @@ function AuthenticatedMain({ children }: { children: ReactNode }) {
 function AppShellChrome({ children }: { children: ReactNode }) {
   return (
     <>
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
-        <PremiumStatus />
-        <SyncStatusBadge />
-        <AuthButton />
-        <InstallAppButton />
-        <AppSettingsPanel />
-        <ThemeToggle />
+      <div className="fixed top-3 right-3 z-50 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] sm:top-4 sm:right-4">
+        <div className={topBarShell}>
+          <PremiumStatus />
+          <SyncStatusBadge />
+          <span aria-hidden="true" className={topBarDivider} />
+          <AuthButton />
+          <span aria-hidden="true" className={topBarDivider} />
+          <div className="flex items-center gap-0.5">
+            <InstallAppButton />
+            <AppSettingsPanel />
+            <ThemeToggle />
+          </div>
+        </div>
       </div>
       <OfflineStatusBanner />
       <SyncConflictBanner />

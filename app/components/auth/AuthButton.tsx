@@ -2,9 +2,7 @@
 
 import { useAuth } from './AuthProvider';
 import { useI18n } from '../InterfaceLanguageProvider';
-
-const topBarButtonClass =
-  'px-3 py-2 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-md text-sm font-medium';
+import { topBarTextButton } from '../topBarStyles';
 
 export default function AuthButton() {
   const { t } = useI18n();
@@ -13,16 +11,28 @@ export default function AuthButton() {
   if (!enabled || !ready) return null;
 
   if (isAuthenticated && user) {
+    const shortEmail =
+      user.email.length > 22
+        ? `${user.email.slice(0, 10)}…${user.email.slice(-8)}`
+        : user.email;
+
     return (
-      <div className="flex items-center gap-2">
-        <span className="hidden sm:inline text-sm text-gray-700 dark:text-gray-200 max-w-[10rem] truncate">
-          {user.email}
+      <div className="inline-flex h-9 max-w-[16rem] items-center overflow-hidden rounded-full border border-gray-200/80 bg-gray-50/90 dark:border-gray-600 dark:bg-gray-800/80">
+        <span
+          className="hidden min-w-0 truncate px-2.5 text-xs text-gray-600 dark:text-gray-300 sm:inline"
+          title={user.email}
+        >
+          {shortEmail}
         </span>
+        <span
+          aria-hidden="true"
+          className="hidden h-4 w-px bg-gray-300/80 dark:bg-gray-600 sm:block"
+        />
         <button
           type="button"
           data-testid="auth-logout-button"
           onClick={() => void logout()}
-          className={topBarButtonClass}
+          className={`${topBarTextButton} rounded-none rounded-r-full px-2.5 text-xs`}
         >
           {t('auth.logout')}
         </button>
@@ -35,7 +45,7 @@ export default function AuthButton() {
       type="button"
       data-testid="auth-login-button"
       onClick={() => openAuth('login')}
-      className={topBarButtonClass}
+      className={`${topBarTextButton} rounded-full border border-gray-200/80 bg-gray-50/90 px-3 dark:border-gray-600 dark:bg-gray-800/80`}
     >
       {t('auth.login')}
     </button>
