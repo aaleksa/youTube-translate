@@ -286,6 +286,7 @@ export default function TranscriptDisplay({
   const [selectionError, setSelectionError] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translations, setTranslations] = useState<string[] | null>(null);
   const [translating, setTranslating] = useState(false);
@@ -624,78 +625,100 @@ export default function TranscriptDisplay({
     <div className="w-full">
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-gray-800/60">
-          <div>
+          <button
+            type="button"
+            onClick={() => setCollapsed((prev) => !prev)}
+            aria-expanded={!collapsed}
+            className="min-w-0 flex-1 text-left rounded-lg px-1 py-0.5 -mx-1 transition hover:bg-gray-100/80 dark:hover:bg-gray-700/50"
+          >
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {t('transcript.title')}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {transcript.length} {t('transcript.lines')}
-              {onSeek && ` · ${t('transcript.seekHint')}`}
+              {!collapsed && onSeek ? ` · ${t('transcript.seekHint')}` : ''}
+              {collapsed && translationEnabled
+                ? ` · ${t('transcript.translationOn', { code: translationShortCode })}`
+                : ''}
             </p>
-          </div>
+          </button>
 
           <div className="flex flex-wrap items-center gap-2">
-            <ToolbarMenu
-              label={copied ? '✓ Export' : t('actions.export')}
-              active={copied}
-              items={[
-                {
-                  id: 'copy',
-                  label: copied ? '✓ Copied' : '📋 Copy text',
-                  onClick: handleCopyText,
-                },
-                {
-                  id: 'txt',
-                  label: '📄 Download .txt',
-                  onClick: handleDownloadText,
-                },
-                {
-                  id: 'srt',
-                  label: '🎬 Export .srt',
-                  onClick: handleExportSrt,
-                },
-                {
-                  id: 'vtt',
-                  label: '📺 Export .vtt',
-                  onClick: handleExportVtt,
-                },
-                {
-                  id: 'markdown',
-                  label: t('export.markdown'),
-                  onClick: handleExportMarkdown,
-                },
-                {
-                  id: 'pdf',
-                  label: exportingPdf ? '…' : t('export.pdf'),
-                  onClick: handleExportPdf,
-                  disabled: exportingPdf,
-                },
-              ]}
-            />
+            {!collapsed && (
+              <>
+                <ToolbarMenu
+                  label={copied ? '✓ Export' : t('actions.export')}
+                  active={copied}
+                  items={[
+                    {
+                      id: 'copy',
+                      label: copied ? '✓ Copied' : '📋 Copy text',
+                      onClick: handleCopyText,
+                    },
+                    {
+                      id: 'txt',
+                      label: '📄 Download .txt',
+                      onClick: handleDownloadText,
+                    },
+                    {
+                      id: 'srt',
+                      label: '🎬 Export .srt',
+                      onClick: handleExportSrt,
+                    },
+                    {
+                      id: 'vtt',
+                      label: '📺 Export .vtt',
+                      onClick: handleExportVtt,
+                    },
+                    {
+                      id: 'markdown',
+                      label: t('export.markdown'),
+                      onClick: handleExportMarkdown,
+                    },
+                    {
+                      id: 'pdf',
+                      label: exportingPdf ? '…' : t('export.pdf'),
+                      onClick: handleExportPdf,
+                      disabled: exportingPdf,
+                    },
+                  ]}
+                />
+                <button
+                  type="button"
+                  onClick={toggleAutoScroll}
+                  title={
+                    autoScroll
+                      ? t('transcript.scrollTooltipOn')
+                      : t('transcript.scrollTooltipOff')
+                  }
+                  aria-label={
+                    autoScroll
+                      ? t('transcript.scrollAriaOn')
+                      : t('transcript.scrollAriaOff')
+                  }
+                  className={`px-3 py-1.5 text-sm rounded-lg transition ${
+                    autoScroll
+                      ? 'bg-indigo-500 text-white hover:bg-indigo-600'
+                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {autoScroll ? t('actions.scrollOn') : t('actions.scroll')}
+                </button>
+              </>
+            )}
             <button
               type="button"
-              onClick={toggleAutoScroll}
-              title={
-                autoScroll
-                  ? t('transcript.scrollTooltipOn')
-                  : t('transcript.scrollTooltipOff')
-              }
-              aria-label={
-                autoScroll
-                  ? t('transcript.scrollAriaOn')
-                  : t('transcript.scrollAriaOff')
-              }
-              className={`px-3 py-1.5 text-sm rounded-lg transition ${
-                autoScroll
-                  ? 'bg-indigo-500 text-white hover:bg-indigo-600'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
+              onClick={() => setCollapsed((prev) => !prev)}
+              aria-expanded={!collapsed}
+              className="shrink-0 px-2 py-1.5 text-sm rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition"
             >
-              {autoScroll ? t('actions.scrollOn') : t('actions.scroll')}
+              {collapsed ? t('transcript.expand') : t('transcript.collapse')}
             </button>
           </div>
         </div>
 
+        {!collapsed && (
+          <>
         <div className="px-4 sm:px-5 py-4 space-y-3 border-b border-gray-100 dark:border-gray-700/80">
           <TranslationLanguageSelect
             selectedLanguage={translationLanguage}
@@ -865,6 +888,8 @@ export default function TranscriptDisplay({
             </p>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
