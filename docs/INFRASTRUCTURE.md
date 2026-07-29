@@ -68,7 +68,17 @@ DYNAMODB_TABLE_NAME=...
 AWS_REGION=eu-west-1
 ```
 
-Next.js `/api/v2/*` можна вимкнути на проді (frontend б’є напряму в API Gateway).
+Більшість `/api/v2/*` (flashcards, decks, bookmarks, progress, settings тощо)
+можна перевести на пряме звернення `NEXT_PUBLIC_API_BASE_URL` → API Gateway.
+
+⚠️ **Виняток:** `POST /api/v2/billing/checkout` і `POST /api/v2/billing/webhook`
+**не реалізовані** в Lambda-роутері (`v2-core/lambda/api-router.ts`) — Stripe
+webhook повинен бити на публічний HTTP-endpoint, а не на API Gateway з Cognito
+JWT authorizer. Ці два маршрути (і всі legacy AI/transcript-роути на кшталт
+`/api/transcript`, `/api/coach-advice` тощо, яким потрібні `yt-dlp`/OpenAI)
+завжди залишаються на Next.js (Vercel), навіть коли `STORAGE_BACKEND=dynamodb`.
+Next.js у цьому режимі пише напряму в DynamoDB через AWS SDK (потрібні
+AWS-креденшели/`AWS_REGION`/`DYNAMODB_TABLE_NAME` як env vars у Vercel).
 
 ## Local vs AWS
 
