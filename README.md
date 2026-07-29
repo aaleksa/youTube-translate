@@ -636,4 +636,4 @@ npm start
 
 ## Ліцензія
 
-MIT
+[MIT](./LICENSE)

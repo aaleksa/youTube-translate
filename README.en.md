@@ -676,4 +676,4 @@ With **Backend V2** enabled, sign up or sign in first (button top-right).
 
 ## License
 
-MIT
+[MIT](./LICENSE)
